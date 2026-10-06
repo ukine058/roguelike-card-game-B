@@ -174,6 +174,12 @@
   /* ブロックをHPバー内に表示 */
   .hpbar-wrap.has-block{ border-color:var(--blk); box-shadow:0 0 6px rgba(92,200,232,.45); }
   .hpbar-text{ gap:5px; }
+  #eo-list{ margin-bottom:12px; }
+  .eo-item{ display:flex; align-items:center; gap:8px; padding:6px 8px; margin-bottom:4px; background:var(--bg-void); border:1px solid var(--line); border-radius:4px; font-size:13px; }
+  .eo-item.dragging{ border-color:var(--blk); opacity:.8; }
+  .eo-handle{ cursor:grab; touch-action:none; user-select:none; padding:2px 6px; color:var(--parchment-dim); }
+  .eo-label{ flex:1; }
+  .eo-btn{ padding:0 8px; min-width:0; height:26px; }
   .hpbar-block{ display:inline-flex; align-items:center; gap:2px; padding:0 6px; height:15px; line-height:15px; border-radius:8px; font-size:inherit; font-weight:700; color:var(--blk); white-space:nowrap; text-shadow:none; border:1px solid var(--blk); background:linear-gradient(rgba(92,200,232,.12),rgba(92,200,232,.12)), #0b1a20; }
   .hpbar-block .blk-auto{ font-size:inherit; font-weight:inherit; opacity:1; }
   .combatant .statuses{ min-height:26px; }
@@ -1031,6 +1037,7 @@ function normalizeStatusEffect(x){
   }
   return e;
 }
+function parseExclTags(v){ return Array.isArray(v) ? v.map(cleanTag).filter((t,i,a)=>t && a.indexOf(t)===i) : parseTags(v); }
 function normalizeCustomStatus(st){
   st = {...st};
   st.tags = (Array.isArray(st.tags) ? st.tags : []).map(cleanTag).filter((t,i,a)=>t && a.indexOf(t)===i);
@@ -1038,6 +1045,11 @@ function normalizeCustomStatus(st){
   if(st.target!=='opponent') st.target = 'self';
   if(!Number.isFinite(st.perTurnDelta)) st.perTurnDelta = 0;
   st.persistent = !!st.persistent;
+  // 排他: 付与のときに、指定タグ（組み込みの強化・弱体などの同名タグも可）の状態をどう扱うか
+  st.exclOverwrite = parseExclTags(st.exclOverwrite);   // 付与する前に、これらのタグの状態をすべて取り除く
+  st.exclYield = parseExclTags(st.exclYield);           // これらのタグの状態が付与されている間は、自分を付与しない
+  st.exclReplaced = parseExclTags(st.exclReplaced);     // これらのタグの状態が後から付与されたら、自分が消える
+  st.exclGuard = parseExclTags(st.exclGuard);           // 自分がいる間、これらのタグの状態の付与を無効にする
   st.effects = (Array.isArray(st.effects) ? st.effects : []).map(normalizeStatusEffect).filter(Boolean);
   return st;
 }
@@ -1672,12 +1684,13 @@ function reduceTagStatuses(entity, tag, amount){
 function normalizeCardStatusOp(o){
   if(!o || typeof o!=='object' || !o.enabled) return {enabled:false};
   return {enabled:true, side:['self','opponent','both'].includes(o.side)?o.side:'self', tag:cleanTag(o.tag),
-    mode:o.mode==='reduce'?'reduce':'removeAll', amount:clampInt(o.amount,0,99,1)};
+    mode:o.mode==='reduce'?'reduce':'removeAll', amount:clampInt(o.amount,0,99,1), first:!!o.first};
 }
 function statusOpText(op){
   if(!op || !op.enabled || !op.tag) return '';
   const who = op.side==='opponent' ? '相手' : (op.side==='both' ? '自分と相手' : '自分');
-  return op.mode==='reduce' ? `${who}の[${op.tag}]の状態を${op.amount}減らす` : `${who}の[${op.tag}]の状態をすべて取り除く`;
+  const base = op.mode==='reduce' ? `${who}の[${op.tag}]の状態を${op.amount}減らす` : `${who}の[${op.tag}]の状態をすべて取り除く`;
+  return op.first ? base+'（付与より先）' : base;
 }
 // selfE＝このカードを使った側、foeE＝その相手
 function applyStatusOp(op, selfE, foeE, name){
@@ -1698,6 +1711,77 @@ function setCustomStatusStacks(entity, statusId, val){
 }
 function addCustomStatusStacks(entity, statusId, delta){
   setCustomStatusStacks(entity, statusId, customStatusStacks(entity, statusId) + delta);
+}
+// ===== 排他（付与のときだけ判定。ターンごとの増減・消費では働かない。自分自身は数えない） =====
+function exclWho(entity){ return (S.run && entity===S.run.player) ? 'あなた' : ((entity && entity.name) || ''); }
+// 自分（selfId）以外で、そのタグを持つ状態の合計（組み込みの同名タグを含む）
+function otherTagStacks(entity, tag, selfId){
+  if(!entity || !tag) return 0;
+  let sum = BUILTIN_STATUS_TAGS[tag] ? BUILTIN_STATUS_TAGS[tag](entity) : 0;
+  (S.customStatuses||[]).forEach(x=>{ if(x.id!==selfId && (x.tags||[]).includes(tag)) sum += customStatusStacks(entity, x.id); });
+  return sum;
+}
+// 自分以外の、そのタグの状態をすべて取り除く（永続の強化・器用などは対象外）。取り除いた合計を返す
+function removeOtherTagStatuses(entity, tag, selfId){
+  let total = 0;
+  (BUILTIN_TAG_FIELDS[tag]||[]).forEach(f=>{ const cur = entity[f]||0; if(cur>0){ entity[f] = 0; total += cur; } });
+  (S.customStatuses||[]).forEach(x=>{
+    if(x.id===selfId || !(x.tags||[]).includes(tag)) return;
+    const cur = customStatusStacks(entity, x.id);
+    if(cur>0){ setCustomStatusStacks(entity, x.id, 0); total += cur; }
+  });
+  return total;
+}
+function exclLog(msg){ try{ pushLog(msg); }catch(e){} }
+// 組み込みの状態（欄名）が持つ同名タグ
+const BUILTIN_FIELD_TAG = {strength:'強化', permStrength:'強化', dexterity:'器用', permDexterity:'器用', weak:'弱体', vulnerable:'脆弱',
+  poison:'毒', regen:'再生', stun:'麻痺', metallicize:'自動ブロック', permMetallicize:'自動ブロック', thorns:'棘', permThorns:'棘'};
+// g＝いま付与されようとしている状態 {id（カスタム状態のid。組み込みはnull）, name, tags}
+// ④ すでにいる別の状態が「付与を無効にする」設定で、g のタグに当たるなら、付与を止める
+function exclGuardBlocks(entity, g){
+  const guard = (S.customStatuses||[]).find(h=> h.id!==g.id && customStatusStacks(entity, h.id)>0 && (h.exclGuard||[]).some(t=>g.tags.includes(t)));
+  if(!guard) return false;
+  exclLog(`${exclWho(entity)}は${guard.emoji||''}${guard.name}があるため、${g.name}は付与されなかった。`);
+  return true;
+}
+// ③ すでにいる別の状態が「後から付与されると消える」設定で、g のタグに当たるなら、その状態を消す
+function exclRemoveReplaced(entity, g){
+  (S.customStatuses||[]).forEach(h=>{
+    if(h.id===g.id || !(customStatusStacks(entity, h.id)>0)) return;
+    if(!(h.exclReplaced||[]).some(t=>g.tags.includes(t))) return;
+    setCustomStatusStacks(entity, h.id, 0);
+    exclLog(`${g.name}が付与されたため、${exclWho(entity)}の${h.emoji||''}${h.name}が消えた。`);
+  });
+}
+// 組み込みの状態を「付与」する（ある欄にvを足す）。付与されなければ0を返す
+function grantBuiltin(entity, field, v){
+  if(!(v>0)) return 0;
+  const tag = BUILTIN_FIELD_TAG[field];
+  const g = {id:null, name:tag||field, tags: tag ? [tag] : []};
+  if(tag && exclGuardBlocks(entity, g)) return 0;
+  entity[field] = (entity[field]||0) + v;
+  if(tag) exclRemoveReplaced(entity, g);
+  return v;
+}
+// カスタム状態を「付与」する。排他の設定に従い、付与されなければ0を返す（スタックを減らす操作はそのまま通す）
+// 判定の順: ④（守る）→ ②（先着に負ける）→ ①（上書きする）→ 付与 → ③（後から上書きされる）
+function grantCustomStatus(entity, statusId, delta){
+  if(!(delta>0)){ addCustomStatusStacks(entity, statusId, delta); return delta; }
+  const st = (S.customStatuses||[]).find(x=>x.id===statusId);
+  const nm = st ? `${st.emoji||''}${st.name}` : '';
+  const g = {id:statusId, name:nm, tags:(st&&st.tags)||[]};
+  if(st){
+    if(exclGuardBlocks(entity, g)) return 0;
+    const yTag = (st.exclYield||[]).find(t=> otherTagStacks(entity, t, statusId)>0);
+    if(yTag){ exclLog(`${exclWho(entity)}は[${yTag}]の状態を持っているため、${nm}は付与されなかった。`); return 0; }
+    (st.exclOverwrite||[]).forEach(t=>{
+      const n = removeOtherTagStatuses(entity, t, statusId);
+      if(n>0) exclLog(`${nm}の付与で、${exclWho(entity)}の[${t}]の状態が取り除かれた。`);
+    });
+  }
+  addCustomStatusStacks(entity, statusId, delta);
+  if(st) exclRemoveReplaced(entity, g);
+  return delta;
 }
 // 'fixed': the configured value applies as-is, regardless of stack count (stacks just
 // count down as a duration, like weak/vulnerable). 'perStack': the configured value is
@@ -1746,7 +1830,7 @@ function reviveIfAble(entity, name){
     (eff.reviveGrants||[]).forEach(g=>{
       const gs = (S.customStatuses||[]).find(x=>x.id===g.statusId);
       if(!gs || !(g.stacks>0)) return;
-      addCustomStatusStacks(entity, gs.id, g.stacks);
+      if(grantCustomStatus(entity, gs.id, g.stacks)===0) return;   // 排他で付与されなかった
       pushLog(`${name||'倒れかけた者'}は${gs.emoji||''}${gs.name}+${g.stacks}を得た。`);
     });
     return true;
@@ -1937,74 +2021,83 @@ function applyEnemyCardPayload(r, e, c){
   for(let rep=0; rep<replays; rep++){
     if(e.hp<=0 || p.hp<=0) break;
     const V = key=> enemyVal(c, key);
-    const dmg = V('damage');
-    if(dmg>0){
-      applyDamageToPlayer(dmg + e.strength, c.pierce);
-      const lh = r.lastHit;
-      if(lh && lh.total>0){ (r.damageEvents = r.damageEvents||[]).push({...lh}); }
-      logEnemyHit(e, c, lh, {base:c.damage||0, scale:dmg-(c.damage||0), str:e.strength});
-      const st = r.enemyTurnStat;
-      if(st && lh && lh.total>0){ st.hits++; st.total += lh.total; st.blocked += lh.blocked; st.hpLoss += lh.hpBefore - lh.hpAfter; }
-      // 吸収: ブロックで防がれた分は回復しない。実際にHPを減らせた分だけ回復する。
-      if(c.lifesteal){
-        const heal = lh ? lh.hpLoss : 0;
-        if(heal>0){ const b = e.hp; e.hp = Math.min(e.maxHp, e.hp + heal); pushLog(`${e.name}は吸収で${e.hp-b}回復（敵HP ${b}→${e.hp}）。`, 'deal'); }
-        else if(lh && lh.total>0) pushLog(`${e.name}の吸収: 全て防がれたので回復なし。`, 'guard');
-      }
-      const reflectTotal = p.thorns + p.permThorns + customReflectDamage(p);
-      if(reflectTotal>0){
-        const eBefore = e.hp;
-        e.hp = Math.max(0, e.hp - reflectTotal);
-        pushLog(`棘によって${e.name}に${reflectTotal}ダメージ（敵HP ${eBefore}→${e.hp}）。`, 'deal');
-      }
-    }
-    const blk = V('block');
-    if(blk>0){
-      const total = Math.max(0, blk + customBlockGainBonus(e));
-      const bBefore = e.block;
-      e.block += total;
-      logBlockGain(`${e.name}：${c.name}`, e.name, 'e', total, {base:c.block||0, scale:blk-(c.block||0), flats:[{v:customBlockGainBonus(e), label:'状態'}]}, bBefore, e.block);
-    }
     const Lg = o=> logStat({name:`${e.name}：${c.name}`, ...o});
-    const heal = V('heal');
-    if(heal>0){
-      const before = e.hp; e.hp = Math.min(e.maxHp, e.hp + heal);
-      Lg({who:e.name, key:'e:hp', eff:'回復', v:heal, base:c.heal||0, before, after:e.hp, state:'HP'});
-    }
     const eGain = (ent, who, ek, field, v, base, eff, state, legacy)=>{
       if(v<=0) return;
-      const before = ent[field]||0; ent[field] = before + v;
+      const before = ent[field]||0;
+      if(grantBuiltin(ent, field, v)===0) return;   // 排他で付与されなかった
       Lg({who, key:ek+':'+field, eff, v, base, before, after:ent[field], state:state||eff, legacy});
     };
-    eGain(e, e.name, 'e', 'strength', V('strength') + V('permStrength'), (c.strength||0)+(c.permStrength||0), '強化', '強化', v=>`${e.name}は力を高めた！ 強化+${v}。`);
-    eGain(e, e.name, 'e', 'dexterity', V('dexterity') + V('permDexterity'), (c.dexterity||0)+(c.permDexterity||0), '器用');
-    eGain(e, e.name, 'e', 'metallicize', V('metallicize') + V('permMetallicize'), (c.metallicize||0)+(c.permMetallicize||0), '自動ブロック');
-    eGain(e, e.name, 'e', 'thorns', V('thorns') + V('permThorns'), (c.thorns||0)+(c.permThorns||0), '棘');
-    eGain(p, 'あなた', 'p', 'weak', V('weak'), c.weak||0, '弱体', '弱体', v=>`${e.name}の効果で弱体+${v}。`);
-    eGain(p, 'あなた', 'p', 'vulnerable', V('vulnerable'), c.vulnerable||0, '脆弱', '脆弱', v=>`${e.name}の効果で脆弱+${v}。`);
-    eGain(p, 'あなた', 'p', 'poison', V('poison'), c.poison||0, '毒', '毒', v=>`${e.name}の効果で毒+${v}。`);
+    const steps = {
+      damage(){
+        const dmg = V('damage');
+        if(!(dmg>0)) return;
+        applyDamageToPlayer(dmg + e.strength, c.pierce);
+        const lh = r.lastHit;
+        if(lh && lh.total>0){ (r.damageEvents = r.damageEvents||[]).push({...lh}); }
+        logEnemyHit(e, c, lh, {base:c.damage||0, scale:dmg-(c.damage||0), str:e.strength});
+        const st = r.enemyTurnStat;
+        if(st && lh && lh.total>0){ st.hits++; st.total += lh.total; st.blocked += lh.blocked; st.hpLoss += lh.hpBefore - lh.hpAfter; }
+        // 吸収: ブロックで防がれた分は回復しない。実際にHPを減らせた分だけ回復する。
+        if(c.lifesteal){
+          const heal = lh ? lh.hpLoss : 0;
+          if(heal>0){ const b = e.hp; e.hp = Math.min(e.maxHp, e.hp + heal); pushLog(`${e.name}は吸収で${e.hp-b}回復（敵HP ${b}→${e.hp}）。`, 'deal'); }
+          else if(lh && lh.total>0) pushLog(`${e.name}の吸収: 全て防がれたので回復なし。`, 'guard');
+        }
+        const reflectTotal = p.thorns + p.permThorns + customReflectDamage(p);
+        if(reflectTotal>0){
+          const eBefore = e.hp;
+          e.hp = Math.max(0, e.hp - reflectTotal);
+          pushLog(`棘によって${e.name}に${reflectTotal}ダメージ（敵HP ${eBefore}→${e.hp}）。`, 'deal');
+        }
+      },
+      block(){
+        const blk = V('block');
+        if(!(blk>0)) return;
+        const total = Math.max(0, blk + customBlockGainBonus(e));
+        const bBefore = e.block;
+        e.block += total;
+        logBlockGain(`${e.name}：${c.name}`, e.name, 'e', total, {base:c.block||0, scale:blk-(c.block||0), flats:[{v:customBlockGainBonus(e), label:'状態'}]}, bBefore, e.block);
+      },
+      heal(){
+        const heal = V('heal');
+        if(!(heal>0)) return;
+        const before = e.hp; e.hp = Math.min(e.maxHp, e.hp + heal);
+        Lg({who:e.name, key:'e:hp', eff:'回復', v:heal, base:c.heal||0, before, after:e.hp, state:'HP'});
+      },
+      strength(){ eGain(e, e.name, 'e', 'strength', V('strength') + V('permStrength'), (c.strength||0)+(c.permStrength||0), '強化', '強化', v=>`${e.name}は力を高めた！ 強化+${v}。`); },
+      dexterity(){ eGain(e, e.name, 'e', 'dexterity', V('dexterity') + V('permDexterity'), (c.dexterity||0)+(c.permDexterity||0), '器用'); },
+      metallicize(){ eGain(e, e.name, 'e', 'metallicize', V('metallicize') + V('permMetallicize'), (c.metallicize||0)+(c.permMetallicize||0), '自動ブロック'); },
+      thorns(){ eGain(e, e.name, 'e', 'thorns', V('thorns') + V('permThorns'), (c.thorns||0)+(c.permThorns||0), '棘'); },
+      weak(){ eGain(p, 'あなた', 'p', 'weak', V('weak'), c.weak||0, '弱体', '弱体', v=>`${e.name}の効果で弱体+${v}。`); },
+      vulnerable(){ eGain(p, 'あなた', 'p', 'vulnerable', V('vulnerable'), c.vulnerable||0, '脆弱', '脆弱', v=>`${e.name}の効果で脆弱+${v}。`); },
+      poison(){ eGain(p, 'あなた', 'p', 'poison', V('poison'), c.poison||0, '毒', '毒', v=>`${e.name}の効果で毒+${v}。`); },
+      statusOp(){ applyStatusOp(c.statusOp, e, p, e.name); },
+    };
     customStatusFieldDefs().forEach(def=>{
-      const base0 = c[def.key]||0;
-      const amt = base0 + scaleBonus(c, def.key, 'enemy');   // 負の値は、スタックを減らす
-      const stDef = (S.customStatuses||[]).find(s=>s.id===def._statusId);
-      if(!stDef) return;
-      const side = csGrantSide(c, stDef);
-      const extra = side==='both' ? ((c['csX_'+stDef.id])|0) : 0;
-      if(amt===0 && extra===0) return;
-      const nm = `${stDef.emoji||''}${stDef.name}`;
-      const give = (ent, who, ek, n, base)=>{
-        const before = customStatusStacks(ent, stDef.id);
-        addCustomStatusStacks(ent, stDef.id, n);
-        Lg({who, key:`${ek}:cs:${stDef.id}`, eff:nm, v:n, base, before, after:customStatusStacks(ent, stDef.id), state:nm});
+      steps[def.key] = ()=>{
+        const base0 = c[def.key]||0;
+        const amt = base0 + scaleBonus(c, def.key, 'enemy');   // 負の値は、スタックを減らす
+        const stDef = (S.customStatuses||[]).find(s=>s.id===def._statusId);
+        if(!stDef) return;
+        const side = csGrantSide(c, stDef);
+        const extra = side==='both' ? ((c['csX_'+stDef.id])|0) : 0;
+        if(amt===0 && extra===0) return;
+        const nm = `${stDef.emoji||''}${stDef.name}`;
+        const give = (ent, who, ek, n, base)=>{
+          const before = customStatusStacks(ent, stDef.id);
+          if(grantCustomStatus(ent, stDef.id, n)===0 && n>0) return;   // 排他で付与されなかった
+          Lg({who, key:`${ek}:cs:${stDef.id}`, eff:nm, v:n, base, before, after:customStatusStacks(ent, stDef.id), state:nm});
+        };
+        if(side==='both'){
+          if(amt!==0) give(e, e.name, 'e', amt, base0);       // 基本値＝行動する敵本人への量
+          if(extra!==0) give(p, 'あなた', 'p', extra, extra);   // 相手（プレイヤー）への量
+        } else if(side==='opponent') give(p, 'あなた', 'p', amt, base0);
+        else give(e, e.name, 'e', amt, base0);
+        if(!LOG_UNIFIED) pushLog(`${e.name}: ${def.desc(amt, c)}`);
       };
-      if(side==='both'){
-        if(amt!==0) give(e, e.name, 'e', amt, base0);       // 基本値＝行動する敵本人への量
-        if(extra!==0) give(p, 'あなた', 'p', extra, extra);   // 相手（プレイヤー）への量
-      } else if(side==='opponent') give(p, 'あなた', 'p', amt, base0);
-      else give(e, e.name, 'e', amt, base0);
-      if(!LOG_UNIFIED) pushLog(`${e.name}: ${def.desc(amt, c)}`);
     });
-    applyStatusOp(c.statusOp, e, p, e.name);
+    orderedEffectIds(c, ENEMY_EFFECT_ORDER, ENEMY_PERM_ALIAS).forEach(id=>{ if(steps[id]) steps[id](); });
   }
 }
 // 敵が仕込んだトリガーの発動。kind='cardUsed'（敵自身が指定タグのカードを使った）／'damaged'（敵がダメージを受けた）
@@ -2036,13 +2129,13 @@ function enemyStartFieldDefs(){
 }
 function applyEnemyStartEffects(r, e, effect){
   const eff = effect||{};
-  const strength = Math.max(0, eff.strength||0); if(strength>0) e.strength += strength;
-  const dexterity = Math.max(0, eff.dexterity||0); if(dexterity>0) e.dexterity += dexterity;
-  const metallicize = Math.max(0, eff.metallicize||0); if(metallicize>0) e.metallicize = (e.metallicize||0) + metallicize;
-  const thorns = Math.max(0, eff.thorns||0); if(thorns>0) e.thorns += thorns;
-  const weak = Math.max(0, eff.weak||0); if(weak>0) r.player.weak += weak;
-  const vulnerable = Math.max(0, eff.vulnerable||0); if(vulnerable>0) r.player.vulnerable += vulnerable;
-  const poison = Math.max(0, eff.poison||0); if(poison>0) r.player.poison += poison;
+  const strength = Math.max(0, eff.strength||0); if(strength>0) grantBuiltin(e, 'strength', strength);
+  const dexterity = Math.max(0, eff.dexterity||0); if(dexterity>0) grantBuiltin(e, 'dexterity', dexterity);
+  const metallicize = Math.max(0, eff.metallicize||0); if(metallicize>0) grantBuiltin(e, 'metallicize', metallicize);
+  const thorns = Math.max(0, eff.thorns||0); if(thorns>0) grantBuiltin(e, 'thorns', thorns);
+  const weak = Math.max(0, eff.weak||0); if(weak>0) grantBuiltin(r.player, 'weak', weak);
+  const vulnerable = Math.max(0, eff.vulnerable||0); if(vulnerable>0) grantBuiltin(r.player, 'vulnerable', vulnerable);
+  const poison = Math.max(0, eff.poison||0); if(poison>0) grantBuiltin(r.player, 'poison', poison);
   const heal = Math.max(0, eff.heal||0); if(heal>0) e.hp = Math.min(e.maxHp, e.hp + heal);
   customStatusFieldDefs().forEach(def=>{
     const amt = Math.max(0, eff[def.key]||0);
@@ -2051,7 +2144,7 @@ function applyEnemyStartEffects(r, e, effect){
     if(!stDef) return;
     // 付与先は敵の視点: 'opponent'＝プレイヤー、'self'＝敵自身。敵ごとの設定（csT_）を優先し、なければ状態の標準。
     const target = csGrantSide(eff, stDef)==='opponent' ? r.player : e;
-    addCustomStatusStacks(target, stDef.id, amt);
+    if(grantCustomStatus(target, stDef.id, amt)===0 && amt>0) return;   // 排他で付与されなかった
     pushLog(`${e.name}: ${def.desc(amt, eff)}`);
   });
 }
@@ -2480,33 +2573,39 @@ function resolveCardOp(r, op, done){
 // single time. Shared by applyCardEffects's repeat loop (cards/triggers) and by the
 // relic timed-effect resolver, which doesn't want a repeat loop or the "already dead"
 // early-exit that combat-end relics would otherwise trip on.
+// ===== 効果の処理順 =====
+// カードの effectOrder（効果の項目キーの配列）に従って処理する。載っていない効果は、従来の順で後ろに付く。
+// 項目キーは、カード編集の効果欄のキー（damage, block, strength, cs_xxx …）と、状態の操作（statusOp）。
+const PLAYER_EFFECT_ORDER = ['damage','block','draw','energy','strength','permStrength','dexterity','permDexterity',
+  'metallicize','permMetallicize','thorns','permThorns','weak','vulnerable','poison','stun','reduceEnemyStrength',
+  'selfWeak','selfVulnerable','selfPoison','heal','regen','loseHp'];
+const ENEMY_EFFECT_ORDER = ['damage','block','heal','strength','dexterity','metallicize','thorns','weak','vulnerable','poison'];
+// 敵側では、永続の項目は戦闘中の項目と同じ処理（まとめて1回）なので、順番の指定も同じ項目として数える
+const ENEMY_PERM_ALIAS = {permStrength:'strength', permDexterity:'dexterity', permMetallicize:'metallicize', permThorns:'thorns'};
+function defaultEffectOrder(c, base){
+  const ids = base.concat(customStatusFieldDefs().map(d=>d.key), ['statusOp']);
+  // 旧設定「状態の操作を付与より先に実行」は、ドローの前に置く順番として読み替える
+  if(c && c.statusOp && c.statusOp.first && base.includes('draw')){
+    ids.splice(ids.indexOf('statusOp'),1);
+    ids.splice(ids.indexOf('draw'),0,'statusOp');
+  } else if(c && c.statusOp && c.statusOp.first){
+    ids.splice(ids.indexOf('statusOp'),1);
+    ids.splice(ids.indexOf('strength'),0,'statusOp');
+  }
+  return ids;
+}
+function orderedEffectIds(c, base, alias){
+  const defaults = defaultEffectOrder(c, base);
+  const out = [];
+  (Array.isArray(c && c.effectOrder) ? c.effectOrder : []).forEach(id=>{
+    const k = (alias && alias[id]) || id;
+    if(defaults.includes(k) && !out.includes(k)) out.push(k);
+  });
+  defaults.forEach(k=>{ if(!out.includes(k)) out.push(k); });
+  return out;
+}
+
 function applyEffectValues(r, c){
-  const dmgBase = c.damage||0;
-  const dmgVal = Math.max(0, dmgBase + scaleBonus(c,'damage'));
-  if(dmgVal>0 && r.enemy){
-    const strTotal = r.player.strength + r.player.permStrength;
-    applyDamageToEnemy(dmgVal + strTotal, c.pierce, h=> logPlayerHit(c, h, dmgBase, dmgVal-dmgBase, strTotal));
-    // 吸収: ブロックで防がれた分は回復しない。実際に敵のHPを減らせた分だけ回復する。
-    if(c.lifesteal){
-      const lh = r.lastEnemyHit, heal = lh ? lh.hpLoss : 0;
-      if(heal>0){ const b = r.player.hp; r.player.hp = Math.min(r.player.maxHp, r.player.hp + heal); pushLog(`${c.name}: 吸収でHPを${r.player.hp-b}回復（HP ${b}→${r.player.hp}）。`); }
-      else if(lh && lh.total>0) pushLog(`${c.name}: 吸収は全て防がれたので回復なし。`);
-    }
-    // 敵が持つカスタム状態の「反射」: 攻撃を受けた敵が、攻撃した側にダメージを返す（ブロック無視）
-    const foeReflect = r.enemy ? customReflectDamage(r.enemy) : 0;
-    if(foeReflect>0 && r.enemy.hp>0 && r.player.hp>0){
-      const pBefore = r.player.hp;
-      r.player.hp = Math.max(0, r.player.hp - foeReflect);
-      pushLog(`${r.enemy.name}の反射によって${foeReflect}ダメージを受けた（HP ${pBefore}→${r.player.hp}）。`, 'hit');
-    }
-  }
-  const blockVal = Math.max(0, (c.block||0) + scaleBonus(c,'block'));
-  if(blockVal>0){
-    const total = Math.max(0, blockVal + r.player.dexterity + r.player.permDexterity + customBlockGainBonus(r.player));
-    const bBefore = r.player.block;
-    r.player.block += total;
-    logBlockGain(c.name, 'あなた', 'p', total, {base:c.block||0, scale:blockVal-(c.block||0), flats:[{v:r.player.dexterity + r.player.permDexterity, label:'器用'},{v:customBlockGainBonus(r.player), label:'状態'}]}, bBefore, r.player.block);
-  }
   // 戦闘前（最初のレリック選択など）は敵がまだいない。敵向けの効果は、受け皿の仮の敵に入れて捨てる。
   const P = r.player, E = r.enemy || {name:'敵', hp:1, maxHp:1, block:0, strength:0, dexterity:0, weak:0, vulnerable:0, poison:0, stun:0, thorns:0, customStatus:{}, triggers:[]};
   const val = k=> Math.max(0, (c[k]||0) + scaleBonus(c,k));
@@ -2515,78 +2614,116 @@ function applyEffectValues(r, c){
   const gain = (who, ent, ek, field, key, eff, state, legacy)=>{
     const base = c[key]||0, v = val(key);
     if(v<=0) return;
-    const before = ent[field]||0; ent[field] = before + v;
+    const before = ent[field]||0;
+    if(grantBuiltin(ent, field, v)===0) return;   // 排他で付与されなかった
     L({who, key:ek+':'+field, eff, v, base, before, after:ent[field], state:state||eff, legacy});
   };
-  const drawVal = val('draw');
-  if(drawVal>0){
-    const before = r.hand.length; drawCards(drawVal);
-    L({who:'あなた', key:'p:hand', eff:'ドロー', v:drawVal, base:c.draw||0, before, after:r.hand.length, state:'手札', legacy:`${c.name}: カードを${drawVal}枚引いた。`});
-  }
-  const energyVal = (c.energy||0) + scaleBonus(c,'energy');
-  if(energyVal){
-    const before = P.energy; P.energy += energyVal;
-    L({who:'あなた', key:'p:energy', eff:'エネルギー', v:energyVal, base:c.energy||0, before, after:P.energy});
-  }
-  gain('あなた', P, 'p', 'strength', 'strength', '強化', '強化(戦闘中)', v=>`${c.name}: 強化+${v}（この戦闘中）。`);
-  gain('あなた', P, 'p', 'permStrength', 'permStrength', '強化', '強化(永続)', v=>`${c.name}: 強化+${v}（永続）。`);
-  gain('あなた', P, 'p', 'dexterity', 'dexterity', '器用', '器用(戦闘中)', v=>`${c.name}: 器用+${v}（この戦闘中）。`);
-  gain('あなた', P, 'p', 'permDexterity', 'permDexterity', '器用', '器用(永続)', v=>`${c.name}: 器用+${v}（永続）。`);
-  gain('あなた', P, 'p', 'metallicize', 'metallicize', '自動ブロック', '自動ブロック(戦闘中)');
-  gain('あなた', P, 'p', 'permMetallicize', 'permMetallicize', '自動ブロック', '自動ブロック(永続)');
-  gain('あなた', P, 'p', 'thorns', 'thorns', '棘', '棘(戦闘中)');
-  gain('あなた', P, 'p', 'permThorns', 'permThorns', '棘', '棘(永続)');
-  gain(E.name, E, 'e', 'weak', 'weak', '弱体');
-  gain(E.name, E, 'e', 'vulnerable', 'vulnerable', '脆弱');
-  gain(E.name, E, 'e', 'poison', 'poison', '毒');
-  gain(E.name, E, 'e', 'stun', 'stun', '麻痺', '麻痺', v=>`${c.name}: 敵を${v}ターン麻痺させた。`);
-  const reduceStrVal = val('reduceEnemyStrength');
-  if(reduceStrVal>0){
-    const before = E.strength;
-    E.strength = Math.max(0, E.strength - reduceStrVal);
-    // タグ「強化」を持つカスタム状態も、同じ量だけスタックが減る
-    (S.customStatuses||[]).forEach(st=>{
-      if((st.tags||[]).includes('強化') && customStatusStacks(E, st.id)>0) addCustomStatusStacks(E, st.id, -reduceStrVal);
-    });
-    L({who:E.name, key:'e:strength', eff:'強化減少', v:reduceStrVal, base:c.reduceEnemyStrength||0, before, after:E.strength, state:'強化', legacy:`${c.name}: 敵の強化を${reduceStrVal}減少させた。`});
-  }
-  gain('あなた', P, 'p', 'weak', 'selfWeak', '弱体');
-  gain('あなた', P, 'p', 'vulnerable', 'selfVulnerable', '脆弱');
-  gain('あなた', P, 'p', 'poison', 'selfPoison', '毒');
-  const healVal = val('heal');
-  if(healVal>0){
-    const before = P.hp; P.hp = Math.min(P.maxHp, P.hp + healVal);
-    L({who:'あなた', key:'p:hp', eff:'回復', v:healVal, base:c.heal||0, before, after:P.hp, state:'HP'});
-  }
-  gain('あなた', P, 'p', 'regen', 'regen', '再生');
-  const loseHpVal = val('loseHp');
-  if(loseHpVal>0){
-    const before = P.hp; P.hp = Math.max(0, P.hp - loseHpVal);
-    L({who:'あなた', key:'p:hp', eff:'ダメージ(代償)', v:loseHpVal, base:c.loseHp||0, before, after:P.hp, state:'HP'});
-  }
-
+  const steps = {
+    damage(){
+      const dmgBase = c.damage||0;
+      const dmgVal = Math.max(0, dmgBase + scaleBonus(c,'damage'));
+      if(!(dmgVal>0 && r.enemy)) return;
+      const strTotal = r.player.strength + r.player.permStrength;
+      applyDamageToEnemy(dmgVal + strTotal, c.pierce, h=> logPlayerHit(c, h, dmgBase, dmgVal-dmgBase, strTotal));
+      // 吸収: ブロックで防がれた分は回復しない。実際に敵のHPを減らせた分だけ回復する。
+      if(c.lifesteal){
+        const lh = r.lastEnemyHit, heal = lh ? lh.hpLoss : 0;
+        if(heal>0){ const b = r.player.hp; r.player.hp = Math.min(r.player.maxHp, r.player.hp + heal); pushLog(`${c.name}: 吸収でHPを${r.player.hp-b}回復（HP ${b}→${r.player.hp}）。`); }
+        else if(lh && lh.total>0) pushLog(`${c.name}: 吸収は全て防がれたので回復なし。`);
+      }
+      // 敵が持つカスタム状態の「反射」: 攻撃を受けた敵が、攻撃した側にダメージを返す（ブロック無視）
+      const foeReflect = r.enemy ? customReflectDamage(r.enemy) : 0;
+      if(foeReflect>0 && r.enemy.hp>0 && r.player.hp>0){
+        const pBefore = r.player.hp;
+        r.player.hp = Math.max(0, r.player.hp - foeReflect);
+        pushLog(`${r.enemy.name}の反射によって${foeReflect}ダメージを受けた（HP ${pBefore}→${r.player.hp}）。`, 'hit');
+      }
+    },
+    block(){
+      const blockVal = Math.max(0, (c.block||0) + scaleBonus(c,'block'));
+      if(!(blockVal>0)) return;
+      const total = Math.max(0, blockVal + r.player.dexterity + r.player.permDexterity + customBlockGainBonus(r.player));
+      const bBefore = r.player.block;
+      r.player.block += total;
+      logBlockGain(c.name, 'あなた', 'p', total, {base:c.block||0, scale:blockVal-(c.block||0), flats:[{v:r.player.dexterity + r.player.permDexterity, label:'器用'},{v:customBlockGainBonus(r.player), label:'状態'}]}, bBefore, r.player.block);
+    },
+    draw(){
+      const drawVal = val('draw');
+      if(!(drawVal>0)) return;
+      const before = r.hand.length; drawCards(drawVal);
+      L({who:'あなた', key:'p:hand', eff:'ドロー', v:drawVal, base:c.draw||0, before, after:r.hand.length, state:'手札', legacy:`${c.name}: カードを${drawVal}枚引いた。`});
+    },
+    energy(){
+      const energyVal = (c.energy||0) + scaleBonus(c,'energy');
+      if(!energyVal) return;
+      const before = P.energy; P.energy += energyVal;
+      L({who:'あなた', key:'p:energy', eff:'エネルギー', v:energyVal, base:c.energy||0, before, after:P.energy});
+    },
+    strength(){ gain('あなた', P, 'p', 'strength', 'strength', '強化', '強化(戦闘中)', v=>`${c.name}: 強化+${v}（この戦闘中）。`); },
+    permStrength(){ gain('あなた', P, 'p', 'permStrength', 'permStrength', '強化', '強化(永続)', v=>`${c.name}: 強化+${v}（永続）。`); },
+    dexterity(){ gain('あなた', P, 'p', 'dexterity', 'dexterity', '器用', '器用(戦闘中)', v=>`${c.name}: 器用+${v}（この戦闘中）。`); },
+    permDexterity(){ gain('あなた', P, 'p', 'permDexterity', 'permDexterity', '器用', '器用(永続)', v=>`${c.name}: 器用+${v}（永続）。`); },
+    metallicize(){ gain('あなた', P, 'p', 'metallicize', 'metallicize', '自動ブロック', '自動ブロック(戦闘中)'); },
+    permMetallicize(){ gain('あなた', P, 'p', 'permMetallicize', 'permMetallicize', '自動ブロック', '自動ブロック(永続)'); },
+    thorns(){ gain('あなた', P, 'p', 'thorns', 'thorns', '棘', '棘(戦闘中)'); },
+    permThorns(){ gain('あなた', P, 'p', 'permThorns', 'permThorns', '棘', '棘(永続)'); },
+    weak(){ gain(E.name, E, 'e', 'weak', 'weak', '弱体'); },
+    vulnerable(){ gain(E.name, E, 'e', 'vulnerable', 'vulnerable', '脆弱'); },
+    poison(){ gain(E.name, E, 'e', 'poison', 'poison', '毒'); },
+    stun(){ gain(E.name, E, 'e', 'stun', 'stun', '麻痺', '麻痺', v=>`${c.name}: 敵を${v}ターン麻痺させた。`); },
+    reduceEnemyStrength(){
+      const reduceStrVal = val('reduceEnemyStrength');
+      if(!(reduceStrVal>0)) return;
+      const before = E.strength;
+      E.strength = Math.max(0, E.strength - reduceStrVal);
+      // タグ「強化」を持つカスタム状態も、同じ量だけスタックが減る
+      (S.customStatuses||[]).forEach(st=>{
+        if((st.tags||[]).includes('強化') && customStatusStacks(E, st.id)>0) addCustomStatusStacks(E, st.id, -reduceStrVal);
+      });
+      L({who:E.name, key:'e:strength', eff:'強化減少', v:reduceStrVal, base:c.reduceEnemyStrength||0, before, after:E.strength, state:'強化', legacy:`${c.name}: 敵の強化を${reduceStrVal}減少させた。`});
+    },
+    selfWeak(){ gain('あなた', P, 'p', 'weak', 'selfWeak', '弱体'); },
+    selfVulnerable(){ gain('あなた', P, 'p', 'vulnerable', 'selfVulnerable', '脆弱'); },
+    selfPoison(){ gain('あなた', P, 'p', 'poison', 'selfPoison', '毒'); },
+    heal(){
+      const healVal = val('heal');
+      if(!(healVal>0)) return;
+      const before = P.hp; P.hp = Math.min(P.maxHp, P.hp + healVal);
+      L({who:'あなた', key:'p:hp', eff:'回復', v:healVal, base:c.heal||0, before, after:P.hp, state:'HP'});
+    },
+    regen(){ gain('あなた', P, 'p', 'regen', 'regen', '再生'); },
+    loseHp(){
+      const loseHpVal = val('loseHp');
+      if(!(loseHpVal>0)) return;
+      const before = P.hp; P.hp = Math.max(0, P.hp - loseHpVal);
+      L({who:'あなた', key:'p:hp', eff:'ダメージ(代償)', v:loseHpVal, base:c.loseHp||0, before, after:P.hp, state:'HP'});
+    },
+    statusOp(){ applyStatusOp(c.statusOp, r.player, r.enemy, c.name); },
+  };
   customStatusFieldDefs().forEach(def=>{
-    const base0 = c[def.key]||0;
-    const amt = base0 + scaleBonus(c, def.key);   // 負の値は、スタックを減らす
-    const st = (S.customStatuses||[]).find(s=>s.id===def._statusId);
-    if(!st) return;
-    const side = csGrantSide(c, st);
-    const extra = side==='both' ? ((c['csX_'+st.id])|0) : 0;
-    if(amt===0 && extra===0) return;
-    const nm = `${st.emoji||''}${st.name}`;
-    const give = (ent, who, ek, n, base)=>{
-      const before = customStatusStacks(ent, st.id);
-      addCustomStatusStacks(ent, st.id, n);
-      L({who, key:`${ek}:cs:${st.id}`, eff:nm, v:n, base, before, after:customStatusStacks(ent, st.id), state:nm});
+    steps[def.key] = ()=>{
+      const base0 = c[def.key]||0;
+      const amt = base0 + scaleBonus(c, def.key);   // 負の値は、スタックを減らす
+      const st = (S.customStatuses||[]).find(s=>s.id===def._statusId);
+      if(!st) return;
+      const side = csGrantSide(c, st);
+      const extra = side==='both' ? ((c['csX_'+st.id])|0) : 0;
+      if(amt===0 && extra===0) return;
+      const nm = `${st.emoji||''}${st.name}`;
+      const give = (ent, who, ek, n, base)=>{
+        const before = customStatusStacks(ent, st.id);
+        if(grantCustomStatus(ent, st.id, n)===0 && n>0) return;   // 排他で付与されなかった
+        L({who, key:`${ek}:cs:${st.id}`, eff:nm, v:n, base, before, after:customStatusStacks(ent, st.id), state:nm});
+      };
+      if(side==='both'){
+        if(amt!==0) give(P, 'あなた', 'p', amt, base0);
+        if(extra!==0) give(E, E.name, 'e', extra, extra);
+      } else if(side==='opponent') give(E, E.name, 'e', amt, base0);
+      else give(P, 'あなた', 'p', amt, base0);
+      if(!LOG_UNIFIED) pushLog(`${c.name}: ${def.desc(amt, c)}`);
     };
-    if(side==='both'){
-      if(amt!==0) give(P, 'あなた', 'p', amt, base0);
-      if(extra!==0) give(E, E.name, 'e', extra, extra);
-    } else if(side==='opponent') give(E, E.name, 'e', amt, base0);
-    else give(P, 'あなた', 'p', amt, base0);
-    if(!LOG_UNIFIED) pushLog(`${c.name}: ${def.desc(amt, c)}`);
   });
-  applyStatusOp(c.statusOp, r.player, r.enemy, c.name);
+  orderedEffectIds(c, PLAYER_EFFECT_ORDER).forEach(id=>{ if(steps[id]) steps[id](); });
 }
 
 // One repetition of a card's effect: its numeric effects plus its card-operation.
@@ -3448,6 +3585,13 @@ function openStatusModal(status, isNew){
       <div class="field"><label>絵文字</label><input type="text" id="sm-emoji" value="${escapeHtml(st.emoji||'')}" maxlength="4"></div>
       <div class="field"><label>タグ（カンマ区切りで複数入力可）</label><input type="text" id="sm-tags" value="${escapeHtml((st.tags||[]).join(', '))}" placeholder="例: 強化">
         <p class="hint">タグ「強化」を付けると、強化と同類として扱われ、カードの「敵の強化を減少させる」の影響を受けます。カードの「参照増減」では、参照元に「自分／敵の指定タグの状態スタック数（合計）」を選び、参照タグに同じタグを入れると、同じタグを持つ複数の状態の合計に反応させられます（組み込みの強化・器用・弱体・脆弱・毒・再生・麻痺・自動ブロック・棘も、同名のタグとして数えます）。</p></div>
+      <div class="section-label">排他（付与のときの、他の状態との共存ルール）</div>
+      <div class="field"><label>① 付与する前に、これらのタグの状態をすべて取り除く（カンマ区切り）</label><input type="text" id="sm-excl-overwrite" value="${escapeHtml((st.exclOverwrite||[]).join(', '))}" placeholder="例: 属性, 脆弱"></div>
+      <div class="field"><label>② これらのタグの状態が付与されている間は、自分を付与しない（カンマ区切り）</label><input type="text" id="sm-excl-yield" value="${escapeHtml((st.exclYield||[]).join(', '))}" placeholder="例: 強化">
+        <p class="hint">組み込みの強化・器用・弱体・脆弱・毒・再生・麻痺・自動ブロック・棘も、同名のタグとして指定できます（永続の強化・器用などは①の取り除きの対象外）。自分自身のタグは数えないので、全部の状態に同じタグを付けて、自分にも同じタグを指定しても、同じ状態は重ね掛けできます。判定は付与のときだけで、ターンごとの増減では働きません。②は①より先に判定します。</p></div>
+      <div class="field"><label>③ これらのタグの状態が後から付与されたら、自分が消える（カンマ区切り）</label><input type="text" id="sm-excl-replaced" value="${escapeHtml((st.exclReplaced||[]).join(', '))}" placeholder="例: 属性"></div>
+      <div class="field"><label>④ 自分がいる間、これらのタグの状態の付与を無効にする（カンマ区切り）</label><input type="text" id="sm-excl-guard" value="${escapeHtml((st.exclGuard||[]).join(', '))}" placeholder="例: 脆弱">
+        <p class="hint">③④は、組み込みの状態（強化・弱体・脆弱など）が付与されるときにも働きます。例: ④に「脆弱」を入れると、この状態がある間は脆弱を受けません。複数が重なるときの判定の順は、④（守る）→②（先着に負ける）→①（上書きする）→付与→③（後から上書きされる）です。</p></div>
       <div class="field"><label>標準の付与先（カードでは、カードごとに「自分に／相手に」を変更できます。レリック・イベント・敵の戦闘開始時効果は、この設定に従います）</label>
         <select id="sm-target">
           <option value="self" ${st.target==='self'?'selected':''}>自分</option>
@@ -3531,6 +3675,10 @@ function openStatusModal(status, isNew){
       target: qs('#sm-target',overlay).value,
       perTurnDelta: clampInt(qs('#sm-perturndelta',overlay).value,-99,99,0),
       persistent: qs('#sm-persistent',overlay).checked,
+      exclOverwrite: parseTags(qs('#sm-excl-overwrite',overlay).value),
+      exclYield: parseTags(qs('#sm-excl-yield',overlay).value),
+      exclReplaced: parseTags(qs('#sm-excl-replaced',overlay).value),
+      exclGuard: parseTags(qs('#sm-excl-guard',overlay).value),
       effects: st.effects,
     });
     if(isNew){ S.customStatuses.push(updated); }
@@ -3838,6 +3986,9 @@ function openCardModal(card, isNew){
         <input type="number" id="m-so-amount" value="${(c.statusOp&&c.statusOp.amount)||1}" min="0" max="99" style="width:100%;">
         <p class="hint" style="margin-top:6px;">指定したタグを持つ状態が対象です（カスタム状態のタグ、および組み込みの強化・器用・弱体・脆弱・毒・再生・麻痺・自動ブロック・棘は同名のタグとして扱います）。「N減らす」は、該当する状態それぞれからNずつ減らします。永続の強化・器用などは対象外です。敵が使った場合、「自分」は敵自身、「相手」はプレイヤーです。</p>
       </div>
+      <div class="section-label">効果の順番（上から順に処理します）</div>
+      <p class="hint">設定した効果が並びます。☰をドラッグするか、▲▼で入れ替えられます。連続して発動するカードは、1回ごとにこの順で処理します。例: 「状態の操作」を「ダメージ」の前に置くと、相手の棘や脆弱を消してから攻撃できます。</p>
+      <div id="eo-list"></div>
       <div class="section-label">シナジー</div>
       <div class="field"><label>タグ（カンマ区切りで複数入力可）</label><input type="text" id="m-tags" value="${(c.tags||[]).join(', ')}" placeholder="例: 炎, 連撃"></div>
       <div class="modal-actions">
@@ -3910,6 +4061,72 @@ function openCardModal(card, isNew){
   qs('#m-so-enabled',overlay).onchange = ()=>{
     qs('#so-config',overlay).style.display = qs('#m-so-enabled',overlay).checked ? 'block' : 'none';
   };
+  // ----- 効果の順番（並べ替え） -----
+  let orderState = Array.isArray(c.effectOrder) ? c.effectOrder.slice() : [];
+  const legacyFirst = !!(c.statusOp && c.statusOp.first) && orderState.length===0;
+  const presentEffects = ()=>{
+    const list = [];
+    qsa('.fx-row[data-group="num"], .fx-row[data-group="cs"]', overlay).forEach(row=>{
+      if(row.style.display==='none' || row.dataset.fx==='hits') return;
+      list.push({id:row.dataset.fx, label:(row.dataset.label||row.dataset.fx).split('（')[0]});
+    });
+    if(qs('#m-so-enabled',overlay).checked) list.push({id:'statusOp', label:'状態の操作'});
+    return list;
+  };
+  const currentOrder = ()=>{
+    const present = presentEffects();
+    const ids = orderedEffectIds({effectOrder:orderState, statusOp:{first:legacyFirst && orderState.length===0}}, PLAYER_EFFECT_ORDER);
+    return ids.filter(id=> present.some(x=>x.id===id)).map(id=> present.find(x=>x.id===id));
+  };
+  const orderListEl = qs('#eo-list', overlay);
+  const orderFromDom = ()=> qsa('.eo-item', orderListEl).map(el=>el.dataset.id);
+  const renderOrder = ()=>{
+    const items = currentOrder();
+    if(!items.length){ orderListEl.innerHTML = '<p class="hint">効果が設定されていません。</p>'; return; }
+    orderListEl.innerHTML = items.map(x=>`<div class="eo-item" data-id="${escapeHtml(x.id)}"><span class="eo-handle" title="ドラッグで入れ替え">☰</span><span class="eo-label">${escapeHtml(x.label)}</span><button type="button" class="ghost eo-btn eo-up" title="上へ">▲</button><button type="button" class="ghost eo-btn eo-down" title="下へ">▼</button></div>`).join('');
+  };
+  const commitOrder = ()=>{ orderState = orderFromDom(); renderOrder(); };
+  orderListEl.addEventListener('click', e=>{
+    const item = e.target.closest('.eo-item'); if(!item) return;
+    if(e.target.closest('.eo-up') && item.previousElementSibling) item.parentNode.insertBefore(item, item.previousElementSibling);
+    else if(e.target.closest('.eo-down') && item.nextElementSibling) item.parentNode.insertBefore(item.nextElementSibling, item);
+    else return;
+    commitOrder();
+  });
+  (()=>{   // ドラッグでの入れ替え（マウス・タッチ共通）
+    let drag = null;
+    orderListEl.addEventListener('pointerdown', e=>{
+      const h = e.target.closest('.eo-handle'); if(!h) return;
+      drag = h.closest('.eo-item'); drag.classList.add('dragging');
+      try{ h.setPointerCapture(e.pointerId); }catch(err){}
+      e.preventDefault();
+    });
+    orderListEl.addEventListener('pointermove', e=>{
+      if(!drag) return;
+      const items = qsa('.eo-item', orderListEl);
+      const di = items.indexOf(drag);
+      items.forEach((it, i)=>{
+        if(it===drag) return;
+        const rc = it.getBoundingClientRect(), mid = rc.top + rc.height/2;
+        if(i<di && e.clientY<mid) orderListEl.insertBefore(drag, it);
+        else if(i>di && e.clientY>mid) orderListEl.insertBefore(drag, it.nextSibling);
+      });
+    });
+    const end = ()=>{ if(!drag) return; drag.classList.remove('dragging'); drag = null; commitOrder(); };
+    orderListEl.addEventListener('pointerup', end);
+    orderListEl.addEventListener('pointercancel', end);
+  })();
+  // 効果の追加・削除、状態の操作の有効/無効のあとで一覧を作り直す
+  overlay.addEventListener('click', e=>{ if(e.target.closest('.fx-add, .fx-del')) setTimeout(renderOrder, 0); });
+  qs('#m-so-enabled',overlay).addEventListener('change', renderOrder);
+  // 保存用: 標準の順（従来の順）と同じなら何も保存しない
+  const effectOrderForSave = ()=>{
+    const ids = currentOrder().map(x=>x.id);
+    const present = new Set(ids);
+    const std = defaultEffectOrder({}, PLAYER_EFFECT_ORDER).filter(id=>present.has(id));
+    return (ids.length===std.length && ids.every((id,i)=>id===std[i])) ? [] : ids;
+  };
+  renderOrder();
   qs('#m-op-type',overlay).onchange = ()=>{
     const t = qs('#m-op-type',overlay).value;
     qs('#op-buff-fields',overlay).style.display = t==='grantBuff' ? 'block' : 'none';
@@ -3998,7 +4215,9 @@ function openCardModal(card, isNew){
       tag: qs('#m-so-tag',overlay).value,
       mode: qs('#m-so-mode',overlay).value,
       amount: qs('#m-so-amount',overlay).value,
+      first: false,   // 旧設定。順番は「効果の順番」で管理する
     });
+    updated.effectOrder = effectOrderForSave();
     if(isNew){ S.cards.push(updated); }
     else{ S.cards = S.cards.map(x=> x.id===updated.id? updated : x); }
     S.cardEditorTab = updated.rarity;
@@ -5767,10 +5986,10 @@ function applyNextCombatEffects(r){
   if(!nc) return;
   r.nextCombat = null;
   const p = r.player, e = r.enemy;
-  Object.keys(nc.p||{}).forEach(f=>{ p[f] = (p[f]||0) + nc.p[f]; });
-  Object.keys(nc.e||{}).forEach(f=>{ e[f] = (e[f]||0) + nc.e[f]; });
-  Object.keys(nc.cp||{}).forEach(id=> addCustomStatusStacks(p, id, nc.cp[id]));
-  Object.keys(nc.ce||{}).forEach(id=> addCustomStatusStacks(e, id, nc.ce[id]));
+  Object.keys(nc.p||{}).forEach(f=>{ if(BUILTIN_FIELD_TAG[f]) grantBuiltin(p, f, nc.p[f]); else p[f] = (p[f]||0) + nc.p[f]; });
+  Object.keys(nc.e||{}).forEach(f=>{ if(BUILTIN_FIELD_TAG[f]) grantBuiltin(e, f, nc.e[f]); else e[f] = (e[f]||0) + nc.e[f]; });
+  Object.keys(nc.cp||{}).forEach(id=> grantCustomStatus(p, id, nc.cp[id]));
+  Object.keys(nc.ce||{}).forEach(id=> grantCustomStatus(e, id, nc.ce[id]));
   pushLog('イベントの効果がこの戦闘に反映された。');
 }
 
