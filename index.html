@@ -902,7 +902,7 @@ function cardDescription(c){
       : `${c.cardOp.countFixed}枚`) + seqText;
     const tagText = c.cardOp.filterTag ? `[${c.cardOp.filterTag}]の` : '';
     if(c.cardOp.type==='grantBuff'){
-      const fieldDef = EFFECT_FIELD_DEFS.find(d=>d.key===c.cardOp.buffField);
+      const fieldDef = allEffectFieldDefs().find(d=>d.key===c.cardOp.buffField);
       const fieldLabel = fieldDef ? fieldDef.label : c.cardOp.buffField;
       const amt = c.cardOp.buffAmount||0;
       parts.push(`${rangeLabel}の${tagText}カードを${countText}選び、「${fieldLabel}」を${amt>=0?'+':''}${amt}する`);
@@ -930,7 +930,8 @@ function cardDescription(c){
   const drawParts = [];
   drawEffectFieldDefs().forEach(def=>{
     const v = c[def.key]||0;
-    if(v>0) drawParts.push(def.desc(v));
+    const show = def._statusId ? (v!==0 || (c['dw_csT_'+def._statusId]==='both' && ((c['dw_csX_'+def._statusId])|0)!==0)) : v>0;
+    if(show) drawParts.push(def.desc(v, c));
   });
   if(drawParts.length) desc += `【ドロー時】${drawParts.join('。')}。`;
   const reqTexts = (Array.isArray(c.requirements) ? c.requirements : []).map(requirementText).filter(Boolean);
@@ -2111,7 +2112,7 @@ function enemyOpText(op){
     case 'generateToHand': case 'generateToDraw': return `カード${n}を生成し、自分のデッキに加える`;
     case 'generatePlay': return `カード${n}を生成し、即座に使う`;
     case 'grantBuff': {
-      const def = EFFECT_FIELD_DEFS.find(d=>d.key===op.buffField);
+      const def = allEffectFieldDefs().find(d=>d.key===op.buffField);
       const name = def ? def.label.replace(/（.*$/,'') : (op.buffField||'');
       const amt = op.buffAmount||0;
       return `自分のデッキの${tag}カード${n}の${name}${amt>=0?'+':''}${amt}`;
@@ -2517,7 +2518,7 @@ function resolveEnemyCardOp(r, op, done){
         r.tempInstanceBuffs[useIid][field] = (r.tempInstanceBuffs[useIid][field]||0) + amount;
         x.d.cardId = withInstanceSuffix(cid, useIid);
       });
-      const fd = EFFECT_FIELD_DEFS.find(d=>d.key===field);
+      const fd = allEffectFieldDefs().find(d=>d.key===field);
       pushLog(`${e.name}のデッキの「${names}」に「${fd?fd.label:field}」${amount>=0?'+':''}${amount}が付与された。`);
     }
   } else if(op.type==='play'){
@@ -2686,7 +2687,7 @@ function resolveCardOp(r, op, done){
           store[useIid][field] = (store[useIid][field]||0) + amount;
           r[e.pile][e.idx] = withInstanceSuffix(cid, useIid);
         });
-        const fieldDef = EFFECT_FIELD_DEFS.find(d=>d.key===field);
+        const fieldDef = allEffectFieldDefs().find(d=>d.key===field);
         pushLog(`${selected.length}枚のカードに「${fieldDef?fieldDef.label:field}」${amount>=0?'+':''}${amount}を付与した。`);
       }
       done(); return;
@@ -3669,7 +3670,7 @@ function renderRelicEditor(){
 function customStatusUsage(statusId){
   const key = 'cs_'+statusId;
   const cardIds = S.cards.filter(c=>
-    (c[key]) || (c['csX_'+statusId]) || (c.scales && c.scales[key]) || (c.upgrades && (c.upgrades[key] || (c.upgrades.scalePP && c.upgrades.scalePP[key])))
+    (c[key]) || (c['csX_'+statusId]) || (c['dw_'+key]) || (c['dw_csX_'+statusId]) || (c.scales && c.scales[key]) || (c.upgrades && (c.upgrades[key] || (c.upgrades.scalePP && c.upgrades.scalePP[key])))
     || (c.cardOp && c.cardOp.enabled && c.cardOp.type==='grantBuff' && c.cardOp.buffField===key)
     || Object.values(c.scales||{}).some(sc=> sc && (sc.source==='csSelf:'+statusId || sc.source==='csEnemy:'+statusId))
   ).map(c=>c.id);
@@ -3680,6 +3681,7 @@ function stripCustomStatusRefs(statusId){
   const key = 'cs_'+statusId;
   S.cards.forEach(c=>{
     delete c[key]; delete c['csT_'+statusId]; delete c['csX_'+statusId];
+    delete c['dw_'+key]; delete c['dw_csT_'+statusId]; delete c['dw_csX_'+statusId];
     if(c.scales){
       delete c.scales[key];
       Object.keys(c.scales).forEach(f=>{ const sc = c.scales[f]; if(sc && (sc.source==='csSelf:'+statusId || sc.source==='csEnemy:'+statusId)) delete c.scales[f]; });
@@ -3909,7 +3911,7 @@ function statusEffectFormHTML(eff, i){
       ${CARDOP_REVERTIBLE_TYPES.includes(op.type) ? `<label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="permanent" ${op.permanent?'checked':''}> 永続（戦闘が終わっても元に戻さない。チェックなしはこの戦闘中のみ）</label>` : ''}
       ${op.type==='grantBuff' ? `
         <div class="field"><label>付与する効果</label><select ${opAt} data-f="buffField">
-          ${EFFECT_FIELD_DEFS.map(def=>`<option value="${def.key}" ${op.buffField===def.key?'selected':''}>${escapeHtml(def.label)}</option>`).join('')}</select></div>
+          ${allEffectFieldDefs().map(def=>`<option value="${escapeHtml(def.key)}" ${op.buffField===def.key?'selected':''}>${escapeHtml(def.label)}</option>`).join('')}</select></div>
         <div class="field"><label>付与量（マイナスで減少も可）</label><input type="number" ${opAt} data-f="buffAmount" data-num="1" value="${op.buffAmount||0}" min="-99" max="99"></div>` : ''}`;
   }
   return `<div class="ev-eff">
@@ -4261,13 +4263,33 @@ function openCardModal(card, isNew){
       </div>`;
       }).join('')).join('')}
       <div class="section-label">ドロー時効果（本体の効果とは別に、山札から引いた瞬間に発動）</div>
-      <p class="hint">使わなくても、手札に引いた時点で発動します。参照増減・カード操作・発動回数は使えません。</p>
+      <p class="hint">使わなくても、手札に引いた時点で発動します。カスタム状態の付与も選べます（付与先も指定可）。参照増減・カード操作・発動回数は使えません。</p>
       ${fxPickerHTML('dw','ドロー時効果')}
-      ${drawEffectFieldDefs().map(def=>`
-      <div class="field fx-row" data-group="dw" data-fx="${def.key}" data-label="${escapeHtml(def.label)}" style="${(c[def.key]||0)!==0?'':'display:none;'}">
-        <div style="display:flex; justify-content:space-between; align-items:center;"><label>${def.label}</label><button type="button" class="ghost fx-del">削除</button></div>
+      ${drawEffectFieldDefs().map(def=>{
+        const id = def._statusId;
+        const dwT = id && ['self','opponent','both'].includes(c['dw_csT_'+id]) ? c['dw_csT_'+id] : 'default';
+        const dwX = id ? ((c['dw_csX_'+id])|0) : 0;
+        const on = (c[def.key]||0)!==0 || (id && (dwT!=='default' || dwX!==0));
+        const st = id ? (S.customStatuses||[]).find(x=>x.id===id) : null;
+        const std = st && st.target==='opponent' ? '相手' : '自分';
+        const csExtra = id ? `
+        <div style="margin-bottom:4px;"><span style="font-size:10px; color:var(--parchment-dim);">付与先：</span>
+          <select id="m-dwcst-${id}" style="width:auto; display:inline-block;">
+            <option value="default" ${dwT==='default'?'selected':''}>状態の標準（${std}）</option>
+            <option value="self" ${dwT==='self'?'selected':''}>自分に付与</option>
+            <option value="opponent" ${dwT==='opponent'?'selected':''}>相手に付与</option>
+            <option value="both" ${dwT==='both'?'selected':''}>自分と相手の両方に付与（量を別々に設定）</option>
+          </select>
+          <span class="dw-both-note" style="font-size:10px; color:var(--parchment-dim); ${dwT==='both'?'':'display:none;'}">下の値＝自分への量</span></div>
+        <div class="dw-both-box" style="margin-bottom:6px; ${dwT==='both'?'':'display:none;'}">
+          <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">相手への量</div>
+          <input type="number" id="m-dwcsx-${id}" value="${dwX}" min="-99" max="99">
+        </div>` : '';
+        return `
+      <div class="field fx-row" data-group="dw" data-fx="${escapeHtml(def.key)}" data-label="${escapeHtml(def.label)}" style="${on?'':'display:none;'}">
+        <div style="display:flex; justify-content:space-between; align-items:center;"><label>${escapeHtml(def.label)}</label><button type="button" class="ghost fx-del">削除</button></div>${csExtra}
         <input type="number" id="m-${def.key}" value="${c[def.key]||0}" min="${def.min!==undefined?def.min:0}" max="${def.max}">
-      </div>`).join('')}
+      </div>`;}).join('')}
       <div class="checkbox-field"><input type="checkbox" id="m-exhaust" ${c.exhaust?'checked':''}><label for="m-exhaust">使用後に消滅する（エグゾースト）</label></div>
       <div class="checkbox-field"><input type="checkbox" id="m-pierce" ${c.pierce?'checked':''}><label for="m-pierce">ブロックを無視する（貫通）</label></div>
       <div class="checkbox-field"><input type="checkbox" id="m-lifesteal" ${c.lifesteal?'checked':''}><label for="m-lifesteal">与えたダメージ分HPを回復する（吸血。ブロックで防がれた分は回復しない）</label></div>
@@ -4331,7 +4353,7 @@ function openCardModal(card, isNew){
         <div id="op-buff-fields" style="${c.cardOp&&c.cardOp.type==='grantBuff'?'':'display:none;'} margin-top:10px;">
           <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">付与する効果</div>
           <select id="m-op-bufffield" style="margin-bottom:8px; width:100%;">
-            ${EFFECT_FIELD_DEFS.map(def=>`<option value="${def.key}" ${c.cardOp&&c.cardOp.buffField===def.key?'selected':''}>${def.label}</option>`).join('')}
+            ${allEffectFieldDefs().map(def=>`<option value="${escapeHtml(def.key)}" ${c.cardOp&&c.cardOp.buffField===def.key?'selected':''}>${escapeHtml(def.label)}</option>`).join('')}
           </select>
           <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">付与量（マイナスで減少も可）</div>
           <input type="number" id="m-op-buffamount" value="${(c.cardOp&&c.cardOp.buffAmount)||0}" min="-99" max="99" style="width:100%;">
@@ -4385,6 +4407,12 @@ function openCardModal(card, isNew){
       qsa(`.cs-both-box[data-st="${id}"], .cs-both-note[data-st="${id}"]`,overlay).forEach(el=> el.style.display = both ? '' : 'none');
     };
   });
+  qsa('select[id^="m-dwcst-"]',overlay).forEach(sel=>{
+    sel.onchange = ()=>{
+      const row = sel.closest('.fx-row'), both = sel.value==='both';
+      qsa('.dw-both-box, .dw-both-note',row).forEach(x=> x.style.display = both ? '' : 'none');
+    };
+  });
   (function(){
     const pickers = qsa('.fx-picker',overlay);
     const rowsOf = g=> qsa(`.fx-row[data-group="${g}"]`,overlay);
@@ -4409,7 +4437,7 @@ function openCardModal(card, isNew){
         qsa('input[type="number"]',row).forEach(i=>{ i.value = i.dataset.dflt!==undefined ? i.dataset.dflt : 0; });
         qsa('input[type="text"]',row).forEach(i=>{ i.value = ''; });
         qsa('select[id^="m-scalesrc-"]',row).forEach(x=>{ x.value = 'none'; });
-        qsa('select[id^="m-cst-"]',row).forEach(x=>{ x.value = 'default'; if(x.onchange) x.onchange(); });
+        qsa('select[id^="m-cst-"], select[id^="m-dwcst-"]',row).forEach(x=>{ x.value = 'default'; if(x.onchange) x.onchange(); });
         qsa('.scale-config',row).forEach(x=>{ x.style.display = 'none'; });
         qsa('.scale-toggle-btn',row).forEach(x=>{ x.textContent = '+参照増減'; });
         row.style.display = 'none';
@@ -4601,6 +4629,13 @@ function openCardModal(card, isNew){
     drawEffectFieldDefs().forEach(def=>{
       const min = def.min!==undefined ? def.min : 0;
       updated[def.key] = clampInt(qs(`#m-${def.key}`,overlay).value,min,def.max,0);
+      if(def._statusId){
+        const id = def._statusId, tv = qs(`#m-dwcst-${id}`,overlay);
+        const t = tv ? tv.value : 'default';
+        if(['self','opponent','both'].includes(t)) updated['dw_csT_'+id] = t; else delete updated['dw_csT_'+id];
+        const xv = clampInt(qs(`#m-dwcsx-${id}`,overlay).value,-99,99,0);
+        if(t==='both' && xv!==0) updated['dw_csX_'+id] = xv; else delete updated['dw_csX_'+id];
+      }
     });
     const opEnabled = qs('#m-op-enabled',overlay).checked;
     updated.cardOp = opEnabled ? {
@@ -5404,10 +5439,18 @@ function drawCards(n){
 // (damage/block/buffs/debuffs/heal/...), stored under "dw_"-prefixed keys so it can
 // reuse the exact same rendering/upgrade/save machinery as the main effect while never
 // colliding with it. It fires once whenever this specific card is moved into hand by a
-// draw — whether or not it's ever played. Custom statuses, cardOp, hits (repeat count)
+// draw — whether or not it's ever played. cardOp, hits (repeat count)
 // and per-field scaling are not supported here, to keep a passive, always-on trigger safe.
+// カスタム状態の付与も使える（キーは dw_cs_<状態ID>。付与先は dw_csT_<状態ID>、「両方」のときの相手への量は dw_csX_<状態ID>）。
 function drawEffectFieldDefs(){
-  return EFFECT_FIELD_DEFS.filter(d=>d.key!=='hits').map(def=>({...def, key:'dw_'+def.key, _base:def.key}));
+  const num = EFFECT_FIELD_DEFS.filter(d=>d.key!=='hits').map(def=>({...def, key:'dw_'+def.key, _base:def.key}));
+  const cs = customStatusFieldDefs().map(def=>({...def, key:'dw_'+def.key, _base:def.key,
+    desc:(v,obj)=>{
+      const view = {};
+      if(obj){ view['csT_'+def._statusId] = obj['dw_csT_'+def._statusId]; view['csX_'+def._statusId] = obj['dw_csX_'+def._statusId]; }
+      return def.desc(v, view);
+    }}));
+  return num.concat(cs);
 }
 function fxPickerHTML(group, title){
   return `<div class="ev-add fx-picker" data-group="${group}" style="margin:8px 0;"><select class="fx-pick" aria-label="${title}"></select><button type="button" class="fx-add">＋ ${title}を追加</button></div>`;
@@ -5419,7 +5462,12 @@ function applyCardDrawEffect(r, c){
   let hasAny = false;
   defs.forEach(def=>{
     const v = c[def.key]||0;
-    if(v>0) hasAny = true;
+    if(def._statusId){
+      const id = def._statusId, t = c['dw_csT_'+id], x = (c['dw_csX_'+id])|0;
+      if(v!==0 || (t==='both' && x!==0)) hasAny = true;
+      if(t==='self' || t==='opponent' || t==='both') temp['csT_'+id] = t;
+      if(x!==0) temp['csX_'+id] = x;
+    } else if(v>0) hasAny = true;
     temp[def._base] = v;
   });
   if(hasAny) applyEffectValues(r, temp);
