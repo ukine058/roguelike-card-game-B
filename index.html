@@ -132,6 +132,24 @@
   #nav-drawer button.nav-item{ text-align:left; width:100%; padding:10px 12px; background:transparent; border:1px solid transparent; border-radius:6px; color:var(--parchment); font-size:14px; cursor:pointer; }
   #nav-drawer button.nav-item:hover{ background:rgba(255,255,255,.06); }
   #nav-drawer button.nav-item.current{ border-color:var(--blk); color:var(--blk); }
+  #fx-layer{ position:fixed; inset:0; z-index:2400; pointer-events:none; overflow:hidden; }
+  .fx-num{ position:fixed; font-weight:800; font-size:26px; line-height:1; color:var(--c,#fff); white-space:nowrap; opacity:0;
+    text-shadow:0 0 3px #000, 0 2px 4px rgba(0,0,0,.85), 0 0 10px var(--c,#fff); animation:fxrise var(--d,1.1s) ease-out forwards; }
+  .fx-num.lg{ font-size:34px; } .fx-num.sm{ font-size:19px; }
+  @keyframes fxrise{
+    0%{ opacity:0; transform:translate(calc(-50% + var(--dx,0px)),10px) scale(.55); }
+    14%{ opacity:1; transform:translate(calc(-50% + var(--dx,0px)),-6px) scale(1.3); }
+    30%{ transform:translate(calc(-50% + var(--dx,0px)),-14px) scale(1); }
+    100%{ opacity:0; transform:translate(calc(-50% + var(--dx,0px)),-62px) scale(1); } }
+  .fx-burst{ position:fixed; border-radius:50%; display:flex; align-items:center; justify-content:center; opacity:0;
+    background:radial-gradient(circle, var(--c) 0%, transparent 68%); animation:fxburst var(--d,.5s) ease-out forwards; }
+  .fx-burst span{ font-size:30px; text-shadow:0 0 6px #000; }
+  .fx-burst.ring{ background:none; border:3px solid var(--c); box-shadow:0 0 12px var(--c); }
+  @keyframes fxburst{ 0%{ opacity:.95; transform:translate(-50%,-50%) scale(.3); } 100%{ opacity:0; transform:translate(-50%,-50%) scale(1.2); } }
+  .fx-aura{ position:fixed; border-radius:50%; border:3px solid var(--c); box-shadow:0 0 14px var(--c), inset 0 0 14px var(--c); opacity:0; animation:fxaura var(--d,.8s) ease-out forwards; }
+  @keyframes fxaura{ 0%{ opacity:.9; transform:translate(-50%,-50%) scale(.6); } 100%{ opacity:0; transform:translate(-50%,-50%) scale(1.5); } }
+  .fx-num.simple{ animation-name:fxfade; }
+  @keyframes fxfade{ 0%{ opacity:0; transform:translate(-50%,0); } 20%{ opacity:1; transform:translate(-50%,0); } 100%{ opacity:0; transform:translate(-50%,0); } }
   #dlg-layer{ position:fixed; inset:0; z-index:2500; cursor:pointer; opacity:0; transition:opacity .22s ease; -webkit-tap-highlight-color:transparent; }
   #dlg-layer.on{ opacity:1; }
   .dlg-bubble{ position:fixed; width:max-content; max-width:min(320px,88vw); box-sizing:border-box; padding:18px 16px; border-radius:10px; background:var(--bg-panel); color:var(--parchment);
@@ -140,9 +158,20 @@
   /* しっぽは敵の側（右）を向く */
   .dlg-bubble::after{ content:''; position:absolute; right:-9px; top:22px; border:8px solid transparent; border-right:0; border-left:9px solid var(--gold); }
   .lg-say{ color:var(--gold); font-style:italic; }
-  #desc-pop{ position:fixed; z-index:3000; max-width:260px; padding:8px 10px; border-radius:6px; background:var(--parchment); color:var(--ink);
+  #desc-pop, #tip-pop{ position:fixed; z-index:3000; max-width:260px; padding:8px 10px; border-radius:6px; background:var(--parchment); color:var(--ink);
     border:1px solid #8a7752; box-shadow:0 6px 18px rgba(0,0,0,.55); font-size:12px; line-height:1.45; pointer-events:none; display:none; }
   #desc-pop .desc-prefix{ font-style:italic; color:var(--ink-soft); }
+  #tip-pop{ max-width:280px; }
+  #tip-pop .tip-title{ font-weight:700; font-size:13px; margin-bottom:3px; }
+  #tip-pop .tip-line{ margin-top:3px; }
+  #tip-pop .tip-dim{ color:var(--ink-soft); font-size:11px; }
+  #tip-pop .tip-when{ font-weight:700; }
+  .status-chip[data-tip]{ cursor:help; }
+  /* 仕込み（構え）: キャラクターのアイコンの真上。上の余白を確保して、出入りで画面が動かないようにする */
+  .combatant{ position:relative; }
+  .trigger-row{ position:absolute; left:50%; bottom:calc(100% + 4px); transform:translateX(-50%); width:max-content; max-width:190px;
+    display:flex; flex-wrap:wrap-reverse; justify-content:center; gap:4px; z-index:5; }
+  .trigger-chip{ max-width:186px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border-color:var(--gold); }
   .card .art{ display:flex; align-items:center; justify-content:center; }
   .card .card-icon{ font-size:44px; filter:drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
   .card.mini .card-icon{ font-size:34px; }
@@ -164,7 +193,8 @@
   .combatant.player .portrait{ border-color:var(--steel-dim); }
   .combatant .cname{ font-family:var(--font-display); font-size:15px; margin-bottom:4px;}
   .hpbar-wrap{ background:#000; border:1px solid var(--line); border-radius:10px; height:20px; overflow:hidden; position:relative; }
-  .hpbar-fill{ height:100%; background:linear-gradient(90deg,#7a2020,var(--hp-red)); transition:width .3s ease; }
+  .hpbar-fill{ height:100%; background:linear-gradient(90deg,#7a2020,var(--hp-red)); transition:width .3s ease; position:relative; }
+  .hpbar-ghost{ position:absolute; left:0; top:0; height:100%; background:linear-gradient(90deg,#b8863a,#e9c46a); opacity:.9; transition:width .6s ease; }
   .hpbar-text{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:13px; font-family:var(--font-en); font-weight:700; text-shadow:0 1px 2px #000;}
   .statuses{ display:flex; gap:5px; justify-content:center; margin-top:6px; flex-wrap:wrap;}
   .status-chip{ font-size:10.5px; background:var(--bg-panel-raised); border:1px solid var(--line); border-radius:10px; padding:2px 7px;}
@@ -329,6 +359,7 @@
 <body>
 <div id="app"></div>
 
+<!-- COPY_STORAGE_NAMESPACE_START -->
 <script>
 /* ===== コピー用: 保存データの分離（URLのパスから自動） =====
    localStorage はURLのパスではなく「オリジン」単位で共有されるため、同じ GitHub Pages ユーザー配下の
@@ -345,6 +376,7 @@
   P.removeItem = function(k){ return rem.call(this, NS + k); };
 })();
 </script>
+<!-- COPY_STORAGE_NAMESPACE_END -->
 <script>
 (function(){
 
@@ -556,6 +588,11 @@ function migrateCard(c){
     delete c.cardOp.triggerTag;
     delete c.cardOp.duration;
   }
+  // 単一の cardOp は、読み込み時に cardOps（配列）へ変換する
+  if(c && !Array.isArray(c.cardOps) && c.cardOp){
+    c.cardOps = c.cardOp.enabled ? [normalizeStatusOp(c.cardOp)] : [];
+    delete c.cardOp;
+  }
   // 旧データの変換: 敵専用・生成専用・使用者「敵のみ」のカードは、レアリティ「生成専用」にまとめる
   // 敵専用・生成専用は別のレアリティ（扱いは同じ：通常の報酬・ショップ・初期デッキには出ない）
   if(c){
@@ -590,6 +627,8 @@ const DEFAULT_WORLD = {
   title:'灰燼の書庫', subtitle:'Ashbound Codex', eyebrow:'ROGUELIKE DECKBUILDER',
   accent:'#D4A73E', bg:'#14110F', panel:'#1D1812',
   colorAttack:'#C1502E', colorSkill:'#4C7A8C', colorPower:'#7A5FA0',
+  // 戦闘エフェクトの色（通常ダメージ・ブロック・回復・毒などの継続ダメージ・良い状態・悪い状態）
+  colorDamage:'#E04848', colorBlock:'#5B9BD5', colorHeal:'#4CAF6A', colorPoison:'#9B59B6', colorBuff:'#D4A73E', colorDebuff:'#C0392B',
   introText:'',
   victoryEyebrow:'THE CODEX CLOSES', victoryTitle:'探索を制覇した！',
   victoryText:'全{floors}階層を踏破し、灰燼の書庫を鎮めた。',
@@ -720,13 +759,45 @@ function saveRelics(relics){
 // ===== 属性（攻撃の属性）=====
 // element: {id, name, props:{}}。props は将来の拡張用（吸血・貫通のような、ダメージに作用する特殊効果などをここに足す）。
 const DEFAULT_ELEMENTS = [
-  {id:'fire', name:'火', props:{}},
-  {id:'ice', name:'氷', props:{}},
-  {id:'thunder', name:'雷', props:{}},
+  {id:'fire', name:'火', props:{}, color:'#E8743B', emoji:'🔥'},
+  {id:'ice', name:'氷', props:{}, color:'#6EC6E8', emoji:'❄️'},
+  {id:'thunder', name:'雷', props:{}, color:'#F2D14B', emoji:'⚡'},
+];
+/* ===== 属性ごとの特殊効果 =====
+   属性の props に {キー: 数値} で持つ。新しい特殊効果は、ここに1項目足せば、属性の編集画面に入力欄が出て、保存・読み込みもそのまま通る。
+   項目: key / label / hint（編集画面の説明）/ min / max / short(value)（一覧の短い表示）
+         apply(ctx) … 攻撃のダメージが確定した直後に、その攻撃が持つ属性のうち、この効果の値が0より大きいものについて、まとめて1回呼ばれる。
+             ctx: {side:'toEnemy'|'toPlayer', hit, attacker, attackerName, entries:[{element, value}]}
+             hit は被弾の記録（hpLoss＝実際に減ったHP、blocked＝ブロックで防いだ分、pierce など）。
+             ログに残す文は {text, kind} で返す（攻撃のログの後に出す）。 */
+const ELEMENT_PROP_DEFS = [
+  {key:'lifesteal', label:'吸血（％）', min:0, max:999,
+   hint:'この属性を持つ攻撃が、相手のHPを実際に減らしたとき、減らした分のこの％（端数は切り捨て）を、攻撃した側が回復します。ブロックで防がれた分は含めません。攻撃が複数の属性を持つときは、各属性の％を足し合わせます。カードの「吸収」とは別に計算して、回復を足します。0なら効果なし。',
+   short: v=>`吸血${v}％`,
+   apply(ctx){
+     const loss = ctx.hit.hpLoss || 0, a = ctx.attacker;
+     if(!(loss>0) || !a || !(a.hp>0)) return null;
+     const pct = ctx.entries.reduce((sum,x)=>sum+x.value, 0);
+     const heal = Math.floor(loss*pct/100); if(!(heal>0)) return null;
+     const b = a.hp; a.hp = Math.min(a.maxHp, a.hp + heal);
+     const got = a.hp - b; if(!(got>0)) return null;
+     fxHeal(a, got);
+     const names = ctx.entries.map(x=>x.element.name).join('・');
+     return {text:`${ctx.attackerName}は${names}の吸血で${got}回復（HP ${b}→${a.hp}）。`, kind: ctx.side==='toPlayer' ? 'deal' : undefined};
+   }},
 ];
 function normalizeElement(x){
   x = (x && typeof x==='object') ? x : {};
-  return {...x, id:String(x.id||''), name:String(x.name||'').trim(), props:(x.props && typeof x.props==='object') ? x.props : {}};
+  const hex = v=> typeof v==='string' && /^#[0-9a-fA-F]{6}$/.test(v);
+  const d = DEFAULT_ELEMENTS.find(y=>y.id===x.id);   // 最初からある3属性は、色・絵文字が未設定のときだけ既定値を入れる
+  const color = x.color===undefined && d ? d.color : (hex(x.color) ? x.color : '');
+  const emoji = x.emoji===undefined && d ? d.emoji : (typeof x.emoji==='string' ? x.emoji.trim().slice(0,4) : '');
+  const props = (x.props && typeof x.props==='object' && !Array.isArray(x.props)) ? {...x.props} : {};
+  ELEMENT_PROP_DEFS.forEach(def=>{
+    const v = Number(props[def.key]);
+    if(Number.isFinite(v) && v>0) props[def.key] = Math.min(def.max, Math.max(def.min, Math.round(v))); else delete props[def.key];
+  });
+  return {...x, id:String(x.id||''), name:String(x.name||'').trim(), props, color, emoji};
 }
 function loadElements(){
   try{
@@ -862,12 +933,62 @@ function cardById(id){
     [permBuffs, tempBuffs].forEach(b=>{
       if(b) Object.keys(b).forEach(k=>{ merged[k] = (merged[k]||0) + b[k]; });
     });
+    if(merged.cost<0) merged.cost = 0;   // 「コストを増減する」で0未満にはならない
     return merged;
   }
   return card;
 }
 
+// カードが持つカード操作（有効なもの）の配列。新形式は cardOps、旧形式の単一 cardOp にも対応する。
+function cardOpsOf(c){
+  if(!c) return [];
+  if(Array.isArray(c.cardOps)) return c.cardOps.filter(o=>o && o.enabled!==false);
+  return (c.cardOp && c.cardOp.enabled) ? [c.cardOp] : [];
+}
+
 /* ============================= CARD TEXT ============================= */
+
+function cardOpDescParts(op){
+  const parts = [];
+  const isGenerate = GENERATE_TYPES.includes(op.type);
+  const isSelf = !isGenerate && op.fromPile==='self';
+  const typeLabel = (CARDOP_TYPES.find(t=>t.key===op.type)||{}).label || op.type;
+  const sg = n=> n>=0 ? `+${n}` : `${n}`;
+  if(isSelf){
+    if(op.type==='grantBuff'){
+      const fd = allEffectFieldDefs().find(d=>d.key===op.buffField);
+      parts.push(`このカードの「${fd ? fd.label : op.buffField}」を${sg(op.buffAmount||0)}する`);
+    } else if(op.type==='costChange'){
+      parts.push(`このカードのコストを${sg(op.costDelta|0)}する`);
+    } else parts.push(`このカード自身を${typeLabel}`);
+  } else {
+    const rangeLabel = isGenerate
+      ? genPoolLabel(op)
+      : ((PILE_OPTIONS.find(p=>p.key===op.fromPile)||{}).label || op.fromPile);
+    const seqText = (op.sequential && op.countMode!=='all') ? '（1枚ずつ選び直し）' : '';
+    const countText = (op.countMode==='all' ? '対象すべて'
+      : (op.countMode==='choose' && op.type!=='generateToEnemyDeck') ? `任意の${op.countFixed}枚`
+      : op.countMode==='choose' ? `${op.countFixed}枚`
+      : op.countMode==='random' ? `${op.countMin}〜${op.countMax}枚`
+      : `${op.countFixed}枚`) + seqText;
+    const tagText = op.filterTag ? `[${op.filterTag}]の` : '';
+    if(op.type==='grantBuff'){
+      const fieldDef = allEffectFieldDefs().find(d=>d.key===op.buffField);
+      const fieldLabel = fieldDef ? fieldDef.label : op.buffField;
+      parts.push(`${rangeLabel}の${tagText}カードを${countText}選び、「${fieldLabel}」を${sg(op.buffAmount||0)}する`);
+    } else if(op.type==='costChange'){
+      parts.push(`${rangeLabel}の${tagText}カードを${countText}選び、コストを${sg(op.costDelta|0)}する`);
+    } else if(isGenerate){
+      parts.push(`${rangeLabel}${tagText?`（${tagText.slice(0,-1)}）`:''}から${countText}${typeLabel}${op.type==='generateToEnemyDeck' ? `（重み${Math.max(1,op.deckWeight||1)}）` : ''}`);
+    } else {
+      parts.push(`${rangeLabel}の${tagText}カードを${countText}${typeLabel}`);
+    }
+  }
+  if(CARDOP_REVERTIBLE_TYPES.includes(op.type)){
+    parts.push(op.permanent ? '（永続：戦闘後も残る）' : '（この戦闘中のみ）');
+  }
+  return parts;
+}
 
 function cardDescription(c){
   const parts = [];
@@ -888,33 +1009,7 @@ function cardDescription(c){
   if(c.pierce) parts.push('ブロックを無視する（貫通）');
   if(c.lifesteal) parts.push('与えたダメージ分HP回復（吸血。ブロックで防がれた分は回復しない）');
   if(c.retain) parts.push('ターンをまたいで手札に残る（保持）');
-  if(c.cardOp && c.cardOp.enabled){
-    const isGenerate = GENERATE_TYPES.includes(c.cardOp.type);
-    const typeLabel = (CARDOP_TYPES.find(t=>t.key===c.cardOp.type)||{}).label || c.cardOp.type;
-    const rangeLabel = isGenerate
-      ? genPoolLabel(c.cardOp)
-      : ((PILE_OPTIONS.find(p=>p.key===c.cardOp.fromPile)||{}).label || c.cardOp.fromPile);
-    const seqText = (c.cardOp.sequential && c.cardOp.countMode!=='all') ? '（1枚ずつ選び直し）' : '';
-    const countText = (c.cardOp.countMode==='all' ? '対象すべて'
-      : (c.cardOp.countMode==='choose' && c.cardOp.type!=='generateToEnemyDeck') ? `任意の${c.cardOp.countFixed}枚`
-      : c.cardOp.countMode==='choose' ? `${c.cardOp.countFixed}枚`
-      : c.cardOp.countMode==='random' ? `${c.cardOp.countMin}〜${c.cardOp.countMax}枚`
-      : `${c.cardOp.countFixed}枚`) + seqText;
-    const tagText = c.cardOp.filterTag ? `[${c.cardOp.filterTag}]の` : '';
-    if(c.cardOp.type==='grantBuff'){
-      const fieldDef = allEffectFieldDefs().find(d=>d.key===c.cardOp.buffField);
-      const fieldLabel = fieldDef ? fieldDef.label : c.cardOp.buffField;
-      const amt = c.cardOp.buffAmount||0;
-      parts.push(`${rangeLabel}の${tagText}カードを${countText}選び、「${fieldLabel}」を${amt>=0?'+':''}${amt}する`);
-    } else if(isGenerate){
-      parts.push(`${rangeLabel}${tagText?`（${tagText.slice(0,-1)}）`:''}から${countText}${typeLabel}${c.cardOp.type==='generateToEnemyDeck' ? `（重み${Math.max(1,c.cardOp.deckWeight||1)}）` : ''}`);
-    } else {
-      parts.push(`${rangeLabel}の${tagText}カードを${countText}${typeLabel}`);
-    }
-    if(CARDOP_REVERTIBLE_TYPES.includes(c.cardOp.type)){
-      parts.push(c.cardOp.permanent ? '（永続：戦闘後も残る）' : '（この戦闘中のみ）');
-    }
-  }
+  cardOpsOf(c).forEach(op=> parts.push(...cardOpDescParts(op)));
   const elNames = cardElementIds(c).map(elementName);
   if(elNames.length) parts.push(`属性: ${elNames.join('・')}`);
   if(c.tags && c.tags.length) parts.push(`タグ: ${c.tags.join(', ')}`);
@@ -1051,6 +1146,10 @@ function normalizeCard(c){
   if(!Number.isFinite(c.startingCount)) c.startingCount = 0;
   if(typeof c.icon!=='string') c.icon = '';
   c.statusOp = normalizeCardStatusOp(c.statusOp);
+  // カード操作は複数持てる（cardOps）。旧データの単一の cardOp は1件の配列に変換する。
+  if(Array.isArray(c.cardOps)) c.cardOps = c.cardOps.filter(o=>o && typeof o==='object').map(normalizeStatusOp);
+  else c.cardOps = (c.cardOp && c.cardOp.enabled) ? [normalizeStatusOp(c.cardOp)] : [];
+  delete c.cardOp;
   return c;
 }
 function normalizeRelic(r){
@@ -1066,12 +1165,12 @@ function normalizeRelic(r){
 }
 function defaultStatusOp(){
   return {enabled:true, type:'moveToDiscard', fromPile:'hand', genPool:'normal', countMode:'fixed',
-    countFixed:1, countMin:1, countMax:1, filterTag:'', buffField:'', buffAmount:0, deckWeight:1, drawNext:false, sequential:false, permanent:false};
+    countFixed:1, countMin:1, countMax:1, filterTag:'', buffField:'', buffAmount:0, costDelta:1, deckWeight:1, drawNext:false, sequential:false, permanent:false};
 }
 function normalizeStatusOp(o){
   const d = defaultStatusOp();
   o = (o && typeof o==='object') ? o : {};
-  const okType = ['moveToHand','moveToDiscard','moveToDraw','moveToExhausted','upgrade','duplicate','play','grantBuff','generateToHand','generateToDraw','generatePlay','generateToEnemyDeck'];
+  const okType = ['moveToHand','moveToDiscard','moveToDraw','moveToExhausted','upgrade','duplicate','play','grantBuff','costChange','generateToHand','generateToDraw','generatePlay','generateToEnemyDeck'];
   return {
     enabled:true,
     type: okType.includes(o.type) ? o.type : d.type,
@@ -1084,6 +1183,7 @@ function normalizeStatusOp(o){
     filterTag: cleanTag(o.filterTag),
     buffField: typeof o.buffField==='string' ? o.buffField : '',
     buffAmount: clampInt(o.buffAmount,-99,99,0),
+    costDelta: clampInt(o.costDelta,-9,9,1),
     deckWeight: clampInt(o.deckWeight,1,99,1),
     drawNext: !!o.drawNext,
     sequential: !!o.sequential,
@@ -1121,6 +1221,7 @@ function normalizeCustomStatus(st){
   if(st.target!=='opponent') st.target = 'self';
   if(!Number.isFinite(st.perTurnDelta)) st.perTurnDelta = 0;
   st.persistent = !!st.persistent;
+  st.color = (typeof st.color==='string' && /^#[0-9a-fA-F]{6}$/.test(st.color)) ? st.color : '';   // 付与エフェクトの色（空欄なら、良い状態/悪い状態の色）
   // 排他: 付与のときに、指定タグ（組み込みの強化・弱体などの同名タグも可）の状態をどう扱うか
   st.exclOverwrite = parseExclTags(st.exclOverwrite);   // 付与する前に、これらのタグの状態をすべて取り除く
   st.exclYield = parseExclTags(st.exclYield);           // これらのタグの状態が付与されている間は、自分を付与しない
@@ -1525,6 +1626,13 @@ function renderWorldSettings(){
       <div class="section-label">テーマカラー</div>
       <div class="row">${col('accent','アクセント色（枠・ボタンの強調）')}${col('bg','背景色')}${col('panel','パネルの色')}</div>
       <div class="row">${col('colorAttack','アタックカードの色')}${col('colorSkill','スキルカードの色')}${col('colorPower','パワーカードの色')}</div>
+      <div class="section-label">戦闘エフェクト</div>
+      <p class="hint">戦闘中に、ダメージ・回復などの数字や、攻撃を受けたときの光が出ます。属性や状態に色を指定していれば、そちらが優先されます。</p>
+      <div class="checkbox-field"><input type="checkbox" id="fx-on" ${FX.prefs.on?'checked':''}><label for="fx-on">戦闘エフェクトを表示する（この端末の設定）</label></div>
+      <div class="field"><label>簡易表示（揺れ・光・輪・HPバーの残像を省き、数字だけを静かに出す）</label><select id="fx-simple">${[['auto','OSの「動きを減らす」設定に従う'],['on','常にオン（省略する）'],['off','常にオフ（OSの設定にかかわらず、すべて出す）']].map(([v,t])=>`<option value="${v}" ${FX.prefs.simple===v?'selected':''}>${t}</option>`).join('')}</select></div>
+      <div class="field"><label>エフェクトの速さ</label><select id="fx-speed">${[[0.5,'ゆっくり'],[1,'ふつう'],[1.5,'はやい'],[2,'とてもはやい']].map(([v,t])=>`<option value="${v}" ${FX.prefs.speed===v?'selected':''}>${t}</option>`).join('')}</select></div>
+      <div class="row">${col('colorDamage','通常ダメージの色')}${col('colorBlock','ブロックの色')}${col('colorHeal','回復の色')}</div>
+      <div class="row">${col('colorPoison','毒などの継続ダメージの色')}${col('colorBuff','良い状態の色（強化など）')}${col('colorDebuff','悪い状態の色（弱体など）')}</div>
       <div class="section-label">世界観の文章</div>
       <p class="hint">改行できます。文中の {floors} は探索の総階層数、{floor} は倒れた階層に置き換わります。</p>
       ${txt('introText','冒険のはじまりの文章（空欄なら表示しません）',5)}
@@ -1545,6 +1653,7 @@ function renderWorldSettings(){
     const o = {};
     Object.keys(DEFAULT_WORLD).forEach(k=>{ o[k] = qs('#w-'+k).value; });
     S.world = cleanWorld(o); saveWorld(S.world); applyWorldTheme();
+    FX.prefs.on = qs('#fx-on').checked; FX.prefs.speed = parseFloat(qs('#fx-speed').value)||1; FX.prefs.simple = qs('#fx-simple').value; fxSavePrefs();
     S.screen='home'; renderHome();
   };
 }
@@ -1796,6 +1905,14 @@ function requirementValueOf(entity, stat){
   if(typeof stat==='string' && stat.startsWith('cs:')) return customStatusStacks(entity, stat.slice(3));
   return tagStacks(entity, stat);
 }
+// 状態の選択肢（カードの使用条件・敵の確定行動で共通）: 組み込みの状態／カスタム状態ごと／カスタム状態のタグ（合計）
+function statSelectOptions(){
+  return [
+    ...Object.keys(BUILTIN_STATUS_TAGS).map(t=>({key:t, label:t})),
+    ...(S.customStatuses||[]).map(st=>({key:'cs:'+st.id, label:`${st.emoji||''}${st.name}`})),
+    ...[...new Set((S.customStatuses||[]).flatMap(st=>st.tags||[]))].filter(t=>!BUILTIN_STATUS_TAGS[t]).map(t=>({key:t, label:`タグ「${t}」の合計`})),
+  ];
+}
 function requirementText(q){
   const who = q.subject==='enemy' ? '敵' : '自分';
   const label = requirementStatLabel(q.stat);
@@ -1916,6 +2033,8 @@ function grantBuiltin(entity, field, v){
   if(tag && exclGuardBlocks(entity, g)) return 0;
   entity[field] = (entity[field]||0) + v;
   if(tag) exclRemoveReplaced(entity, g);
+  const fb = FX_BUILTIN[field];
+  if(fb) fxStatus(entity, fb[0]+fb[1], fxWorldColor(fb[2]), v);
   return v;
 }
 // カスタム状態を「付与」する。排他の設定に従い、付与されなければ0を返す（スタックを減らす操作はそのまま通す）
@@ -1936,6 +2055,7 @@ function grantCustomStatus(entity, statusId, delta){
   }
   addCustomStatusStacks(entity, statusId, delta);
   if(st) exclRemoveReplaced(entity, g);
+  if(st) fxStatus(entity, nm, fxStatusColorOf(st), delta);
   return delta;
 }
 // 'fixed': the configured value applies as-is, regardless of stack count (stacks just
@@ -2043,13 +2163,13 @@ function tickCustomStatusesForTurn(entity){
       const mag = customStatusMagnitude(eff, stacks);
       if(eff.kind==='turnStartDamage'){
         const amt = Math.max(0, mag);
-        if(amt>0){ entity.hp = Math.max(0, entity.hp - amt); pushLog(`${tag}によって${amt}ダメージ。`); }
+        if(amt>0){ const hb = entity.hp; entity.hp = Math.max(0, entity.hp - amt); fxLose(entity, hb-entity.hp, st.color ? '' : 'poison'); pushLog(`${tag}によって${amt}ダメージ。`); }
       } else if(eff.kind==='turnStartHeal'){
         const amt = Math.max(0, mag);
-        if(amt>0){ entity.hp = Math.min(entity.maxHp, entity.hp + amt); pushLog(`${tag}によってHPを${amt}回復した。`); }
+        if(amt>0){ const hb = entity.hp; entity.hp = Math.min(entity.maxHp, entity.hp + amt); fxHeal(entity, entity.hp-hb); pushLog(`${tag}によってHPを${amt}回復した。`); }
       } else if(eff.kind==='autoBlock'){
         const amt = Math.max(0, mag);
-        if(amt>0) entity.block += amt;
+        if(amt>0){ entity.block += amt; fxBlock(entity, amt); }
       } else if(eff.kind==='skipTurn'){
         if(!skipped){
           skipped = true; skip = true;
@@ -2087,10 +2207,11 @@ function tickCustomStatusesForTurn(entity){
 // the enemy's own deck.
 function opChooseVerb(op){
   return ({moveToDiscard:'捨てる', moveToExhausted:'消滅させる', moveToDraw:'山札に戻す', moveToHand:'手札に移す',
-    upgrade:'強化する', duplicate:'複製する', grantBuff:'効果を付与する', generateToHand:'生成する', generateToDraw:'生成する'})[op.type] || '選ぶ';
+    upgrade:'強化する', duplicate:'複製する', grantBuff:'効果を付与する', costChange:'コストを変える', generateToHand:'生成する', generateToDraw:'生成する'})[op.type] || '選ぶ';
 }
 // 敵が使うカード操作の説明（視点反転後の内容）。効果のない操作は空文字を返す。
 function enemyOpText(op){
+  if(op.fromPile==='self' && !GENERATE_TYPES.includes(op.type)) return '';   // 「そのカード自身」は敵が使うときは効果なし
   const lo = Math.min(op.countMin!==undefined?op.countMin:1, op.countMax!==undefined?op.countMax:1);
   const hi = Math.max(op.countMin!==undefined?op.countMin:1, op.countMax!==undefined?op.countMax:1);
   const n = op.countMode==='all' ? 'すべて'
@@ -2105,6 +2226,11 @@ function enemyOpText(op){
       const pile = (PILE_OPTIONS.find(x=>x.key===(op.fromPile||'hand'))||{}).label || '手札';
       const dest = {moveToHand:'手札に移す', moveToDraw:'山札に戻す（シャッフル）', moveToDiscard:'捨て札に送る'}[op.type];
       return `あなたの${pile}の${tag}カード${n}を${dest}${op.countMode==='choose' ? '（あなたが選ぶ）' : ''}`;
+    }
+    case 'costChange': {
+      const pile = (PILE_OPTIONS.find(x=>x.key===(op.fromPile||'hand'))||{}).label || '手札';
+      const d = op.costDelta|0;
+      return `あなたの${pile}の${tag}カード${n}のコストを${d>=0?'+':''}${d}する${op.countMode==='choose' ? '（あなたが選ぶ）' : ''}`;
     }
     case 'upgrade': return `自分のデッキの${tag}カード${n}を強化する`;
     case 'duplicate': return `自分のデッキの${tag}カード${n}を複製する`;
@@ -2231,13 +2357,15 @@ function applyEnemyCardPayload(r, e, c){
         // 吸収: ブロックで防がれた分は回復しない。実際にHPを減らせた分だけ回復する。
         if(c.lifesteal){
           const heal = lh ? lh.hpLoss : 0;
-          if(heal>0){ const b = e.hp; e.hp = Math.min(e.maxHp, e.hp + heal); pushLog(`${e.name}は吸収で${e.hp-b}回復（敵HP ${b}→${e.hp}）。`, 'deal'); }
+          if(heal>0){ const b = e.hp; e.hp = Math.min(e.maxHp, e.hp + heal); fxHeal(e, e.hp-b); pushLog(`${e.name}は吸収で${e.hp-b}回復（敵HP ${b}→${e.hp}）。`, 'deal'); }
           else if(lh && lh.total>0) pushLog(`${e.name}の吸収: 全て防がれたので回復なし。`, 'guard');
         }
+        flushElementNotes(lh);
         const reflectTotal = p.thorns + p.permThorns + customReflectDamage(p);
         if(reflectTotal>0){
           const eBefore = e.hp;
           e.hp = Math.max(0, e.hp - reflectTotal);
+          fxLose(e, eBefore-e.hp);
           pushLog(`${e.name}は反射ダメージを${reflectTotal}受けた（敵HP ${eBefore}→${e.hp}）。`, 'deal');
         }
       },
@@ -2246,13 +2374,13 @@ function applyEnemyCardPayload(r, e, c){
         if(!(blk>0)) return;
         const total = Math.max(0, blk + customBlockGainBonus(e));
         const bBefore = e.block;
-        e.block += total;
+        e.block += total; fxBlock(e, total);
         logBlockGain(`${e.name}：${c.name}`, e.name, 'e', total, {base:c.block||0, scale:blk-(c.block||0), flats:[{v:customBlockGainBonus(e), label:'状態'}]}, bBefore, e.block);
       },
       heal(){
         const heal = V('heal');
         if(!(heal>0)) return;
-        const before = e.hp; e.hp = Math.min(e.maxHp, e.hp + heal);
+        const before = e.hp; e.hp = Math.min(e.maxHp, e.hp + heal); fxHeal(e, e.hp-before);
         Lg({who:e.name, key:'e:hp', eff:'回復', v:heal, base:c.heal||0, before, after:e.hp, state:'HP'});
       },
       strength(){ eGain(e, e.name, 'e', 'strength', V('strength') + V('permStrength'), (c.strength||0)+(c.permStrength||0), '強化', '強化', v=>`${e.name}は力を高めた！ 強化+${v}。`); },
@@ -2326,7 +2454,7 @@ function applyEnemyStartEffects(r, e, effect){
   const weak = Math.max(0, eff.weak||0); if(weak>0) grantBuiltin(r.player, 'weak', weak);
   const vulnerable = Math.max(0, eff.vulnerable||0); if(vulnerable>0) grantBuiltin(r.player, 'vulnerable', vulnerable);
   const poison = Math.max(0, eff.poison||0); if(poison>0) grantBuiltin(r.player, 'poison', poison);
-  const heal = Math.max(0, eff.heal||0); if(heal>0) e.hp = Math.min(e.maxHp, e.hp + heal);
+  const heal = Math.max(0, eff.heal||0); if(heal>0){ const hb = e.hp; e.hp = Math.min(e.maxHp, e.hp + heal); fxHeal(e, e.hp-hb); }
   customStatusFieldDefs().forEach(def=>{
     const amt = Math.max(0, eff[def.key]||0);
     if(amt<=0) return;
@@ -2350,22 +2478,24 @@ const CARDOP_TYPES = [
   {key:'duplicate', label:'複製する（捨て札に複製を追加）'},
   {key:'play', label:'コストを消費せず使用する'},
   {key:'grantBuff', label:'カードに効果を付与する'},
+  {key:'costChange', label:'コストを増減する'},
   {key:'generateToHand', label:'カードを生成し、手札に加える'},
   {key:'generateToDraw', label:'カードを生成し、山札に加える'},
   {key:'generatePlay', label:'カードを生成し、コストを消費せず使用する'},
   {key:'generateToEnemyDeck', label:'カードを生成し、敵のデッキに加える（この戦闘中のみ）'},
 ];
 const GENERATE_TYPES = ['generateToHand','generateToDraw','generatePlay','generateToEnemyDeck'];
-const ENEMY_ON_PLAYER_OPS = ['moveToHand','moveToDraw','moveToDiscard'];
+const ENEMY_ON_PLAYER_OPS = ['moveToHand','moveToDraw','moveToDiscard','costChange'];
 // Ops whose result normally only lasts for the current combat (reverted afterwards),
 // unless the op is flagged "permanent".
-const CARDOP_REVERTIBLE_TYPES = ['upgrade','duplicate','grantBuff','moveToExhausted','generateToHand','generateToDraw','generatePlay'];
+const CARDOP_REVERTIBLE_TYPES = ['upgrade','duplicate','grantBuff','costChange','moveToExhausted','generateToHand','generateToDraw','generatePlay'];
 const PILE_OPTIONS = [
   {key:'hand', label:'手札'},
   {key:'draw', label:'山札'},
   {key:'discard', label:'捨て札'},
   {key:'exhausted', label:'消滅済み'},
   {key:'drawAndDiscard', label:'山札+捨て札（合算）'},
+  {key:'self', label:'そのカード自身（使用中のカード）'},
 ];
 // A cardOp's "from pile" can point at more than one actual pile array at once
 // (currently just "drawAndDiscard"). This maps the selectable key to the real
@@ -2373,6 +2503,7 @@ const PILE_OPTIONS = [
 const PILE_SOURCES = {
   hand: ['hand'], draw: ['draw'], discard: ['discard'], exhausted: ['exhausted'],
   drawAndDiscard: ['draw','discard'],
+  self: ['_selfPile'],   // 使用中のカード自身（playCard などが一時的に r._selfPile に置く）
 };
 const GENERATE_POOL_OPTIONS = [
   {key:'normal', label:'通常のカードのみ（生成専用カードを除く）'},
@@ -2539,6 +2670,12 @@ function resolveCardOp(r, op, done){
     resolveCardPlayCore(r, cc, ()=>{ r._autoPlayDepth -= 1; done(); });
     return;
   }
+  // 「そのカード自身」: 使用中のカード（r._selfPile）だけが対象。1枚なので枚数・選択・絞り込みは使わない。
+  // 敵が使うとき、または「コストを消費せず使用する」との組み合わせ（自分自身を再度使うことになる）は効果なし。
+  if(!GENERATE_TYPES.includes(op.type) && op.fromPile==='self'){
+    if(op.fromEnemy || op.type==='play'){ done(); return; }
+    op = {...op, countMode:'all', sequential:false, filterTag:''};
+  }
   // 敵が使う「手札に移動／山札に加える／捨て札に移動」は、プレイヤーの山を対象にする（通常の処理で解決。
   // 枚数の決め方が「プレイヤーが選ぶ」なら、選択画面が出る）。それ以外は、敵自身のデッキに作用する。
   if(op.fromEnemy && ENEMY_ON_PLAYER_OPS.includes(op.type)) op = {...op, fromEnemy:false};
@@ -2635,9 +2772,9 @@ function resolveCardOp(r, op, done){
           nextGen(); return;
         }
         r._autoPlayDepth = (r._autoPlayDepth||0) + 1;
-        resolveCardPlayCore(r, cc, ()=>{
+        runWithSelfCard(r, rawId, cb=>resolveCardPlayCore(r, cc, cb), fin=>{
           r._autoPlayDepth -= 1;
-          if(cc.exhaust) r.exhausted.push(rawId); else r.discard.push(rawId);
+          if(fin){ if(cc.exhaust) r.exhausted.push(fin); else r.discard.push(fin); }
           nextGen();
         });
       })();
@@ -2692,6 +2829,21 @@ function resolveCardOp(r, op, done){
       }
       done(); return;
     }
+    if(op.type==='costChange'){
+      const delta = op.costDelta|0;
+      if(delta){
+        const store = op.permanent ? r.instanceBuffs : r.tempInstanceBuffs;
+        selected.forEach(e=>{
+          const {cid, iid} = splitInstanceId(e.rawId);
+          const useIid = iid || newId();
+          if(!store[useIid]) store[useIid] = {};
+          store[useIid].cost = (store[useIid].cost||0) + delta;
+          r[e.pile][e.idx] = withInstanceSuffix(cid, useIid);
+        });
+        pushLog(`${selected.length}枚のカードのコストを${delta>=0?'+':''}${delta}した。`);
+      }
+      done(); return;
+    }
     if(op.type==='play'){
       // Auto-play the targeted cards for free (no energy cost, not counted as
       // hand-play). Guard against runaway chains (a card auto-playing cards that
@@ -2710,9 +2862,9 @@ function resolveCardOp(r, op, done){
           nextPlay(); return;
         }
         r._autoPlayDepth = (r._autoPlayDepth||0) + 1;
-        resolveCardPlayCore(r, cc, ()=>{
+        runWithSelfCard(r, e.rawId, cb=>resolveCardPlayCore(r, cc, cb), fin=>{
           r._autoPlayDepth -= 1;
-          if(cc.exhaust) r.exhausted.push(e.rawId); else r.discard.push(e.rawId);
+          if(fin){ if(cc.exhaust) r.exhausted.push(fin); else r.discard.push(fin); }
           nextPlay();
         });
       })();
@@ -2835,7 +2987,7 @@ function applyEffectValues(r, c){
       // 吸収: ブロックで防がれた分は回復しない。実際に敵のHPを減らせた分だけ回復する。
       if(c.lifesteal){
         const lh = r.lastEnemyHit, heal = lh ? lh.hpLoss : 0;
-        if(heal>0){ const b = r.player.hp; r.player.hp = Math.min(r.player.maxHp, r.player.hp + heal); pushLog(`${c.name}: 吸収でHPを${r.player.hp-b}回復（HP ${b}→${r.player.hp}）。`); }
+        if(heal>0){ const b = r.player.hp; r.player.hp = Math.min(r.player.maxHp, r.player.hp + heal); fxHeal(r.player, r.player.hp-b); pushLog(`${c.name}: 吸収でHPを${r.player.hp-b}回復（HP ${b}→${r.player.hp}）。`); }
         else if(lh && lh.total>0) pushLog(`${c.name}: 吸収は全て防がれたので回復なし。`);
       }
       // 敵が持つカスタム状態の「反射」: 攻撃を受けた敵が、攻撃した側にダメージを返す（ブロック無視）
@@ -2843,6 +2995,7 @@ function applyEffectValues(r, c){
       if(foeReflect>0 && r.enemy.hp>0 && r.player.hp>0){
         const pBefore = r.player.hp;
         r.player.hp = Math.max(0, r.player.hp - foeReflect);
+        fxLose(r.player, pBefore-r.player.hp);
         pushLog(`反射ダメージを${foeReflect}受けた（HP ${pBefore}→${r.player.hp}）。`, 'hit');
       }
     },
@@ -2851,7 +3004,7 @@ function applyEffectValues(r, c){
       if(!(blockVal>0)) return;
       const total = Math.max(0, blockVal + r.player.dexterity + r.player.permDexterity + customBlockGainBonus(r.player));
       const bBefore = r.player.block;
-      r.player.block += total;
+      r.player.block += total; fxBlock(r.player, total);
       logBlockGain(c.name, 'あなた', 'p', total, {base:c.block||0, scale:blockVal-(c.block||0), flats:[{v:r.player.dexterity + r.player.permDexterity, label:'器用'},{v:customBlockGainBonus(r.player), label:'状態'}]}, bBefore, r.player.block);
     },
     draw(){
@@ -2895,14 +3048,14 @@ function applyEffectValues(r, c){
     heal(){
       const healVal = val('heal');
       if(!(healVal>0)) return;
-      const before = P.hp; P.hp = Math.min(P.maxHp, P.hp + healVal);
+      const before = P.hp; P.hp = Math.min(P.maxHp, P.hp + healVal); fxHeal(P, P.hp-before);
       L({who:'あなた', key:'p:hp', eff:'回復', v:healVal, base:c.heal||0, before, after:P.hp, state:'HP'});
     },
     regen(){ gain('あなた', P, 'p', 'regen', 'regen', '再生'); },
     loseHp(){
       const loseHpVal = val('loseHp');
       if(!(loseHpVal>0)) return;
-      const before = P.hp; P.hp = Math.max(0, P.hp - loseHpVal);
+      const before = P.hp; P.hp = Math.max(0, P.hp - loseHpVal); fxLose(P, before-P.hp);
       L({who:'あなた', key:'p:hp', eff:'ダメージ(代償)', v:loseHpVal, base:c.loseHp||0, before, after:P.hp, state:'HP'});
     },
     statusOp(){ applyStatusOp(c.statusOp, r.player, r.enemy, c.name); },
@@ -2936,11 +3089,32 @@ function applyEffectValues(r, c){
 // One repetition of a card's effect: its numeric effects plus its card-operation.
 function applyCardEffectsOnce(r, c, done){
   applyEffectValues(r, c);
-  if(c.cardOp && c.cardOp.enabled){
-    resolveCardOp(r, c.cardOp, done);
-  } else {
-    done();
-  }
+  const ops = cardOpsOf(c);
+  if(ops.length) resolveCardOps(r, ops, done);
+  else done();
+}
+
+// 複数のカード操作を、並んでいる順に1つずつ解決する（選択画面が出る操作は、選び終わってから次へ）。
+function resolveCardOps(r, ops, done){
+  let i = 0;
+  (function next(){
+    if(i>=ops.length || (r.enemy && r.enemy.hp<=0) || r.player.hp<=0){ done(); return; }
+    resolveCardOp(r, ops[i++], next);
+  })();
+}
+
+// 使用中のカード自身を、一時的に r._selfPile（1枚だけの山）に置いて解決する。
+// 「そのカード自身」を対象にした操作は、この山に対して通常の操作と同じ処理を行う。
+// 解決後もこの山に残っているカード（強化・付与・コスト増減で実体のIDが変わっていることがある）を after(rawId) で返す。
+// 山札・手札・消滅へ移した場合は山が空になるので、after(null)（行き先はすでに決まっている）。
+function runWithSelfCard(r, rawId, run, after){
+  const prev = r._selfPile;
+  r._selfPile = [rawId];
+  run(()=>{
+    const left = r._selfPile;
+    r._selfPile = prev;
+    after(left && left.length ? left[0] : null);
+  });
 }
 
 // Repeats a card's effect "hits" times. Used when a registered trigger fires later:
@@ -2948,11 +3122,14 @@ function applyCardEffectsOnce(r, c, done){
 function applyCardEffects(r, c, done){
   const replays = Math.max(1, (c.hits||1) + scaleBonus(c,'hits'));
   let rep = 0;
+  // 仕込みの発動時、カード自身はすでに山の中にある。いま使用中の別のカードを「自身」と取り違えないよう、空にしておく。
+  const prevSelf = r._selfPile; r._selfPile = [];
+  const fin = ()=>{ r._selfPile = prevSelf; done(); };
   (function step(){
-    if(rep>=replays || r.enemy.hp<=0 || r.player.hp<=0){ done(); return; }
+    if(rep>=replays || r.enemy.hp<=0 || r.player.hp<=0){ fin(); return; }
     rep++;
     applyCardEffectsOnce(r, c, ()=>{
-      if(r.enemy.hp<=0 || r.player.hp<=0){ done(); return; }
+      if(r.enemy.hp<=0 || r.player.hp<=0){ fin(); return; }
       step();
     });
   })();
@@ -3315,7 +3492,7 @@ function openEnemyModal(enemy, isNew){
       </div>
       <div id="em-start-card-list"></div>
       <div class="section-label">条件付きの確定行動</div>
-      <p class="hint">条件を満たしたとき、通常の抽選の代わりに、指定したカードを次の行動として確定させます。上にあるものほど優先されます。判定は、敵が次の行動を予告するとき（敵の行動の直後）に行います。一度予告した行動はプレイヤーの行動で変わらないので、プレイヤーの行動で条件を満たした場合は、予告済みの行動が実行されたあと、次にそのカードが予告されます。「一度だけ」をオンにすると、この戦闘で1回しか発動しません。下の「連続行動」と同じ予告で重なったときの扱いは、確定行動ごとに選べます。</p>
+      <p class="hint">条件を満たしたとき、通常の抽選の代わりに、指定したカードを次の行動として確定させます。上にあるものほど優先されます。判定は、敵が次の行動を予告するとき（敵の行動の直後）に行います。一度予告した行動はプレイヤーの行動で変わらないので、プレイヤーの行動で条件を満たした場合は、予告済みの行動が実行されたあと、次にそのカードが予告されます。「敵／プレイヤーが持つ状態」の条件では、状態を一覧から選び、そのスタック数が指定の値以上・以下・ちょうどのときに確定させます（カードの使用条件と同じ選び方。例: プレイヤーの強化が5以上、敵の自作の状態が0のとき）。「一度だけ」をオンにすると、この戦闘で1回しか発動しません。下の「連続行動」と同じ予告で重なったときの扱いは、確定行動ごとに選べます。</p>
       <div id="em-forced-list"></div>
       <button type="button" id="em-forced-add">＋ 条件付きの確定行動を追加</button>
       <div class="section-label">連続行動</div>
@@ -3440,11 +3617,17 @@ function openEnemyModal(enemy, isNew){
   function forcedRowHTML(rule, i){
     const subj = FORCED_SUBJECTS.find(s=>s.key===rule.subject) || FORCED_SUBJECTS[0];
     const cmpLabels = FORCED_CMP_LABELS[subj.key==='turn' ? 'turn' : 'val'];
+    let statOpts = [];
+    if(subj.tag){
+      statOpts = statSelectOptions();
+      if(!rule.tag && statOpts.length) rule.tag = statOpts[0].key;   // 画面に出る初期選択と中身を合わせる
+      if(rule.tag && !statOpts.some(o=>o.key===rule.tag)) statOpts.push({key:rule.tag, label: requirementStatLabel(rule.tag) || '（削除された状態）'});
+    }
     return `<div class="ev-eff" data-idx="${i}">
       <div class="ev-eff-head"><span>確定行動 ${i+1}</span><button type="button" class="ghost em-forced-del">削除</button></div>
       <div class="field"><label>条件</label><select data-f="subject">
         ${FORCED_SUBJECTS.map(s=>`<option value="${s.key}" ${s.key===subj.key?'selected':''}>${s.label}</option>`).join('')}</select></div>
-      ${subj.tag ? `<div class="field"><label>タグ（組み込みの強化・弱体・毒などの名前も使えます）</label><input type="text" data-f="tag" value="${escapeHtml(rule.tag||'')}"></div>` : ''}
+      ${subj.tag ? `<div class="field"><label>状態（組み込みの強化・弱体・毒など／カスタム状態／タグの合計）</label><select data-f="tag">${statOpts.map(o=>`<option value="${escapeHtml(o.key)}" ${o.key===rule.tag?'selected':''}>${escapeHtml(o.label)}</option>`).join('')}</select></div>` : ''}
       <div class="ev-eff-grid">
         <div><label>比較</label><select data-f="cmp">${subj.cmps.map(k=>`<option value="${k}" ${rule.cmp===k?'selected':''}>${cmpLabels[k]}</option>`).join('')}</select></div>
         <div><label>${subj.unit}</label><input type="number" data-f="value" data-num="1" value="${rule.value|0}" min="0" max="9999"></div>
@@ -3481,6 +3664,7 @@ function openEnemyModal(enemy, isNew){
         const rule = en.forcedMoves[parseInt(e.target.closest('[data-idx]').dataset.idx,10)];
         const subj = FORCED_SUBJECTS.find(s=>s.key===rule.subject) || FORCED_SUBJECTS[0];
         if(!subj.cmps.includes(rule.cmp)) rule.cmp = subj.cmps[0];
+        if(subj.tag && !rule.tag){ const o = statSelectOptions(); if(o.length) rule.tag = o[0].key; }
         renderForcedList();
       }
     });
@@ -3671,7 +3855,7 @@ function customStatusUsage(statusId){
   const key = 'cs_'+statusId;
   const cardIds = S.cards.filter(c=>
     (c[key]) || (c['csX_'+statusId]) || (c['dw_'+key]) || (c['dw_csX_'+statusId]) || (c.scales && c.scales[key]) || (c.upgrades && (c.upgrades[key] || (c.upgrades.scalePP && c.upgrades.scalePP[key])))
-    || (c.cardOp && c.cardOp.enabled && c.cardOp.type==='grantBuff' && c.cardOp.buffField===key)
+    || cardOpsOf(c).some(o=>o.type==='grantBuff' && o.buffField===key)
     || Object.values(c.scales||{}).some(sc=> sc && (sc.source==='csSelf:'+statusId || sc.source==='csEnemy:'+statusId))
   ).map(c=>c.id);
   const relicIds = S.relics.filter(rel=> rel.effect && rel.effect[key]).map(rel=>rel.id);
@@ -3687,6 +3871,7 @@ function stripCustomStatusRefs(statusId){
       Object.keys(c.scales).forEach(f=>{ const sc = c.scales[f]; if(sc && (sc.source==='csSelf:'+statusId || sc.source==='csEnemy:'+statusId)) delete c.scales[f]; });
     }
     if(c.upgrades){ delete c.upgrades[key]; if(c.upgrades.scalePP) delete c.upgrades.scalePP[key]; }
+    if(Array.isArray(c.cardOps)) c.cardOps = c.cardOps.filter(o=>!(o && o.buffField===key && o.type==='grantBuff'));
     if(c.cardOp && c.cardOp.buffField===key){ c.cardOp.enabled = false; }
   });
   saveCards(S.cards);
@@ -3768,9 +3953,9 @@ function renderElementEditor(){
       <div><p class="eyebrow">ELEMENT EDITOR</p><h2>属性を編集する</h2></div>
       <div class="topbar-btns"><button class="ghost" id="btn-back">← ホームへ</button></div>
     </div>
-    <p class="hint">攻撃ダメージに付ける「属性」を作ります（カード編集の「攻撃の属性」で選びます）。今は名前だけですが、今後ここに、属性ごとの特殊効果（吸血・貫通など）の設定を足せるようにしてあります。</p>
+    <p class="hint">攻撃ダメージに付ける「属性」を作ります（カード編集の「攻撃の属性」で選びます）。属性ごとに、エフェクトの色・絵文字と、特殊効果（今は吸血）を設定できます。</p>
     <div class="section-label">属性一覧（${list.length}種）</div>
-    <div id="el-rows">${list.length ? list.map(el=>`<div class="ev-add" data-id="${escapeHtml(el.id)}" style="margin-bottom:6px;"><span style="flex:1; font-size:15px;">${escapeHtml(el.name)}</span>
+    <div id="el-rows">${list.length ? list.map(el=>`<div class="ev-add" data-id="${escapeHtml(el.id)}" style="margin-bottom:6px;"><span style="flex:1; font-size:15px;">${el.color?`<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${el.color}; margin-right:6px;"></span>`:''}${escapeHtml(el.emoji||'')} ${escapeHtml(el.name)}${ELEMENT_PROP_DEFS.filter(d=>(el.props||{})[d.key]>0).map(d=>` <span class="hint" style="font-size:12px;">${escapeHtml(d.short((el.props||{})[d.key]))}</span>`).join('')}</span>
       <button type="button" class="el-edit">編集</button><button type="button" class="el-dup">複製</button><button type="button" class="el-del">削除</button></div>`).join('') : '<p class="hint">属性がありません。</p>'}</div>
     <div style="margin-top:12px;"><button type="button" class="primary" id="el-new">＋ 属性を追加</button></div>
   </div>`;
@@ -3802,7 +3987,11 @@ function openElementModal(el, isNew){
   overlay.innerHTML = `<div class="modal-box">
     <h3>${isNew ? '属性を新規作成' : '属性を編集'}</h3>
     <div class="field"><label>属性の名前</label><input type="text" id="elm-name" value="${escapeHtml(e.name)}" maxlength="20"></div>
-    <p class="hint">属性ごとの特殊効果（吸血・貫通など）の設定は、今後ここに追加できます。</p>
+    <div class="field"><label>エフェクトの絵文字（この属性の攻撃を受けたときに光の中に出る。空欄ならなし）</label><input type="text" id="elm-emoji" value="${escapeHtml(e.emoji||'')}" maxlength="4"></div>
+    <div class="checkbox-field"><input type="checkbox" id="elm-usecolor" ${e.color?'checked':''}><label for="elm-usecolor">エフェクトの色を指定する（オフなら、通常ダメージの色）</label></div>
+    <div class="field"><input type="color" id="elm-color" value="${e.color||'#E04848'}" style="width:100%; height:38px; padding:2px;"></div>
+    <div class="section-label">特殊効果</div>
+    ${ELEMENT_PROP_DEFS.map(def=>`<div class="field"><label>${escapeHtml(def.label)}</label><input type="number" id="elm-prop-${def.key}" value="${(e.props||{})[def.key]||0}" min="${def.min}" max="${def.max}" step="1"><p class="hint">${escapeHtml(def.hint)}</p></div>`).join('')}
     <div class="modal-actions"><button class="ghost" id="elm-cancel">キャンセル</button><button class="primary" id="elm-save">保存する</button></div>
   </div>`;
   document.body.appendChild(overlay);
@@ -3810,7 +3999,12 @@ function openElementModal(el, isNew){
   qs('#elm-save',overlay).onclick = ()=>{
     const name = qs('#elm-name',overlay).value.trim();
     if(!name){ alert('名前を入力してください。'); return; }
-    const updated = {...e, name, props:e.props||{}};
+    const props = {...(e.props||{})};
+    ELEMENT_PROP_DEFS.forEach(def=>{
+      const v = clampInt(qs('#elm-prop-'+def.key,overlay).value, def.min, def.max, 0);
+      if(v>0) props[def.key] = v; else delete props[def.key];
+    });
+    const updated = {...e, name, props, color: qs('#elm-usecolor',overlay).checked ? qs('#elm-color',overlay).value : '', emoji: (qs('#elm-emoji',overlay).value||'').trim().slice(0,4)};
     if(isNew) S.elements.push(updated); else S.elements = S.elements.map(x=> x.id===updated.id ? updated : x);
     saveElements(S.elements); overlay.remove(); renderElementEditor();
   };
@@ -3899,7 +4093,7 @@ function statusEffectFormHTML(eff, i){
            ${op.type==='generateToEnemyDeck' ? `<div class="ev-eff-grid"><div><label>敵のデッキでの重み（大きいほど選ばれやすい）</label><input type="number" ${opAt} data-f="deckWeight" data-num="1" value="${op.deckWeight||1}" min="1" max="99"></div></div>
            <label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="drawNext" ${op.drawNext?'checked':''}> 敵が持っているとき: 加えたカードを次のターンに必ず引く（山札の一番上に置く）</label>
            <p class="ev-hint">プレイヤーが持っているときは、敵のデッキ一覧に、この戦闘の間だけ追加されます。今の予告は変わらず、次の次の行動から反映されます。敵が持っているときは逆にプレイヤーの山札に加わり、次のターンの最初のドローより前に処理されます（チェックなしなら山札に混ざり、引くことがあります）。</p>` : ''}`
-        : `<div class="field"><label>対象の山</label>${sel('fromPile', PILE_OPTIONS, op.fromPile)}</div>`}
+        : `<div class="field"><label>対象の山</label>${sel('fromPile', PILE_OPTIONS.filter(p=>p.key!=='self'), op.fromPile)}</div>`}
       <div class="field"><label>枚数の決め方</label><select ${opAt} data-f="countMode">
         <option value="fixed" ${op.countMode==='fixed'?'selected':''}>固定数</option>
         <option value="random" ${op.countMode==='random'?'selected':''}>ランダムな範囲</option>
@@ -3909,6 +4103,7 @@ function statusEffectFormHTML(eff, i){
       <div class="field"><label>対象タグ絞り込み（空欄で絞り込みなし）</label><input type="text" ${opAt} data-f="filterTag" value="${escapeHtml(op.filterTag||'')}"></div>
       <label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="sequential" ${op.sequential?'checked':''}> 1枚ずつ選び直す（1枚処理するごとに、そのあとの山の状態から次を選ぶ）</label>
       ${CARDOP_REVERTIBLE_TYPES.includes(op.type) ? `<label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="permanent" ${op.permanent?'checked':''}> 永続（戦闘が終わっても元に戻さない。チェックなしはこの戦闘中のみ）</label>` : ''}
+      ${op.type==='costChange' ? `<div class="field"><label>コストの増減量（マイナスで軽減。0未満にはならない）</label><input type="number" ${opAt} data-f="costDelta" data-num="1" value="${op.costDelta|0}" min="-9" max="9"></div>` : ''}
       ${op.type==='grantBuff' ? `
         <div class="field"><label>付与する効果</label><select ${opAt} data-f="buffField">
           ${allEffectFieldDefs().map(def=>`<option value="${escapeHtml(def.key)}" ${op.buffField===def.key?'selected':''}>${escapeHtml(def.label)}</option>`).join('')}</select></div>
@@ -3929,6 +4124,8 @@ function openStatusModal(status, isNew){
       <h3>${isNew? '状態を新規作成' : '状態を編集'}</h3>
       <div class="field"><label>名前</label><input type="text" id="sm-name" value="${escapeHtml(st.name)}"></div>
       <div class="field"><label>絵文字</label><input type="text" id="sm-emoji" value="${escapeHtml(st.emoji||'')}" maxlength="4"></div>
+      <div class="checkbox-field"><input type="checkbox" id="sm-usecolor" ${st.color?'checked':''}><label for="sm-usecolor">付与されたときのエフェクトの色を指定する（オフなら、対象が自分の状態は「良い状態」、敵の状態は「悪い状態」の色）</label></div>
+      <div class="field"><input type="color" id="sm-color" value="${st.color||'#D4A73E'}" style="width:100%; height:38px; padding:2px;"></div>
       <div class="field"><label>タグ（カンマ区切りで複数入力可）</label><input type="text" id="sm-tags" value="${escapeHtml((st.tags||[]).join(', '))}" placeholder="例: 強化">
         <p class="hint">タグ「強化」を付けると、強化と同類として扱われ、カードの「敵の強化を減少させる」の影響を受けます。カードの「参照増減」では、参照元に「自分／敵の指定タグの状態スタック数（合計）」を選び、参照タグに同じタグを入れると、同じタグを持つ複数の状態の合計に反応させられます（組み込みの強化・器用・弱体・脆弱・毒・再生・麻痺・自動ブロック・棘も、同名のタグとして数えます）。</p></div>
       <div class="section-label">排他（付与のときの、他の状態との共存ルール）</div>
@@ -4019,6 +4216,7 @@ function openStatusModal(status, isNew){
       tags: parseTags(qs('#sm-tags',overlay).value),
       name: qs('#sm-name',overlay).value.trim() || '無名の状態',
       emoji: (qs('#sm-emoji',overlay).value||'').trim(),
+      color: qs('#sm-usecolor',overlay).checked ? qs('#sm-color',overlay).value : '',
       target: qs('#sm-target',overlay).value,
       perTurnDelta: clampInt(qs('#sm-perturndelta',overlay).value,-99,99,0),
       persistent: qs('#sm-persistent',overlay).checked,
@@ -4295,70 +4493,9 @@ function openCardModal(card, isNew){
       <div class="checkbox-field"><input type="checkbox" id="m-lifesteal" ${c.lifesteal?'checked':''}><label for="m-lifesteal">与えたダメージ分HPを回復する（吸血。ブロックで防がれた分は回復しない）</label></div>
       <div class="checkbox-field"><input type="checkbox" id="m-retain" ${c.retain?'checked':''}><label for="m-retain">ターンをまたいで手札に残る（保持）</label></div>
       <div class="section-label">カード操作（発展効果）</div>
-      <div class="checkbox-field"><input type="checkbox" id="m-op-enabled" ${c.cardOp&&c.cardOp.enabled?'checked':''}><label for="m-op-enabled">カード操作を有効にする</label></div>
-      <p class="hint" style="margin-bottom:8px;">このカードを敵が使った場合、視点が反転します。「敵のデッキに加える」はプレイヤーの山札に加わり（この戦闘中のみ）、それ以外の操作は敵自身のデッキに作用します（対象の山は無視。「捨て札に移動」「消滅」はデッキから取り除く（最後の1枚は残る）／「手札・山札に移動」は効果なし／強化・複製・効果付与・生成は敵のデッキの内容を変える）。「プレイヤーが選ぶ」はランダムになります。プレイヤーのターン開始時、手札を引いた後に発動し、予告にも表示されます。プレイヤーが使った場合は、従来どおり自分のデッキ／敵のデッキへの操作です。</p>
-      <div id="op-config" style="${c.cardOp&&c.cardOp.enabled?'':'display:none;'} padding:10px; background:var(--bg-void); border:1px solid var(--line); border-radius:4px; margin-bottom:12px;">
-        <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">操作内容</div>
-        <select id="m-op-type" style="margin-bottom:8px; width:100%;">
-          ${CARDOP_TYPES.map(t=>`<option value="${t.key}" ${c.cardOp&&c.cardOp.type===t.key?'selected':''}>${t.label}</option>`).join('')}
-        </select>
-        <div id="op-frompile-field" style="${c.cardOp&&GENERATE_TYPES.includes(c.cardOp.type)?'display:none;':''}">
-          <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">対象の山</div>
-          <select id="m-op-frompile" style="margin-bottom:8px; width:100%;">
-            ${PILE_OPTIONS.map(p=>`<option value="${p.key}" ${c.cardOp&&c.cardOp.fromPile===p.key?'selected':''}>${p.label}</option>`).join('')}
-          </select>
-        </div>
-        <div id="op-genpool-field" style="${c.cardOp&&GENERATE_TYPES.includes(c.cardOp.type)?'':'display:none;'}">
-          <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">生成元プール</div>
-          <select id="m-op-genpool" style="margin-bottom:8px; width:100%;">
-            ${genPoolOptionsFor(c.cardOp&&c.cardOp.type).map(p=>`<option value="${p.key}" ${c.cardOp&&c.cardOp.genPool===p.key?'selected':''}>${p.label}</option>`).join('')}
-          </select>
-        </div>
-        <div id="op-deckweight-field" style="${c.cardOp&&c.cardOp.type==='generateToEnemyDeck'?'':'display:none;'}">
-          <div class="checkbox-field" style="margin-bottom:6px;"><input type="checkbox" id="m-op-drawnext" ${c.cardOp&&c.cardOp.drawNext?'checked':''}><label for="m-op-drawnext">敵が使うとき: 加えたカードを次のターンに必ず引く（山札の一番上に置く）</label></div>
-          <div class="hint" style="margin-bottom:6px;">敵が使うと、このカードはプレイヤーの山札に加わります（次のターンの最初のドローより前に処理）。チェックなしなら山札にシャッフルして混ぜるので、次のターンに引くことがあります。手札の枚数より多く加えた場合、引ききれない分は山札の上に残ります。</div>
-          <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">敵のデッキでの重み（大きいほど選ばれやすい）</div>
-          <input type="number" id="m-op-deckweight" value="${(c.cardOp&&c.cardOp.deckWeight)||1}" min="1" max="99" style="width:100%; margin-bottom:4px;">
-          <div class="hint" style="margin-bottom:8px;">敵のデッキ一覧に、この戦闘の間だけ追加されます（戦闘が終わると消えます）。敵は毎ターン、デッキ一覧から3つを無作為に引き、その中から重みに比例して行動を選びます。枚数を増やすと一覧に入る数も増え、引かれやすくなります。今表示されている予告は変わらず、次の次の行動から反映されます。</div>
-        </div>
-        <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">枚数の決め方</div>
-        <select id="m-op-countmode" style="margin-bottom:8px; width:100%;">
-          <option value="fixed" ${(!c.cardOp||c.cardOp.countMode==='fixed')?'selected':''}>固定数</option>
-          <option value="random" ${c.cardOp&&c.cardOp.countMode==='random'?'selected':''}>ランダムな範囲</option>
-          <option value="all" ${c.cardOp&&c.cardOp.countMode==='all'?'selected':''}>対象すべて</option>
-          <option value="choose" ${c.cardOp&&c.cardOp.countMode==='choose'?'selected':''}>プレイヤーが任意に選ぶ</option>
-        </select>
-        <div style="display:flex; gap:6px; margin-bottom:8px;">
-          <div style="flex:1;">
-            <div style="font-size:10px; color:var(--parchment-dim);">固定数 / 選ぶ枚数</div>
-            <input type="number" id="m-op-countfixed" value="${(c.cardOp&&c.cardOp.countFixed)||1}" min="0" max="20" style="width:100%;">
-          </div>
-          <div style="flex:1;">
-            <div style="font-size:10px; color:var(--parchment-dim);">ランダム最小</div>
-            <input type="number" id="m-op-countmin" value="${(c.cardOp&&c.cardOp.countMin)||1}" min="0" max="20" style="width:100%;">
-          </div>
-          <div style="flex:1;">
-            <div style="font-size:10px; color:var(--parchment-dim);">ランダム最大</div>
-            <input type="number" id="m-op-countmax" value="${(c.cardOp&&c.cardOp.countMax)||1}" min="0" max="20" style="width:100%;">
-          </div>
-        </div>
-        <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">対象タグ絞り込み（空欄で絞り込みなし）</div>
-        <input type="text" id="m-op-filtertag" value="${(c.cardOp&&c.cardOp.filterTag)||''}" style="width:100%;">
-        <div class="checkbox-field" style="margin-top:8px; margin-bottom:4px;"><input type="checkbox" id="m-op-sequential" ${c.cardOp&&c.cardOp.sequential?'checked':''}><label for="m-op-sequential">1枚ずつ選び直す（1枚処理するたびに次の1枚を選ぶ）</label></div>
-        <div class="hint">オフ＝最初に全部まとめて選ぶ。オン＝1枚処理してから次を選ぶので、直前の効果で増減した手札なども対象になります（任意選択なら1枚ずつ選択画面が出ます。「対象すべて」では無効）。</div>
-        <div id="op-permanent-field" style="${c.cardOp&&CARDOP_REVERTIBLE_TYPES.includes(c.cardOp.type)?'':'display:none;'} margin-top:10px;">
-          <div class="checkbox-field" style="margin-bottom:4px;"><input type="checkbox" id="m-op-permanent" ${c.cardOp&&c.cardOp.permanent?'checked':''}><label for="m-op-permanent">永続にする（戦闘後も元に戻さない）</label></div>
-          <div class="hint">オフ＝この戦闘中のみ（強化・付与・複製・生成は戦闘後に元へ戻る）。消滅は、オンにするとそのカードを探索から完全に取り除きます。</div>
-        </div>
-        <div id="op-buff-fields" style="${c.cardOp&&c.cardOp.type==='grantBuff'?'':'display:none;'} margin-top:10px;">
-          <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">付与する効果</div>
-          <select id="m-op-bufffield" style="margin-bottom:8px; width:100%;">
-            ${allEffectFieldDefs().map(def=>`<option value="${escapeHtml(def.key)}" ${c.cardOp&&c.cardOp.buffField===def.key?'selected':''}>${escapeHtml(def.label)}</option>`).join('')}
-          </select>
-          <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">付与量（マイナスで減少も可）</div>
-          <input type="number" id="m-op-buffamount" value="${(c.cardOp&&c.cardOp.buffAmount)||0}" min="-99" max="99" style="width:100%;">
-        </div>
-      </div>
+      <p class="hint" style="margin-bottom:8px;">操作は複数つけられます。並んでいる順に、効果のあとで1つずつ実行します（選択画面が出る操作は、選び終えてから次へ進みます）。対象の山に「そのカード自身」を選ぶと、使用中のこのカードが対象になります（捨て札や消滅に行く前に処理され、「捨て札に移動」以外なら使用後の行き先を上書きします。例: 山札に戻す・手札に戻す・消滅・強化・コスト増減）。仕込みの発動時と、敵が使うときは「そのカード自身」は効果なしです。<br>このカードを敵が使った場合、視点が反転します。「敵のデッキに加える」はプレイヤーの山札に加わり（この戦闘中のみ）、「手札に移動／山札に加える／捨て札に移動／コスト増減」はプレイヤーの山が対象です。そのほかの操作は敵自身のデッキに作用します（対象の山は無視。「消滅」はデッキから取り除く（最後の1枚は残る）／強化・複製・効果付与・生成は敵のデッキの内容を変える）。「プレイヤーが選ぶ」はランダムになります。プレイヤーのターン開始時、手札を引いた後に発動し、予告にも表示されます。</p>
+      <div id="op-list"></div>
+      <button type="button" id="op-add">＋ カード操作を追加</button>
       <div class="section-label">状態の操作（タグ指定で取り除く・減らす）</div>
       <div class="checkbox-field"><input type="checkbox" id="m-so-enabled" ${c.statusOp&&c.statusOp.enabled?'checked':''}><label for="m-so-enabled">状態の操作を有効にする</label></div>
       <div id="so-config" style="${c.statusOp&&c.statusOp.enabled?'':'display:none;'} padding:10px; background:var(--bg-void); border:1px solid var(--line); border-radius:4px; margin-bottom:12px;">
@@ -4454,9 +4591,6 @@ function openCardModal(card, isNew){
   qs('#m-timing',overlay).onchange = ()=>{
     qs('#timing-trigger-fields',overlay).style.display = qs('#m-timing',overlay).value==='trigger' ? 'block' : 'none';
   };
-  qs('#m-op-enabled',overlay).onchange = ()=>{
-    qs('#op-config',overlay).style.display = qs('#m-op-enabled',overlay).checked ? 'block' : 'none';
-  };
   qs('#m-so-enabled',overlay).onchange = ()=>{
     qs('#so-config',overlay).style.display = qs('#m-so-enabled',overlay).checked ? 'block' : 'none';
   };
@@ -4541,11 +4675,7 @@ function openCardModal(card, isNew){
   renderEl();
   // ----- 使用条件 -----
   let reqState = (Array.isArray(c.requirements) ? c.requirements : []).map(x=>({...x}));
-  const reqStatOptions = ()=>[
-    ...Object.keys(BUILTIN_STATUS_TAGS).map(t=>({key:t, label:t})),
-    ...(S.customStatuses||[]).map(st=>({key:'cs:'+st.id, label:`${st.emoji||''}${st.name}`})),
-    ...[...new Set((S.customStatuses||[]).flatMap(st=>st.tags||[]))].filter(t=>!BUILTIN_STATUS_TAGS[t]).map(t=>({key:t, label:`タグ「${t}」の合計`})),
-  ];
+  const reqStatOptions = statSelectOptions;   // 敵の確定行動の条件と共通
   const reqBox = qs('#req-list', overlay);
   const renderReq = ()=>{
     const opts = reqStatOptions();
@@ -4561,17 +4691,77 @@ function openCardModal(card, isNew){
   reqBox.addEventListener('click', e=>{ const b = e.target.closest('[data-rdel]'); if(b){ reqState.splice(+b.dataset.rdel,1); renderReq(); } });
   qs('#req-add', overlay).onclick = ()=>{ const o = reqStatOptions(); reqState.push({subject:'self', stat:(o[0]||{}).key||'強化', op:'ge', value:1}); renderReq(); };
   renderReq();
-  qs('#m-op-type',overlay).onchange = ()=>{
-    const t = qs('#m-op-type',overlay).value;
-    qs('#op-buff-fields',overlay).style.display = t==='grantBuff' ? 'block' : 'none';
-    qs('#op-permanent-field',overlay).style.display = CARDOP_REVERTIBLE_TYPES.includes(t) ? 'block' : 'none';
-    const isGen = GENERATE_TYPES.includes(t);
-    qs('#op-frompile-field',overlay).style.display = isGen ? 'none' : 'block';
-    qs('#op-genpool-field',overlay).style.display = isGen ? 'block' : 'none';
-    qs('#op-deckweight-field',overlay).style.display = t==='generateToEnemyDeck' ? 'block' : 'none';
-    const gp = qs('#m-op-genpool',overlay), cur = gp.value;
-    gp.innerHTML = genPoolOptionsFor(t).map(o=>`<option value="${o.key}" ${o.key===cur?'selected':''}>${o.label}</option>`).join('');
+  // ----- カード操作（複数。追加ボタン式） -----
+  const OP_NUM = {countFixed:[0,20,1], countMin:[0,20,1], countMax:[0,20,1], buffAmount:[-99,99,0], deckWeight:[1,99,1], costDelta:[-9,9,0]};
+  let opsState = cardOpsOf(c).map(o=>normalizeStatusOp({...o}));
+  const opBox = qs('#op-list', overlay);
+  const opLab = t=>`<div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">${t}</div>`;
+  const opSel = (f, list, cur)=>`<select data-opf="${f}" style="margin-bottom:8px; width:100%;">${list.map(o=>`<option value="${escapeHtml(o.key)}" ${o.key===cur?'selected':''}>${escapeHtml(o.label)}</option>`).join('')}</select>`;
+  const opNum = (f, op, label)=>`<div style="flex:1;">${opLab(label)}<input type="number" data-opf="${f}" data-opnum="1" value="${op[f]|0}" min="${OP_NUM[f][0]}" max="${OP_NUM[f][1]}" style="width:100%;"></div>`;
+  function opBlockHTML(op, i){
+    const isGen = GENERATE_TYPES.includes(op.type);
+    const isSelf = !isGen && op.fromPile==='self';
+    const piles = op.type==='play' ? PILE_OPTIONS.filter(p=>p.key!=='self') : PILE_OPTIONS;
+    const defs = allEffectFieldDefs();
+    if(op.type==='grantBuff' && !defs.some(d=>d.key===op.buffField) && defs.length) op.buffField = defs[0].key;
+    return `<div class="op-block" data-i="${i}" style="padding:10px; background:var(--bg-void); border:1px solid var(--line); border-radius:4px; margin-bottom:8px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;"><span style="font-size:11px; color:var(--parchment-dim);">操作 ${i+1}</span><button type="button" class="ghost" data-opdel="${i}">削除</button></div>
+      ${opLab('操作内容')}${opSel('type', CARDOP_TYPES, op.type)}
+      ${isGen
+        ? `${opLab('生成元プール')}${opSel('genPool', genPoolOptionsFor(op.type), op.genPool)}`
+        : `${opLab('対象の山')}${opSel('fromPile', piles, op.fromPile)}`}
+      ${op.type==='generateToEnemyDeck' ? `
+        <div class="checkbox-field" style="margin-bottom:6px;"><input type="checkbox" data-opf="drawNext" ${op.drawNext?'checked':''}><label>敵が使うとき: 加えたカードを次のターンに必ず引く（山札の一番上に置く）</label></div>
+        <div class="hint" style="margin-bottom:6px;">敵が使うと、このカードはプレイヤーの山札に加わります（次のターンの最初のドローより前に処理）。チェックなしなら山札にシャッフルして混ぜるので、次のターンに引くことがあります。手札の枚数より多く加えた場合、引ききれない分は山札の上に残ります。</div>
+        ${opLab('敵のデッキでの重み（大きいほど選ばれやすい）')}
+        <input type="number" data-opf="deckWeight" data-opnum="1" value="${op.deckWeight|0}" min="1" max="99" style="width:100%; margin-bottom:4px;">
+        <div class="hint" style="margin-bottom:8px;">敵のデッキ一覧に、この戦闘の間だけ追加されます（戦闘が終わると消えます）。敵は毎ターン、デッキ一覧から3つを無作為に引き、その中から重みに比例して行動を選びます。今表示されている予告は変わらず、次の次の行動から反映されます。</div>` : ''}
+      ${isSelf ? `<div class="hint" style="margin-bottom:8px;">使用中のこのカード1枚が対象です（枚数・選択・タグ絞り込みは使いません）。</div>` : `
+        ${opLab('枚数の決め方')}
+        <select data-opf="countMode" style="margin-bottom:8px; width:100%;">
+          <option value="fixed" ${op.countMode==='fixed'?'selected':''}>固定数</option>
+          <option value="random" ${op.countMode==='random'?'selected':''}>ランダムな範囲</option>
+          <option value="all" ${op.countMode==='all'?'selected':''}>対象すべて</option>
+          <option value="choose" ${op.countMode==='choose'?'selected':''}>プレイヤーが任意に選ぶ</option>
+        </select>
+        <div style="display:flex; gap:6px; margin-bottom:8px;">${opNum('countFixed',op,'固定数 / 選ぶ枚数')}${opNum('countMin',op,'ランダム最小')}${opNum('countMax',op,'ランダム最大')}</div>
+        ${isGen ? '' : `${opLab('対象タグ絞り込み（空欄で絞り込みなし）')}<input type="text" data-opf="filterTag" value="${escapeHtml(op.filterTag||'')}" style="width:100%;">`}
+        <div class="checkbox-field" style="margin-top:8px; margin-bottom:4px;"><input type="checkbox" data-opf="sequential" ${op.sequential?'checked':''}><label>1枚ずつ選び直す（1枚処理するたびに次の1枚を選ぶ）</label></div>
+        <div class="hint">オフ＝最初に全部まとめて選ぶ。オン＝1枚処理してから次を選ぶので、直前の効果で増減した手札なども対象になります（任意選択なら1枚ずつ選択画面が出ます。「対象すべて」では無効）。</div>`}
+      ${CARDOP_REVERTIBLE_TYPES.includes(op.type) ? `<div style="margin-top:10px;">
+        <div class="checkbox-field" style="margin-bottom:4px;"><input type="checkbox" data-opf="permanent" ${op.permanent?'checked':''}><label>永続にする（戦闘後も元に戻さない）</label></div>
+        <div class="hint">オフ＝この戦闘中のみ（強化・付与・コスト増減・複製・生成は戦闘後に元へ戻る）。消滅は、オンにするとそのカードを探索から完全に取り除きます。</div></div>` : ''}
+      ${op.type==='costChange' ? `<div style="margin-top:10px;">${opLab('コストの増減量（マイナスで軽減。0未満にはなりません）')}<input type="number" data-opf="costDelta" data-opnum="1" value="${op.costDelta|0}" min="-9" max="9" style="width:100%;"></div>` : ''}
+      ${op.type==='grantBuff' ? `<div style="margin-top:10px;">
+        ${opLab('付与する効果')}
+        <select data-opf="buffField" style="margin-bottom:8px; width:100%;">${defs.map(d=>`<option value="${escapeHtml(d.key)}" ${op.buffField===d.key?'selected':''}>${escapeHtml(d.label)}</option>`).join('')}</select>
+        ${opLab('付与量（マイナスで減少も可）')}
+        <input type="number" data-opf="buffAmount" data-opnum="1" value="${op.buffAmount|0}" min="-99" max="99" style="width:100%;"></div>` : ''}
+    </div>`;
+  }
+  const renderOps = ()=>{
+    opBox.innerHTML = opsState.length ? opsState.map(opBlockHTML).join('') : '<p class="hint">カード操作はありません。</p>';
   };
+  const opSync = (t)=>{
+    const f = t.dataset && t.dataset.opf; const blk = t.closest && t.closest('.op-block');
+    if(!f || !blk) return false;
+    const op = opsState[+blk.dataset.i]; if(!op) return false;
+    if(t.dataset.opnum){ const m = OP_NUM[f]; op[f] = clampInt(t.value, m[0], m[1], m[2]); }
+    else if(t.type==='checkbox') op[f] = t.checked;
+    else if(f==='filterTag') op[f] = cleanTag(t.value);
+    else op[f] = t.value;
+    return true;
+  };
+  opBox.addEventListener('input', e=>{ opSync(e.target); });
+  opBox.addEventListener('change', e=>{
+    if(!opSync(e.target)) return;
+    const f = e.target.dataset.opf, op = opsState[+e.target.closest('.op-block').dataset.i];
+    if(f==='type' && op.type==='play' && op.fromPile==='self') op.fromPile = 'hand';   // 自分自身を使い直す操作は作れない
+    if(f==='type' || f==='fromPile' || f==='countMode') renderOps();
+  });
+  opBox.addEventListener('click', e=>{ const b = e.target.closest('[data-opdel]'); if(b){ opsState.splice(+b.dataset.opdel,1); renderOps(); } });
+  qs('#op-add', overlay).onclick = ()=>{ opsState.push(defaultStatusOp()); renderOps(); };
+  renderOps();
   qs('#m-save',overlay).onclick = async ()=>{
     const updated = {
       id: c.id,
@@ -4637,24 +4827,7 @@ function openCardModal(card, isNew){
         if(t==='both' && xv!==0) updated['dw_csX_'+id] = xv; else delete updated['dw_csX_'+id];
       }
     });
-    const opEnabled = qs('#m-op-enabled',overlay).checked;
-    updated.cardOp = opEnabled ? {
-      enabled: true,
-      type: qs('#m-op-type',overlay).value,
-      fromPile: qs('#m-op-frompile',overlay).value,
-      genPool: qs('#m-op-genpool',overlay).value,
-      countMode: qs('#m-op-countmode',overlay).value,
-      countFixed: clampInt(qs('#m-op-countfixed',overlay).value,0,20,1),
-      countMin: clampInt(qs('#m-op-countmin',overlay).value,0,20,1),
-      countMax: clampInt(qs('#m-op-countmax',overlay).value,0,20,1),
-      filterTag: cleanTag(qs('#m-op-filtertag',overlay).value),
-      sequential: qs('#m-op-sequential',overlay).checked,
-      buffField: qs('#m-op-bufffield',overlay).value,
-      buffAmount: clampInt(qs('#m-op-buffamount',overlay).value,-99,99,0),
-      deckWeight: clampInt(qs('#m-op-deckweight',overlay).value,1,99,1),
-      drawNext: qs('#m-op-drawnext',overlay).checked,
-      permanent: qs('#m-op-permanent',overlay).checked,
-    } : { enabled:false };
+    updated.cardOps = opsState.map(o=>normalizeStatusOp({...o}));
     updated.statusOp = normalizeCardStatusOp({
       enabled: qs('#m-so-enabled',overlay).checked,
       side: qs('#m-so-side',overlay).value,
@@ -4806,12 +4979,12 @@ const FORCED_SUBJECTS = [
   {key:'playerHpPct', label:'プレイヤーのHP（最大HPに対する%）', unit:'%', cmps:['lte','gte']},
   {key:'selfBlock', label:'敵のブロック', unit:'ブロック量', cmps:['gte','lte']},
   {key:'playerBlock', label:'プレイヤーのブロック', unit:'ブロック量', cmps:['gte','lte']},
-  {key:'selfTag', label:'敵が持つ指定タグの状態（スタック数の合計）', unit:'スタック数', cmps:['gte','lte'], tag:true},
-  {key:'playerTag', label:'プレイヤーが持つ指定タグの状態（スタック数の合計）', unit:'スタック数', cmps:['gte','lte'], tag:true},
+  {key:'selfTag', label:'敵が持つ状態（指定した状態のスタック数）', unit:'スタック数', cmps:['gte','lte','eq'], tag:true},
+  {key:'playerTag', label:'プレイヤーが持つ状態（指定した状態のスタック数）', unit:'スタック数', cmps:['gte','lte','eq'], tag:true},
 ];
 const FORCED_CMP_LABELS = {
   turn:{eq:'ちょうどこの回数目の行動', gte:'この回数目以降の行動', every:'この回数ごと（倍数回目）'},
-  val:{gte:'以上', lte:'以下'},
+  val:{gte:'以上', lte:'以下', eq:'ちょうど'},
 };
 function cleanForcedMoves(list){
   return (Array.isArray(list) ? list : []).filter(x=> x && typeof x==='object' && typeof x.cardId==='string' && S.cards.some(c=>c.id===x.cardId)).map(x=>{
@@ -4835,15 +5008,17 @@ function cleanChains(list){
 }
 function forcedConditionMet(r, e, rule){
   const p = r.player, v = rule.value|0;
-  const cmp = cur=> rule.cmp==='lte' ? cur<=v : cur>=v;
+  const cmp = cur=> rule.cmp==='lte' ? cur<=v : rule.cmp==='eq' ? cur===v : cur>=v;
+  // 状態の指定は、組み込みの名前／'cs:状態ID'／任意のタグ（使用条件と同じ）。削除された状態を指していれば成立しない。
+  const stat = (ent, key)=> !!key && !!requirementStatLabel(key) && cmp(requirementValueOf(ent, key));
   switch(rule.subject){
     case 'turn': { const n = e.rollCount||0; return rule.cmp==='every' ? (v>0 && n%v===0) : (rule.cmp==='gte' ? n>=v : n===v); }
     case 'selfHpPct': return e.maxHp>0 && cmp(e.hp*100/e.maxHp);
     case 'playerHpPct': return p.maxHp>0 && cmp(p.hp*100/p.maxHp);
     case 'selfBlock': return cmp(e.block||0);
     case 'playerBlock': return cmp(p.block||0);
-    case 'selfTag': return !!rule.tag && cmp(tagStacks(e, rule.tag));
-    case 'playerTag': return !!rule.tag && cmp(tagStacks(p, rule.tag));
+    case 'selfTag': return stat(e, rule.tag);
+    case 'playerTag': return stat(p, rule.tag);
   }
   return false;
 }
@@ -4870,9 +5045,11 @@ function pickForcedMove(r, e, followPending){
 }
 // 敵の行動で、カード自身のカード操作を（プレイヤーの次のターン開始時に処理するよう）予約する
 function queueEnemyCardOp(r, e, move){
-  if(move && move.cardOp && move.cardOp.enabled && r.player.hp>0){
-    enqueueEnemyOp(r, {...move.cardOp, fromEnemy:true}, `${e.name}の「${move.name}」`, ': ');
-  }
+  if(!move || r.player.hp<=0) return;
+  cardOpsOf(move).forEach(op=>{
+    if(!GENERATE_TYPES.includes(op.type) && op.fromPile==='self') return;   // 敵が使うときは「そのカード自身」は効果なし
+    enqueueEnemyOp(r, {...op, enabled:true, fromEnemy:true}, `${e.name}の「${move.name}」`, ': ');
+  });
 }
 // 敵が行うカード操作を予約する。基本は、プレイヤーの次のターン開始時（手札を引いた後）に処理する。
 // ただし「プレイヤーの山札に加える」だけは、次のターンの最初のドローより前に、今すぐ山札へ入れる
@@ -5158,6 +5335,169 @@ function pushLog(msg, kind, detail){
   S.run.log.unshift(html);
   if(S.run.log.length>LOG_MAX) S.run.log.pop();
 }
+/* ===== 戦闘エフェクト（数字・ヒットの光と揺れ・状態付与） =====
+   ゲームの処理は一瞬で終わるので、処理側は fxHit / fxHeal / fxBlock / fxLose / fxStatus で「何が起きたか」を記録するだけにする。
+   記録は fxFlush で少しずつずらして、画面の外側の層（#fx-layer）に再生する（戦闘画面は描き直されても消えない）。
+   エフェクトはゲームの進行を止めない。止めるのは、倒されたとき（fxSettle）だけ。 */
+const FX = {prefs:{on:true, speed:1, simple:'auto'}, queue:[], flushing:false, endAt:0, hpShown:{player:null, enemy:null}, ghostTimer:null};
+function fxLoadPrefs(){
+  try{ const v = JSON.parse(localStorage.getItem('fxPrefs')||'null');
+    if(v && typeof v==='object') FX.prefs = {on: v.on!==false, speed: [0.5,1,1.5,2].includes(+v.speed) ? +v.speed : 1, simple: ['auto','on','off'].includes(v.simple) ? v.simple : 'auto'}; }catch(e){}
+}
+function fxSavePrefs(){ try{ localStorage.setItem('fxPrefs', JSON.stringify(FX.prefs)); }catch(e){} }
+fxLoadPrefs();
+const FX_STAGGER_MS = 170;
+const FX_BUILTIN = {   // 組み込みの状態: [絵文字, 名前, 色の種類]
+  strength:['💪','強化','buff'], permStrength:['💪','強化','buff'], dexterity:['🤸','器用','buff'], permDexterity:['🤸','器用','buff'],
+  weak:['😮‍💨','弱体','debuff'], vulnerable:['🎯','脆弱','debuff'], poison:['☠️','毒','poison'], regen:['✨','再生','buff'], stun:['💫','麻痺','debuff'],
+  metallicize:['🛡️','自動','buff'], permMetallicize:['🛡️','自動','buff'], thorns:['🌵','棘','buff'], permThorns:['🌵','棘','buff'],
+};
+function fxWorldColor(kind){
+  const w = S.world || DEFAULT_WORLD;
+  return w[{damage:'colorDamage', block:'colorBlock', heal:'colorHeal', poison:'colorPoison', buff:'colorBuff', debuff:'colorDebuff'}[kind]] || '#ffffff';
+}
+function fxSide(entity){
+  const r = S.run; if(!r || S.screen!=='battle') return null;
+  return entity===r.player ? 'player' : (entity===r.enemy ? 'enemy' : null);
+}
+// 簡易表示（揺れ・光・輪・オーラ・HPバーの残像を省き、数字だけをフェードで出す）。設定が 'auto' のときだけ、OSの「動きを減らす」に従う
+function fxReduced(){
+  if(FX.prefs.simple==='on') return true;
+  if(FX.prefs.simple==='off') return false;
+  try{ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; }
+}
+function fxEmit(ev){
+  if(!FX.prefs.on || !ev.side) return;
+  FX.queue.push(ev);
+  if(!FX.flushing){ FX.flushing = true; setTimeout(fxFlush, 0); }
+}
+// 攻撃が持つ属性のうち、最初に色か絵文字が設定されているものを使う
+function fxElementStyle(elems){
+  for(const id of (elems||[])){
+    const el = elementById(id);
+    if(el && (el.color || el.emoji)) return {color: el.color||'', emoji: el.emoji||''};
+  }
+  return {color:'', emoji:''};
+}
+function fxHit(entity, hit, elems){
+  const side = fxSide(entity); if(!side || !hit || !(hit.total>0)) return;
+  const st = fxElementStyle(elems);
+  fxEmit({type:'hit', side, hpLoss:hit.hpLoss||0, blocked:hit.blocked||0, pierce:!!hit.pierce, color: st.color || fxWorldColor('damage'), emoji: st.emoji});
+}
+function fxHeal(entity, n){ const side = fxSide(entity); if(side && n>0) fxEmit({type:'num', side, text:'+'+n, color:fxWorldColor('heal')}); }
+function fxBlock(entity, n){ const side = fxSide(entity); if(side && n>0) fxEmit({type:'num', side, text:'🛡+'+n, color:fxWorldColor('block'), small:true}); }
+// 攻撃以外でHPが減るとき（毒・反射・代償など）。kind='poison' なら毒の色
+function fxLose(entity, n, kind){
+  const side = fxSide(entity); if(!side || !(n>0)) return;
+  fxEmit({type:'hit', side, hpLoss:n, blocked:0, color: fxWorldColor(kind==='poison' ? 'poison' : 'damage'), emoji:''});
+}
+function fxStatus(entity, label, color, n){
+  const side = fxSide(entity); if(!side || !(n>0)) return;
+  fxEmit({type:'status', side, text:`${label} +${n}`, color});
+}
+function fxStatusColorOf(st){ return st.color || fxWorldColor(st.target==='opponent' ? 'debuff' : 'buff'); }
+function fxLayer(){
+  let l = document.getElementById('fx-layer');
+  if(!l){ l = document.createElement('div'); l.id = 'fx-layer'; document.body.appendChild(l); }
+  return l;
+}
+function fxRectOf(side){
+  const p = document.querySelector(`.combatant.${side} .portrait`);
+  const rc = p ? p.getBoundingClientRect() : null;
+  if(rc && rc.width) return {x: rc.left+rc.width/2, y: rc.top+rc.height/2, w: rc.width, h: rc.height, top: rc.top, node:p};
+  const vw = window.innerWidth||800, vh = window.innerHeight||600;
+  return {x: vw*(side==='player'?0.25:0.75), y: vh*0.3, w:96, h:96, top: vh*0.3-48, node:null};
+}
+function fxPut(node, ms){
+  const l = fxLayer();
+  if(l.children.length>40) return;   // 同時に出す数の上限（重くならないように）
+  l.appendChild(node);
+  setTimeout(()=> node.remove(), ms+80);
+}
+function fxNum(side, text, color, opts){
+  opts = opts||{};
+  const rc = fxRectOf(side), sp = FX.prefs.speed, dur = Math.round(1100/sp);
+  const n = document.createElement('div');
+  n.className = 'fx-num' + (opts.big?' lg':'') + (opts.small?' sm':'') + (fxReduced()?' simple':'');
+  n.textContent = text;
+  n.style.left = rc.x+'px'; n.style.top = (rc.top + rc.h*0.15 + (opts.row||0)*0)+'px';
+  n.style.setProperty('--c', color); n.style.setProperty('--d', dur+'ms');
+  n.style.setProperty('--dx', Math.round((Math.random()-0.5)*44)+'px');
+  fxPut(n, dur);
+}
+function fxBurst(side, color, emoji, ring){
+  if(fxReduced()) return;
+  const rc = fxRectOf(side), sp = FX.prefs.speed, dur = Math.round(480/sp), size = Math.max(70, Math.min(rc.w, rc.h)*1.15);
+  const b = document.createElement('div');
+  b.className = 'fx-burst' + (ring?' ring':'');
+  b.style.left = rc.x+'px'; b.style.top = rc.y+'px'; b.style.width = b.style.height = size+'px';
+  b.style.setProperty('--c', color); b.style.setProperty('--d', dur+'ms');
+  if(emoji) b.innerHTML = `<span>${escapeHtml(emoji)}</span>`;
+  fxPut(b, dur);
+}
+function fxAura(side, color){
+  if(fxReduced()) return;
+  const rc = fxRectOf(side), sp = FX.prefs.speed, dur = Math.round(800/sp), size = Math.max(70, Math.min(rc.w, rc.h)*1.05);
+  const a = document.createElement('div');
+  a.className = 'fx-aura';
+  a.style.left = rc.x+'px'; a.style.top = rc.y+'px'; a.style.width = a.style.height = size+'px';
+  a.style.setProperty('--c', color); a.style.setProperty('--d', dur+'ms');
+  fxPut(a, dur);
+}
+function fxShake(side){
+  if(fxReduced()) return;
+  const node = fxRectOf(side).node; if(!node || !node.animate) return;
+  try{ node.animate([{transform:'translateX(0)', filter:'brightness(1.9)'},{transform:'translateX(-7px)'},{transform:'translateX(6px)'},{transform:'translateX(-4px)'},{transform:'translateX(0)', filter:'brightness(1)'}], {duration: 330/FX.prefs.speed, easing:'ease-out'}); }catch(e){}
+}
+// 描き直したHPバーの残像を、少し待ってから、いまのHPの長さまで縮める（描き直しのたびに待ち直す）
+function fxStartGhosts(){
+  clearTimeout(FX.ghostTimer);
+  const gs = [...document.querySelectorAll('.hpbar-ghost')];
+  if(!gs.length) return;
+  const sp = FX.prefs.speed;
+  gs.forEach(g=> g.style.transitionDuration = Math.round(600/sp)+'ms');
+  FX.ghostTimer = setTimeout(()=>{
+    gs.forEach(g=>{ const to = parseFloat(g.dataset.to); g.style.width = to+'%'; FX.hpShown[g.dataset.side] = to; });
+  }, Math.round(450/sp));
+}
+function fxPlay(ev){
+  if(S.screen!=='battle') return;
+  const sp = FX.prefs.speed;
+  if(ev.type==='hit'){
+    if(ev.blocked>0){
+      fxNum(ev.side, '🛡'+ev.blocked, fxWorldColor('block'), {small:true});
+      if(ev.hpLoss<=0) fxBurst(ev.side, fxWorldColor('block'), '✦', true);
+    }
+    if(ev.hpLoss>0){
+      const go = ()=>{ fxBurst(ev.side, ev.color, ev.emoji, ev.pierce); fxShake(ev.side); fxNum(ev.side, String(ev.hpLoss), ev.color, {big:true}); };
+      if(ev.blocked>0) setTimeout(go, 110/sp); else go();
+    }
+  } else if(ev.type==='num'){
+    fxNum(ev.side, ev.text, ev.color, {small:ev.small});
+  } else if(ev.type==='status'){
+    fxAura(ev.side, ev.color);
+    fxNum(ev.side, ev.text, ev.color, {small:true});
+  }
+}
+function fxFlush(){
+  FX.flushing = false;
+  const evs = FX.queue.splice(0); if(!evs.length) return;
+  const sp = FX.prefs.speed, cnt = {player:0, enemy:0}, now = Date.now();
+  evs.forEach(ev=>{
+    const k = Math.min(cnt[ev.side]++, 8), delay = Math.round(k*FX_STAGGER_MS/sp);
+    FX.endAt = Math.max(FX.endAt, now + delay + 950/sp);
+    if(delay<=0) fxPlay(ev); else setTimeout(()=>fxPlay(ev), delay);
+  });
+}
+// 倒されたとき: 最後の一撃のエフェクトが終わるまで（最大0.65秒）待ってから cont を実行する。待つ間はHP0の画面に描き直す
+function fxSettle(cont){
+  if(FX.queue.length) fxFlush();
+  const rem = FX.prefs.on ? FX.endAt - Date.now() : 0;
+  if(!(rem>40)){ cont(); return; }
+  try{ if(S.screen==='battle') renderBattle(); }catch(err){ console.error(err); }
+  setTimeout(cont, Math.min(rem, 650));
+}
+
 /* ===== 敵のセリフ（吹き出し） =====
    条件を満たしたセリフは、戦闘中に1回だけキューに積まれ、1つずつ吹き出しで表示される。
    表示はフェードイン、クリック／キー操作で送る（一定時間で自動でも消える）。ログにも残す。
@@ -5404,7 +5744,7 @@ function beginFloor(){
   r.player.block = 0; r.player.autoGranted = 0;
   r.log = [];
   r.turnNo = 0;
-  r.dlgFired = {}; r.defeatWait = false; dlgReset();   // 敵のセリフ: 戦闘ごとに「1回だけ」を数え直す
+  r.dlgFired = {}; r.defeatWait = false; dlgReset(); FX.hpShown = {player:null, enemy:null}; clearTimeout(FX.ghostTimer);   // 敵のセリフ: 戦闘ごとに「1回だけ」を数え直す
   pushLog(`${r.enemy.name}が現れた！`);
   applyNextCombatEffects(r);
   runEnemyStartCards(r);
@@ -5480,18 +5820,19 @@ function startPlayerTurn(first){
   if(r.player.poison>0){
     const hpBefore = r.player.hp, pv = r.player.poison;
     r.player.hp = Math.max(0, r.player.hp - pv);
+    fxLose(r.player, hpBefore-r.player.hp, 'poison');
     pushLog(`毒によって${pv}ダメージを受けた（HP ${hpBefore}→${r.player.hp}。毒は${pv-1}に減少）。`, 'hit');
     r.player.poison--;
     if(playerFallen()){ onPlayerDefeated(); return; }
   }
   if(r.player.regen>0){
-    r.player.hp = Math.min(r.player.maxHp, r.player.hp + r.player.regen);
+    { const hb = r.player.hp; r.player.hp = Math.min(r.player.maxHp, r.player.hp + r.player.regen); fxHeal(r.player, r.player.hp-hb); }
     pushLog(`再生によってHPを${r.player.regen}回復した。`);
     r.player.regen--;
   }
   r.player.block = 0;
   const autoBlock = r.player.metallicize + r.player.permMetallicize;
-  if(autoBlock>0){ r.player.block += autoBlock; }
+  if(autoBlock>0){ r.player.block += autoBlock; fxBlock(r.player, autoBlock); }
   const customSkip = tickCustomStatusesForTurn(r.player);
   r.player.autoGranted = r.player.block; // このターン開始時に自動ブロックで入った分（表示で「ブロック+自動」を分けるため）
   if(playerFallen()){ onPlayerDefeated(); return; }
@@ -5530,18 +5871,27 @@ function startPlayerTurn(first){
   sync = false;
 }
 
-// 属性ごとの特殊効果（吸血・貫通など）の足場。属性の props に {キー: 値} を持たせ、ここにキーごとの処理を登録する。
-// 今は登録なし（＝何も起きない）。handler.onDamage(ctx) は、攻撃のダメージ確定後に、その攻撃が持つ属性ごとに呼ばれる。
-//   ctx: {side:'toEnemy'|'toPlayer', hit, element, value}  hit は applyDamageToEnemy / applyDamageToPlayer が作る被弾の記録
-const ELEMENT_PROP_HANDLERS = {};
+// 攻撃のダメージ確定後に、攻撃が持つ属性の特殊効果（ELEMENT_PROP_DEFS）を適用する。
+// ログは hit.elementNotes に溜め、攻撃のログのあとに flushElementNotes で出す（敵の攻撃・プレイヤーの攻撃のどちらも）。
 function applyElementProps(elems, side, hit){
-  (elems||[]).forEach(id=>{
-    const el = elementById(id); if(!el || !el.props) return;
-    Object.keys(el.props).forEach(k=>{
-      const h = ELEMENT_PROP_HANDLERS[k];
-      if(h && typeof h.onDamage==='function') h.onDamage({side, hit, element:el, value:el.props[k]});
+  const r = S.run; if(!r || !hit || !elems || !elems.length) return;
+  const attacker = side==='toEnemy' ? r.player : r.enemy;
+  const attackerName = side==='toEnemy' ? 'あなた' : ((r.enemy && r.enemy.name) || '敵');
+  ELEMENT_PROP_DEFS.forEach(def=>{
+    const entries = [];
+    elems.forEach(id=>{
+      const el = elementById(id), v = el && el.props ? Number(el.props[def.key]) : 0;
+      if(el && v>0) entries.push({element:el, value:v});
     });
+    if(!entries.length) return;
+    const note = def.apply({side, hit, attacker, attackerName, entries});
+    if(note) (hit.elementNotes = hit.elementNotes || []).push(note);
   });
+}
+function flushElementNotes(hit){
+  if(!hit || !hit.elementNotes) return;
+  hit.elementNotes.forEach(n=> pushLog(n.text, n.kind));
+  hit.elementNotes = [];
 }
 function applyDamageToEnemy(raw, pierce, onHit, elems){
   elems = elems || [];
@@ -5564,8 +5914,10 @@ function applyDamageToEnemy(raw, pierce, onHit, elems){
   e.hp = Math.max(0, e.hp - dmg);
   const hit = {raw, steps, total: dmg+blocked, blocked, hpLoss: dmg, pierce: !!pierce, hpBefore, hpAfter: e.hp, blockBefore, blockAfter: e.block};
   r.lastEnemyHit = hit;
+  fxHit(e, hit, elems);
   applyElementProps(elems, 'toEnemy', hit);
   if(onHit) onHit(hit);   // 敵の構え（トリガー）のログより先に、この攻撃のログを残すため
+  flushElementNotes(hit);
   if(dmg+blocked>0) fireEnemyTriggers(r, 'damaged', {hpLoss: dmg, total: dmg+blocked});
   return dmg+blocked;
 }
@@ -5600,12 +5952,13 @@ function applyDamageToPlayer(raw, pierce, elems){
   const hpLoss = total - blocked;
   p.hp = Math.max(0, p.hp - hpLoss);
   r.lastHit = {raw, steps: calc.steps, hpLoss, total, blocked, pierce: !!pierce, hpBefore, hpAfter: p.hp, blockBefore, blockAfter: p.block};
+  fxHit(p, r.lastHit, elems);
   applyElementProps(elems, 'toPlayer', r.lastHit);
   return total;
 }
 
 function playCard(handIdx){
-  const r = S.run; if(r.turnPhase!=='player' || r.turnSkipped) return;
+  const r = S.run; if(r.turnPhase!=='player' || r.turnSkipped || r.defeatWait) return;
   const cardId = r.hand[handIdx];
   const c = cardById(cardId);
   if(!c || c.cost > r.player.energy) return;
@@ -5620,10 +5973,13 @@ function playCard(handIdx){
   r.hand.splice(handIdx,1);
 
   logGroupBegin(`あなた：${cardIcon(c)}${c.name}`);
-  resolveCardPlayCore(r, c, ()=>{
+  runWithSelfCard(r, cardId, cb=>resolveCardPlayCore(r, c, cb), finalId=>{
     logGroupEnd();
-    if(c.exhaust){ r.exhausted.push(cardId); }
-    else{ r.discard.push(cardId); }
+    // 「そのカード自身」の操作で行き先が決まっていなければ、いつもどおり捨て札／消滅へ
+    if(finalId){
+      if(c.exhaust){ r.exhausted.push(finalId); }
+      else{ r.discard.push(finalId); }
+    }
 
     if(enemyFallen()){ onEnemyDefeated(); return; }
     if(playerFallen()){ onPlayerDefeated(); return; }
@@ -5649,6 +6005,7 @@ function runEnemyTurn(){
   if(e.poison>0){
     const eBefore = e.hp, pv = e.poison;
     e.hp = Math.max(0, e.hp - pv);
+    fxLose(e, eBefore-e.hp, 'poison');
     pushLog(`${e.name}は毒で${pv}ダメージ（敵HP ${eBefore}→${e.hp}。毒は${pv-1}に減少）。`, 'deal');
     e.poison--;
     if(enemyFallen()){ onEnemyDefeated(); return; }
@@ -5704,11 +6061,11 @@ function rollChance(pct){
 // 倒されたときのセリフを言い終わるまで待ってから、勝利・敗北の処理に進む
 function onEnemyDefeated(){
   const r = S.run; if(r.defeatWait) return; r.defeatWait = true;
-  dialogueThen('selfDefeated', onEnemyDefeatedCore);
+  fxSettle(()=> dialogueThen('selfDefeated', onEnemyDefeatedCore));
 }
 function onPlayerDefeated(){
   const r = S.run; if(r.defeatWait) return; r.defeatWait = true;
-  dialogueThen('playerDefeated', onPlayerDefeatedCore);
+  fxSettle(()=> dialogueThen('playerDefeated', onPlayerDefeatedCore));
 }
 function onEnemyDefeatedCore(){
   const r = S.run;
@@ -5789,31 +6146,119 @@ function onPlayerDefeatedCore(){
 
 /* ============================= BATTLE RENDER ============================= */
 
+// ---- 戦闘中の状態アイコン：マウスオーバー（タッチはタップ）で効果の詳細を出す ----
+function tipHTML(title, lines){
+  return `<div class="tip-title">${title}</div>` + lines.filter(Boolean).map(l=>`<div class="tip-line">${l}</div>`).join('');
+}
+function tipChip(text, tip, cls){ return `<span class="status-chip ${cls||''}" data-tip="${escapeHtml(tip)}">${text}</span>`; }
+function hideStatusTip(){ const p = document.getElementById('tip-pop'); if(p) p.style.display = 'none'; }
+// 組み込みの状態の説明（v＝現在のスタック数）
+const BUILTIN_STATUS_INFO = [
+  {field:'strength',    chip:'💪 強化', name:'強化',       text:v=>`攻撃のダメージが+${v}されます（この戦闘中の分と永続の分の合計）。`},
+  {field:'dexterity',   chip:'🤸 器用', name:'器用',       text:v=>`ブロックを得るとき、獲得量が+${v}されます（この戦闘中の分と永続の分の合計）。`},
+  {field:'weak',        chip:'😮‍💨 弱体', name:'弱体',     text:v=>`与えるダメージが25％減ります（×0.75）。毎ターン1ずつ減り、0で消えます。あと${v}ターン。`},
+  {field:'vulnerable',  chip:'🎯 脆弱', name:'脆弱',       text:v=>`受けるダメージが50％増えます（×1.5）。毎ターン1ずつ減り、0で消えます。あと${v}ターン。`},
+  {field:'poison',      chip:'☠️ 毒',   name:'毒',         text:v=>`ターン開始時に${v}ダメージを受け（ブロックでは防げません）、そのあと毒が1減ります。`},
+  {field:'regen',       chip:'✨ 再生', name:'再生',       text:v=>`ターン開始時にHPが${v}回復し、そのあと再生が1減ります。`},
+  {field:'stun',        chip:'💫 麻痺', name:'麻痺',       text:v=>`行動できません。行動を封じられるたびに、麻痺が1減ります（あと${v}回）。`},
+  {field:'metallicize', chip:'🛡️ 自動', name:'自動ブロック', text:v=>`ターン開始時に、ブロックを${v}獲得します（この戦闘中の分と永続の分の合計）。`},
+  {field:'thorns',      chip:'🌵 棘',   name:'棘',         text:v=>`攻撃を受けるたびに、攻撃してきた相手に${v}ダメージを返します（この戦闘中の分と永続の分の合計）。`},
+];
+function fmtNum(n){ return String(Math.round(n*1000)/1000); }
+function signed(n){ return n>0 ? `+${fmtNum(n)}` : fmtNum(n); }
+function tipElementName(id){ return (!id || id==='all') ? '全属性' : (elementName(id) || '（削除された属性）'); }
+// カスタム状態の効果1つぶんの説明（stacks＝いまのスタック数）
+function customEffectText(eff, stacks){
+  const mag = customStatusMagnitude(eff, stacks);
+  const per = eff.magnitudeMode==='perStack' ? `<span class="tip-dim">（1スタックにつき${fmtNum(eff.magnitudeValue)}。いま${stacks}スタックで計${fmtNum(mag)}）</span>` : '';
+  const el = escapeHtml(tipElementName(eff.element));
+  switch(eff.kind){
+    case 'damageDealtPct':  return `与えるダメージが${signed(mag)}％${per}`;
+    case 'damageTakenPct':  return `受けるダメージが${signed(mag)}％${per}`;
+    case 'damageTakenFlat': return `受けるダメージが攻撃1回ごとに${signed(mag)}（ダメージ0の攻撃には加算されません）${per}`;
+    case 'damageDealtFlat': return `与えるダメージが${signed(mag)}${per}`;
+    case 'blockGainFlat':   return `ブロック獲得量が${signed(mag)}${per}`;
+    case 'autoBlock':       return `ターン開始時にブロックを${fmtNum(Math.max(0,mag))}獲得${per}`;
+    case 'turnStartDamage': return `ターン開始時に${fmtNum(Math.max(0,mag))}ダメージを受ける${per}`;
+    case 'turnStartHeal':   return `ターン開始時にHPが${fmtNum(Math.max(0,mag))}回復${per}`;
+    case 'reflectDamage':   return `攻撃を受けるたびに、相手に${fmtNum(mag)}の反射ダメージ${per}`;
+    case 'skipTurn':        return `自分のターンを休む（発動のたびにスタックが1減ります）`;
+    case 'revive':          return `HPが0になったとき、HP${fmtNum(mag)}で復活（発動のたびにスタックが1減ります）${per}`;
+    case 'elDealtFlat':     return `${el}の攻撃の与ダメージが${signed(mag)}${per}`;
+    case 'elDealtPct':      return `${el}の攻撃の与ダメージが${signed(mag)}％${per}`;
+    case 'elTakenFlat':     return `${el}の攻撃を受けるとき、ダメージが${signed(mag)}（ダメージ0の攻撃には加算されません）${per}`;
+    case 'elTakenPct':      return `${el}の攻撃を受けるとき、ダメージが${signed(mag)}％${per}`;
+    case 'elGrant':         return `持ち主の攻撃に「${el}」属性が加わる`;
+    case 'elRemove':        return (eff.element==='all' || !eff.element) ? `持ち主の攻撃から、すべての属性が外れる` : `持ち主の攻撃から「${el}」属性が外れる`;
+    case 'cardOp':          return `ターン開始時に、${escapeHtml(statusEffectShort(eff))}を${Math.max(0, Math.round(mag))}回行う`;
+  }
+  return escapeHtml(statusEffectShort(eff));
+}
+function customStatusTip(st, stacks){
+  const nm = `${escapeHtml(st.emoji||'❔')} ${escapeHtml(st.name)} ${stacks}`;
+  const lines = (st.effects||[]).map(eff=> customEffectText(eff, stacks));
+  if(!lines.length) lines.push('<span class="tip-dim">（効果なし）</span>');
+  const notes = [];
+  if(st.perTurnDelta) notes.push(`持ち主のターン開始時に、スタックが${signed(st.perTurnDelta)}されます。`);
+  if(st.persistent) notes.push('戦闘が終わっても残ります。');
+  const ex = (arr, f)=> (arr||[]).length ? f((arr||[]).map(t=>`[${escapeHtml(t)}]`).join('')) : '';
+  notes.push(ex(st.exclOverwrite, t=>`付与されたとき、${t}の状態をすべて取り除きます。`));
+  notes.push(ex(st.exclYield,     t=>`${t}の状態を持っている間は、付与されません。`));
+  notes.push(ex(st.exclReplaced,  t=>`${t}の状態が後から付与されると、消えます。`));
+  notes.push(ex(st.exclGuard,     t=>`この状態がある間、${t}の状態は付与されません。`));
+  if((st.tags||[]).length) notes.push(`タグ: ${st.tags.map(escapeHtml).join('、')}`);
+  return tipHTML(nm, lines.concat(notes.filter(Boolean).map(n=>`<span class="tip-dim">${n}</span>`)));
+}
 function statusChips(entity){
   const chips = [];
-  if(entity.strength) chips.push(`💪 強化 ${entity.strength}`);
-  if(entity.dexterity) chips.push(`🤸 器用 ${entity.dexterity}`);
-  if(entity.weak) chips.push(`😮‍💨 弱体 ${entity.weak}`);
-  if(entity.vulnerable) chips.push(`🎯 脆弱 ${entity.vulnerable}`);
-  if(entity.poison) chips.push(`☠️ 毒 ${entity.poison}`);
-  if(entity.regen) chips.push(`✨ 再生 ${entity.regen}`);
-  if(entity.stun) chips.push(`💫 麻痺 ${entity.stun}`);
-  if(entity.metallicize) chips.push(`🛡️ 自動 ${entity.metallicize}`);
-  if(entity.thorns) chips.push(`🌵 棘 ${entity.thorns}`);
+  BUILTIN_STATUS_INFO.forEach(info=>{
+    const v = entity[info.field];
+    if(v) chips.push(tipChip(`${info.chip} ${v}`, tipHTML(`${escapeHtml(info.chip)} ${v}`, [info.text(v)])));
+  });
   if(entity.customStatus){
     (S.customStatuses||[]).forEach(st=>{
       const v = entity.customStatus[st.id];
-      if(v) chips.push(`${st.emoji||'❔'} ${st.name} ${v}`);
+      if(v) chips.push(tipChip(`${escapeHtml(st.emoji||'❔')} ${escapeHtml(st.name)} ${v}`, customStatusTip(st, v)));
     });
   }
-  (entity.triggers||[]).forEach(t=> chips.push(`⚡ 構え：${escapeHtml(t.card.name)}${t.turnsLeft>0 ? `（あと${t.turnsLeft}ターン）` : ''}`));
-  return chips.map(c=>`<span class="status-chip">${c}</span>`).join('');
+  return chips.join('');
 }
-function intentLabel(e){
-  const c = cardById(e.nextMoveId);
-  if(!c) return {cls:'buf', text:'予告: ？'};
-  // Format: 予告: <icon><skill name> <effect><value>・<effect><value>...
-  // 数値は、敵の現在の強化・器用や、参照増減（失ったHPなど）を反映した値を表示する。
+// ---- 仕込み（構え）: キャラクターのアイコンの上に出す。ホバーで、発動条件・残りターン・効果を見られる ----
+function triggerTipHTML(t, isEnemy, e){
+  const c = isEnemy ? t.card : t.cardData;
+  if(!c) return '';
+  const tag = t.triggerTag ? `[${escapeHtml(t.triggerTag)}]の` : '';
+  const when = t.triggerOn==='damaged'
+    ? `${isEnemy ? '敵が' : ''}ダメージを受けるたびに発動${t.triggerBlocked ? '（ブロックで全部防いだ場合も）' : ''}`
+    : (isEnemy ? `敵が${tag || 'どの'}カードを使うたびに発動` : `${tag || 'どの'}カードを使うたびに発動`);
+  const left = t.turnsLeft>0 ? `あと${t.turnsLeft}ターン` : (t.duration==='turn' ? 'このターンのみ' : 'この戦闘中ずっと');
+  let effect;
+  if(isEnemy){
+    const d = enemyVal(c, 'damage'), hits = Math.max(1, (c.hits||1) + scaleBonus(c,'hits','enemy'));
+    const parts = enemyMoveParts(e, c);
+    if(d>0) parts.unshift(`ダメージ${d}${hits>1 ? `×${hits}` : ''}`);
+    effect = parts.length ? parts.join('・') : '―';
+  } else {
+    const cc = {...c, timing:'immediate', requirements:[], descPrefix:''};
+    Object.keys(cc).forEach(k=>{ if(k.indexOf('dw_')===0) delete cc[k]; });
+    effect = cardDescription(cc);
+  }
+  return tipHTML(`⚡ ${escapeHtml(cardIcon(c))} ${escapeHtml(c.name)}（仕込み）`, [
+    `<span class="tip-when">${when}</span>`,
+    `残り: ${left}`,
+    `<span class="tip-dim">効果:</span> ${effect}`,
+  ]);
+}
+function triggerRowHTML(list, isEnemy, e){
+  if(!list || !list.length) return '';
+  return `<div class="trigger-row">${list.map(t=>{
+    const c = isEnemy ? t.card : t.cardData; if(!c) return '';
+    const turns = t.turnsLeft>0 ? `（あと${t.turnsLeft}）` : '';
+    return tipChip(`⚡ ${escapeHtml(c.name)}${turns}`, triggerTipHTML(t, isEnemy, e), 'trigger-chip');
+  }).join('')}</div>`;
+}
+// 敵の行動（カード）のダメージ以外の効果を、短い文のリストにする（行動予告と、構えのホバー表示で共通）
+function enemyMoveParts(e, c){
   const V = key=> enemyVal(c, key);
   const parts = [];
   const hits = Math.max(1, (c.hits||1) + scaleBonus(c,'hits','enemy'));
@@ -5845,10 +6290,19 @@ function intentLabel(e){
     }
   });
   { const so = statusOpText(c.statusOp); if(so) parts.push(so); }
-  if(c.cardOp && c.cardOp.enabled){
-    const t = enemyOpText(c.cardOp);
+  cardOpsOf(c).forEach(op=>{
+    const t = enemyOpText(op);
     if(t) parts.push(t);
-  }
+  });
+  return parts;
+}
+function intentLabel(e){
+  const c = cardById(e.nextMoveId);
+  if(!c) return {cls:'buf', text:'予告: ？'};
+  // Format: 予告: <icon><skill name> <effect><value>・<effect><value>...
+  // 数値は、敵の現在の強化・器用や、参照増減（失ったHPなど）を反映した値を表示する。
+  const V = key=> enemyVal(c, key);
+  const parts = enemyMoveParts(e, c);
   const isTrig = c.timing==='trigger';
   const cls = isTrig ? 'buf' : (V('damage')>0 ? 'atk' : (V('block')>0 ? 'def' : 'buf'));
   let trigText = '';
@@ -5975,7 +6429,13 @@ function hpBarHTML(ent){
   const shownBlock = auto>0 ? Math.max(0, ent.block - (ent.autoGranted||0)) : ent.block;
   const badge = on
     ? `<div class="hpbar-block">🛡${shownBlock}${auto>0?`<span class="blk-auto" title="次の自分のターン開始時に自動で入るブロック">+${auto}</span>`:''}</div>` : '';
-  return `<div class="hpbar-wrap${on?' has-block':''}"><div class="hpbar-fill" style="width:${Math.max(0,100*ent.hp/ent.maxHp)}%"></div><div class="hpbar-text"><span>${ent.hp} / ${ent.maxHp}</span>${badge}</div></div>`;
+  const now = Math.max(0, 100*ent.hp/ent.maxHp), side = (S.run && ent===S.run.player) ? 'player' : 'enemy';
+  const from = FX.hpShown[side];
+  // 減ったときだけ、前に表示していた長さの残像を、バーの後ろに残す（fxStartGhosts が、少し遅れて縮める）
+  const ghost = (from!=null && from>now+0.05 && FX.prefs.on && !fxReduced())
+    ? `<div class="hpbar-ghost" data-side="${side}" data-to="${now}" style="width:${from}%"></div>` : '';
+  if(!ghost) FX.hpShown[side] = now;
+  return `<div class="hpbar-wrap${on?' has-block':''}">${ghost}<div class="hpbar-fill" style="width:${now}%"></div><div class="hpbar-text"><span>${ent.hp} / ${ent.maxHp}</span>${badge}</div></div>`;
 }
 // ログの表示位置（右サイド / 下）。ブラウザに覚えさせる
 let LOG_SIDE = (()=>{ try{ return localStorage.getItem('logSide')==='bottom' ? 'bottom' : 'right'; }catch(e){ return 'right'; } })();
@@ -5988,6 +6448,7 @@ function battleLogPanelHTML(r){
 document.addEventListener('click', ev=>{ if(INTENT_OPEN && !ev.target.closest('#intent-box')){ INTENT_OPEN = false; const b = qs('#intent-box'); if(b) b.classList.remove('open'); } });
 function renderBattle(){
   const r = S.run;
+  hideStatusTip();   // 描き直しで元の要素が消えるので、出ていた説明も消す
   scanEnemyLines();   // HPの割合のセリフは、ログを組み立てる前に判定する
   if(r.pendingChoice){ renderCardChoiceOverlay(r); return; }
   const p = r.player; const e = r.enemy;
@@ -6000,6 +6461,7 @@ function renderBattle(){
     ${p.relics.length? `<div style="text-align:center; font-size:11px; color:var(--gold); margin-bottom:8px;">🏺 ${p.relics.map(id=>{const rel=S.relics.find(x=>x.id===id); return rel?rel.name:id;}).join(' ・ ')}</div>` : ''}
     <div class="battlefield">
       <div class="combatant player">
+        ${triggerRowHTML(r.activeTriggers, false, e)}
         <div class="portrait">🗡️</div>
         <div class="cname">冒険者</div>
         ${hpBarHTML(p)}
@@ -6007,6 +6469,7 @@ function renderBattle(){
       </div>
       <div class="vsmark">VS</div>
       <div class="combatant enemy">
+        ${triggerRowHTML(e.triggers, true, e)}
         <div class="portrait ${e.image?'has-img':''}">${e.image ? `<img src="${e.image}" alt="">` : e.emoji}</div>
         <div class="cname">${e.name}</div>
         ${hpBarHTML(e)}
@@ -6049,6 +6512,7 @@ function renderBattle(){
   qs('#btn-log-side').onclick = ()=>{ LOG_SIDE = LOG_SIDE==='right' ? 'bottom' : 'right'; try{ localStorage.setItem('logSide', LOG_SIDE); }catch(e){} renderBattle(); };
   qs('#btn-log-fmt').onclick = ()=>{ LOG_UNIFIED = !LOG_UNIFIED; try{ localStorage.setItem('logUnified', LOG_UNIFIED?'1':'0'); }catch(e){} renderBattle(); };
   dlgReposition();
+  fxStartGhosts();
 }
 
 /* ============================= REST SCREEN ============================= */
@@ -7274,6 +7738,30 @@ boot();
   document.addEventListener('scroll', hide, true);
   document.addEventListener('click', e=>{ if(longShown){ e.stopPropagation(); e.preventDefault(); longShown = false; hide(); } }, true);
   document.addEventListener('contextmenu', e=>{ if(e.target.closest && e.target.closest('.card') && (timer || longShown)) e.preventDefault(); });
+})();
+
+// ===== 状態・仕込みのアイコン: マウスオーバー／タップで詳細を表示（data-tip の中身をそのまま出す） =====
+(function(){
+  let pop = null;
+  const ensure = ()=>{ if(!pop){ pop = document.createElement('div'); pop.id = 'tip-pop'; document.body.appendChild(pop); } return pop; };
+  const tipOf = t=> (t && t.closest) ? t.closest('[data-tip]') : null;
+  const show = el=>{
+    const html = el.getAttribute('data-tip'); if(!html) return;
+    const p = ensure();
+    p.innerHTML = html; p.style.display = 'block';
+    const rc = el.getBoundingClientRect(), pw = p.offsetWidth, ph = p.offsetHeight;
+    const left = Math.min(Math.max(8, rc.left + rc.width/2 - pw/2), Math.max(8, window.innerWidth - pw - 8));
+    let top = rc.bottom + 6;
+    if(top + ph > window.innerHeight - 8) top = Math.max(8, rc.top - ph - 6);
+    p.style.left = left + 'px'; p.style.top = top + 'px';
+  };
+  document.addEventListener('mouseover', e=>{ const t = tipOf(e.target); if(t) show(t); });
+  // タッチ操作のあとにブラウザが出す疑似のマウスイベント（タップ直後の mouseout など）では、説明を消さない
+  let touchMode = false;
+  document.addEventListener('mouseout', e=>{ if(touchMode) return; const t = tipOf(e.target); if(t && !(e.relatedTarget && t.contains(e.relatedTarget))) hideStatusTip(); });
+  document.addEventListener('click', e=>{ const t = tipOf(e.target); if(t) show(t); });      // タッチ: タップで表示
+  document.addEventListener('pointerdown', e=>{ touchMode = e.pointerType!=='mouse'; if(!tipOf(e.target)) hideStatusTip(); });  // ほかをタップしたら消す
+  document.addEventListener('scroll', hideStatusTip, true);
 })();
 
 // ===== サイドメニュー: ホームを経由せずに、各編集画面へ移動する =====
