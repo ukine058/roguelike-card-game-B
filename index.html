@@ -148,6 +148,7 @@
   @keyframes fxburst{ 0%{ opacity:.95; transform:translate(-50%,-50%) scale(.3); } 100%{ opacity:0; transform:translate(-50%,-50%) scale(1.2); } }
   .fx-aura{ position:fixed; border-radius:50%; border:3px solid var(--c); box-shadow:0 0 14px var(--c), inset 0 0 14px var(--c); opacity:0; animation:fxaura var(--d,.8s) ease-out forwards; }
   @keyframes fxaura{ 0%{ opacity:.9; transform:translate(-50%,-50%) scale(.6); } 100%{ opacity:0; transform:translate(-50%,-50%) scale(1.5); } }
+  .status-chip.el-weak{ border-color:#c0392b; } .status-chip.el-resist{ border-color:#5B9BD5; }
   .fx-num.simple{ animation-name:fxfade; }
   @keyframes fxfade{ 0%{ opacity:0; transform:translate(-50%,0); } 20%{ opacity:1; transform:translate(-50%,0); } 100%{ opacity:0; transform:translate(-50%,0); } }
   #dlg-layer{ position:fixed; inset:0; z-index:2500; cursor:pointer; opacity:0; transition:opacity .22s ease; -webkit-tap-highlight-color:transparent; }
@@ -207,7 +208,7 @@
   .intent.lethal{ border-color:#c0504a; box-shadow:0 0 0 1px #c0504a66 inset;}
   .intent .warn{ color:#ff8f86; font-weight:700;}
 
-  :root{ --blk:#5CC8E8; --lg-sc:#E58FB5; --lg-fp:#F0675A; --lg-fm:#6FA8F0; --lg-n:#F4ECD8; }
+  :root{ --blk:#5CC8E8; --blk-rgb:92,200,232; --lg-sc:#E58FB5; --lg-fp:#F0675A; --lg-fm:#6FA8F0; --lg-n:#F4ECD8; }
   .lg-head{ color:var(--lg-n); font-weight:700; }
   .lg-line{ display:block; padding-left:1.2em; }
   .lg-line .lg-line{ padding-left:1em; }
@@ -227,10 +228,10 @@
     .battle-log{ width:100%; position:static; }
     .battle-log .log-box{ max-height:240px; }
   }
-  .blockline{ margin:0 auto; width:max-content; min-width:96px; font-size:12px; border:1px solid rgba(92,200,232,.25); color:rgba(92,200,232,.45); border-radius:10px; padding:2px 10px; }
-  .blockline.on{ color:var(--blk); border-color:var(--blk); background:rgba(92,200,232,.12); font-weight:700; }
+  .blockline{ margin:0 auto; width:max-content; min-width:96px; font-size:12px; border:1px solid rgba(var(--blk-rgb),.25); color:rgba(var(--blk-rgb),.45); border-radius:10px; padding:2px 10px; }
+  .blockline.on{ color:var(--blk); border-color:var(--blk); background:rgba(var(--blk-rgb),.12); font-weight:700; }
   /* ブロックをHPバー内に表示 */
-  .hpbar-wrap.has-block{ border-color:var(--blk); box-shadow:0 0 6px rgba(92,200,232,.45); }
+  .hpbar-wrap.has-block{ border-color:var(--blk); box-shadow:0 0 6px rgba(var(--blk-rgb),.45); }
   .hpbar-text{ gap:5px; }
   #eo-list{ margin-bottom:12px; }
   .eo-item{ display:flex; align-items:center; gap:8px; padding:6px 8px; margin-bottom:4px; background:var(--bg-void); border:1px solid var(--line); border-radius:4px; font-size:13px; }
@@ -238,7 +239,7 @@
   .eo-handle{ cursor:grab; touch-action:none; user-select:none; padding:2px 6px; color:var(--parchment-dim); }
   .eo-label{ flex:1; }
   .eo-btn{ padding:0 8px; min-width:0; height:26px; }
-  .hpbar-block{ display:inline-flex; align-items:center; gap:2px; padding:0 6px; height:15px; line-height:15px; border-radius:8px; font-size:inherit; font-weight:700; color:var(--blk); white-space:nowrap; text-shadow:none; border:1px solid var(--blk); background:linear-gradient(rgba(92,200,232,.12),rgba(92,200,232,.12)), #0b1a20; }
+  .hpbar-block{ display:inline-flex; align-items:center; gap:2px; padding:0 6px; height:15px; line-height:15px; border-radius:8px; font-size:inherit; font-weight:700; color:var(--blk); white-space:nowrap; text-shadow:none; border:1px solid var(--blk); background:linear-gradient(rgba(var(--blk-rgb),.12),rgba(var(--blk-rgb),.12)), #0b1a20; }
   .hpbar-block .blk-auto{ font-size:inherit; font-weight:inherit; opacity:1; }
   .combatant .statuses{ min-height:26px; }
   .combatant.enemy{ position:relative; }
@@ -359,26 +360,18 @@
 <body>
 <div id="app"></div>
 
-<!-- COPY_STORAGE_NAMESPACE_START -->
-<script>
-/* ===== コピー用: 保存データの分離（URLのパスから自動） =====
-   localStorage はURLのパスではなく「オリジン」単位で共有されるため、同じ GitHub Pages ユーザー配下の
-   別リポジトリとデータが混ざってしまう。保存キーの先頭に「ページのフォルダのパス」を付けて、
-   リポジトリごとに別の保存領域にする（例: /my-copy/:cards）。
-   ・コピーごとの書き換えは不要。
-   ・リポジトリ名（フォルダ名）を変えると別データ扱いになる。変える前に「データの保存・読み込み」で書き出すこと。
-   ・元のリポジトリのデータ（接頭辞なし）は読み書きしない。このコピーは空の状態から始まる。 */
-(function(){
-  var NS = location.pathname.replace(/[^\/]*$/, '') + ':';
-  var P = Storage.prototype, get = P.getItem, set = P.setItem, rem = P.removeItem;
-  P.getItem    = function(k){ return get.call(this, NS + k); };
-  P.setItem    = function(k, v){ return set.call(this, NS + k, v); };
-  P.removeItem = function(k){ return rem.call(this, NS + k); };
-})();
-</script>
-<!-- COPY_STORAGE_NAMESPACE_END -->
 <script>
 (function(){
+
+// index_copy専用の保存領域。
+// localStorage自体はオリジン単位なので、ページのパス全体をキー接頭辞にして
+// 同じフォルダにある index.html などの保存データと混ざらないようにする。
+const __ashboundStoragePrefix = 'ashbound-copy:' + (location.pathname || '/') + ':';
+const localStorage = {
+  getItem(key) { return window.localStorage.getItem(__ashboundStoragePrefix + String(key)); },
+  setItem(key, value) { return window.localStorage.setItem(__ashboundStoragePrefix + String(key), value); },
+  removeItem(key) { return window.localStorage.removeItem(__ashboundStoragePrefix + String(key)); },
+};
 
 /* ============================= DATA MODEL ============================= */
 
@@ -629,6 +622,8 @@ const DEFAULT_WORLD = {
   colorAttack:'#C1502E', colorSkill:'#4C7A8C', colorPower:'#7A5FA0',
   // 戦闘エフェクトの色（通常ダメージ・ブロック・回復・毒などの継続ダメージ・良い状態・悪い状態）
   colorDamage:'#E04848', colorBlock:'#5B9BD5', colorHeal:'#4CAF6A', colorPoison:'#9B59B6', colorBuff:'#D4A73E', colorDebuff:'#C0392B',
+  // ブロック（呼び名・アイコン・HPバーやログに使う色）。戦闘エフェクトの数字の色は colorBlock
+  blockName:'ブロック', blockIcon:'🛡️', colorBlockUi:'#5CC8E8',
   introText:'',
   victoryEyebrow:'THE CODEX CLOSES', victoryTitle:'探索を制覇した！',
   victoryText:'全{floors}階層を踏破し、灰燼の書庫を鎮めた。',
@@ -642,6 +637,8 @@ function cleanWorld(o){
   Object.keys(DEFAULT_WORLD).forEach(k=>{
     const dv = DEFAULT_WORLD[k], v = o[k];
     if(/^(accent|bg|panel|color)/.test(k)) out[k] = hex(v) ? v : dv;
+    else if(k==='blockName'){ const t = (typeof v==='string' ? v.trim() : '').slice(0,12); out[k] = t || dv; }
+    else if(k==='blockIcon'){ const t = typeof v==='string' ? Array.from(v.trim()).slice(0,3).join('') : ''; out[k] = t || dv; }
     else out[k] = typeof v==='string' ? v.slice(0,2000) : dv;
   });
   return out;
@@ -666,7 +663,59 @@ function applyWorldTheme(){
   st.setProperty('--ember', w.colorAttack); st.setProperty('--ember-dim', shade(w.colorAttack,.6));
   st.setProperty('--steel', w.colorSkill);  st.setProperty('--steel-dim', shade(w.colorSkill,.6));
   st.setProperty('--violet', w.colorPower); st.setProperty('--violet-dim', shade(w.colorPower,.6));
+  st.setProperty('--blk', w.colorBlockUi);
+  st.setProperty('--blk-rgb', [16,8,0].map(i=>(parseInt(w.colorBlockUi.slice(1),16)>>i)&255).join(','));
   document.title = (w.title||'') + (w.subtitle ? ` -${w.subtitle}-` : '');
+  applyBlockName();
+}
+/* ブロックの呼び名: 画面に出る「ブロック」の文字を、世界観の設定の呼び名に置き換える。
+   画面に追加された文字（ログ・説明文・ボタン・ツールチップ）を監視して、そのつど置き換える。
+   呼び名が「ブロック」を含むときは、置き換えた文字に見えない印（U+2060）を入れて、二重に置き換わらないようにする。 */
+const BLOCK_WORD = 'ブロック';
+const BLK_ATTRS = ['title','data-tip','placeholder','aria-label'];
+let __blkRepl = BLOCK_WORD, __blkObs = null;
+function blockLabel(){ return (S.world || DEFAULT_WORLD).blockName || BLOCK_WORD; }
+function blockIcon(){ return (S.world || DEFAULT_WORLD).blockIcon || '🛡️'; }
+function blkSub(str){ return str.split(BLOCK_WORD).join(__blkRepl); }
+function blkSkip(node){
+  const el = node.nodeType===1 ? node : node.parentElement;
+  return !el || !!el.closest('[data-noblock],textarea,script,style');
+}
+function blkAttr(el, a){
+  const v = el.getAttribute(a);
+  if(v && v.includes(BLOCK_WORD) && !blkSkip(el)) el.setAttribute(a, blkSub(v));
+}
+function blkWalk(root){
+  if(!root) return;
+  if(root.nodeType===3){ if(root.data.includes(BLOCK_WORD) && !blkSkip(root)) root.data = blkSub(root.data); return; }
+  if(root.nodeType!==1 || blkSkip(root)) return;
+  const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), list = [];
+  let n; while((n = tw.nextNode())) list.push(n);
+  list.forEach(t=>{ if(t.data.includes(BLOCK_WORD) && !blkSkip(t)) t.data = blkSub(t.data); });
+  [root, ...root.querySelectorAll('[title],[data-tip],[placeholder],[aria-label]')].forEach(el=>BLK_ATTRS.forEach(a=>blkAttr(el, a)));
+}
+function blkObserve(){
+  __blkObs.observe(document.body, {childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:BLK_ATTRS});
+}
+function applyBlockName(){
+  const nm = blockLabel();
+  __blkRepl = nm.includes(BLOCK_WORD) ? nm.split(BLOCK_WORD).join('ブ\u2060ロック') : nm;
+  if(!document.body) return;
+  if(!__blkObs){
+    __blkObs = new MutationObserver(muts=>{
+      if(blockLabel()===BLOCK_WORD) return;
+      __blkObs.disconnect();
+      try{
+        muts.forEach(m=>{
+          if(m.type==='childList') m.addedNodes.forEach(blkWalk);
+          else if(m.type==='characterData') blkWalk(m.target);
+          else if(m.type==='attributes') blkAttr(m.target, m.attributeName);
+        });
+      } finally { blkObserve(); }
+    });
+    blkObserve();
+  }
+  if(nm!==BLOCK_WORD) blkWalk(document.body);   // すでに出ている文字にも反映する
 }
 function worldText(key, vars){
   const w = S.world || DEFAULT_WORLD;
@@ -764,12 +813,28 @@ const DEFAULT_ELEMENTS = [
   {id:'thunder', name:'雷', props:{}, color:'#F2D14B', emoji:'⚡'},
 ];
 /* ===== 属性ごとの特殊効果 =====
-   属性の props に {キー: 数値} で持つ。新しい特殊効果は、ここに1項目足せば、属性の編集画面に入力欄が出て、保存・読み込みもそのまま通る。
-   項目: key / label / hint（編集画面の説明）/ min / max / short(value)（一覧の短い表示）
-         apply(ctx) … 攻撃のダメージが確定した直後に、その攻撃が持つ属性のうち、この効果の値が0より大きいものについて、まとめて1回呼ばれる。
-             ctx: {side:'toEnemy'|'toPlayer', hit, attacker, attackerName, entries:[{element, value}]}
-             hit は被弾の記録（hpLoss＝実際に減ったHP、blocked＝ブロックで防いだ分、pierce など）。
-             ログに残す文は {text, kind} で返す（攻撃のログの後に出す）。 */
+   属性の props に {キー: 値} で持つ。新しい特殊効果は、ここに1項目足せば、属性の編集画面に入力欄が出て、保存・読み込み・一覧表示・複製にそのまま乗る。
+   共通の項目: key / label / hint（編集画面の説明）/ short(value)（一覧の短い表示）
+     type 'number'（既定）: min / max。0は「持たない」。 type 'list': clean(list)＝正規化、has(list)、rowHTML(row,i)、newRow()（編集画面の行）
+   効く場所は次のどれか（両方でもよい）:
+     blockMod(value) … ブロックを引く計算の前に効く。{pierce:％（ブロックを無視する割合）, breakPct:％（ブロックを削る力の増加）} を返す。複数の属性の分は足し合わせる。
+     apply(ctx)      … 攻撃のダメージが確定した直後に、その攻撃が持つ属性のうち、この効果を持つものについて、まとめて1回呼ばれる。
+         ctx: {side:'toEnemy'|'toPlayer', hit, attacker, attackerName, defender, defenderName, entries:[{element, value}]}
+         hit は被弾の記録（hpLoss＝実際に減ったHP、total＝ダメージの合計、blocked＝ブロックで防いだ分、pierceAmt など）。
+         ログに残す文は {text, kind}（または、その配列）で返す（攻撃のログの後に出す）。 */
+const ELEMENT_BUILTIN_STATUSES = [['strength','強化'],['dexterity','器用'],['weak','弱体'],['vulnerable','脆弱'],['poison','毒'],['regen','再生'],['stun','麻痺'],['metallicize','自動ブロック'],['thorns','棘']];
+function hitStatusOptions(){
+  return ELEMENT_BUILTIN_STATUSES.map(([k,n])=>({key:'b:'+k, label: k==='stun' ? n+'（敵に付与したときだけ有効）' : n}))
+    .concat((S.customStatuses||[]).map(st=>({key:'cs:'+st.id, label:`${st.emoji||''}${st.name}`})));
+}
+function cleanHitStatus(list){
+  return (Array.isArray(list) ? list : []).filter(x=>x && typeof x==='object').map(x=>{
+    const st = typeof x.status==='string' ? x.status : '';
+    const ok = (st.startsWith('b:') && ELEMENT_BUILTIN_STATUSES.some(([k])=>'b:'+k===st)) || (st.startsWith('cs:') && st.length>3);
+    if(!ok) return null;
+    return {status:st.slice(0,80), stacks:clampInt(x.stacks,1,99,1), chance:clampInt(x.chance,1,100,100), target: x.target==='self' ? 'self' : 'opponent', when: x.when==='hit' ? 'hit' : 'hp'};
+  }).filter(Boolean).slice(0,6);
+}
 const ELEMENT_PROP_DEFS = [
   {key:'lifesteal', label:'吸血（％）', min:0, max:999,
    hint:'この属性を持つ攻撃が、相手のHPを実際に減らしたとき、減らした分のこの％（端数は切り捨て）を、攻撃した側が回復します。ブロックで防がれた分は含めません。攻撃が複数の属性を持つときは、各属性の％を足し合わせます。カードの「吸収」とは別に計算して、回復を足します。0なら効果なし。',
@@ -785,6 +850,65 @@ const ELEMENT_PROP_DEFS = [
      const names = ctx.entries.map(x=>x.element.name).join('・');
      return {text:`${ctx.attackerName}は${names}の吸血で${got}回復（HP ${b}→${a.hp}）。`, kind: ctx.side==='toPlayer' ? 'deal' : undefined};
    }},
+  {key:'pierce', label:'貫通（％）', min:0, max:100,
+   hint:'この属性を持つ攻撃のダメージのうち、この％（端数は切り捨て）が、ブロックを無視してHPに入ります。残りは通常どおり、ブロックで防がれます。攻撃が複数の属性を持つときは、各属性の％を足し合わせます（最大100％）。カード自体が「貫通」のときは、全部がブロックを無視します。0なら効果なし。',
+   short: v=>`貫通${v}％`,
+   blockMod: v=>({pierce:v})},
+  {key:'blockBreak', label:'ブロック破壊（％）', min:0, max:999,
+   hint:'この属性を持つ攻撃は、ブロックを削る力がこの％だけ強くなります（ダメージ1につき、ブロックを「1＋この％」失います）。たとえば50％なら、ダメージ10でブロック15分を壊せます。ダメージ10・ブロック10なら、ブロックは0になり、3ダメージがHPに通ります。ブロックを持たない相手には効果がありません。攻撃が複数の属性を持つときは、各属性の％を足し合わせます。0なら効果なし。',
+   short: v=>`ブロック破壊${v}％`,
+   blockMod: v=>({breakPct:v})},
+  {key:'guard', label:'ヒット時ブロック獲得（％）', min:0, max:999,
+   hint:'この属性を持つ攻撃が当たったとき、与えたダメージの合計（ブロックで防がれた分も含む）のこの％（端数は切り捨て）を、攻撃した側がブロックとして得ます。攻撃が複数の属性を持つときは、各属性の％を足し合わせます。0なら効果なし。',
+   short: v=>`ヒット時ブロック${v}％`,
+   apply(ctx){
+     const total = ctx.hit.total || 0, a = ctx.attacker;
+     if(!(total>0) || !a || !(a.hp>0)) return null;
+     const pct = ctx.entries.reduce((sum,x)=>sum+x.value, 0);
+     const gain = Math.floor(total*pct/100); if(!(gain>0)) return null;
+     const b = a.block||0; a.block = b + gain; fxBlock(a, gain);
+     const names = ctx.entries.map(x=>x.element.name).join('・');
+     return {text:`${ctx.attackerName}は${names}の守りで${gain}のブロックを得た（ブロック ${b}→${a.block}）。`, kind: ctx.side==='toPlayer' ? 'deal' : undefined};
+   }},
+  {key:'hitStatus', type:'list', label:'ヒット時の状態付与（確率）',
+   hint:'この属性を持つ攻撃が当たったとき、確率で状態を付与します。付与先は「攻撃を受けた側（相手）」か「攻撃した側（自分）」を選べます。付与は通常の状態付与と同じ扱いで、排他の設定やエフェクトもそのまま働きます。条件は「相手のHPを実際に減らしたとき」か「攻撃が当たったとき（ブロックで全部防がれても）」。最大6件まで。',
+   clean: cleanHitStatus,
+   has: v=> Array.isArray(v) && v.length>0,
+   short: v=>`状態付与${v.length}件`,
+   newRow: ()=>({status:(hitStatusOptions()[2]||hitStatusOptions()[0]).key, stacks:1, chance:100, target:'opponent', when:'hp'}),
+   rowHTML(row, i){
+     const opt = (v,t,cur)=>`<option value="${v}" ${cur===v?'selected':''}>${t}</option>`;
+     return `<div class="ev-eff" data-idx="${i}">
+       <div class="ev-eff-head"><span>状態付与 ${i+1}</span><button type="button" class="ghost elm-row-del">削除</button></div>
+       <div class="field"><label>付与する状態</label><select data-f="status">${hitStatusOptions().map(o=>opt(escapeHtml(o.key), escapeHtml(o.label), row.status)).join('')}</select></div>
+       <div class="ev-eff-grid"><div><label>付与するスタック数</label><input type="number" data-f="stacks" value="${row.stacks}" min="1" max="99"></div>
+         <div><label>確率（％）</label><input type="number" data-f="chance" value="${row.chance}" min="1" max="100"></div></div>
+       <div class="field"><label>付与先</label><select data-f="target">${opt('opponent','攻撃を受けた側（相手）',row.target)}${opt('self','攻撃した側（自分）',row.target)}</select></div>
+       <div class="field"><label>条件</label><select data-f="when">${opt('hp','相手のHPを実際に減らしたとき',row.when)}${opt('hit','攻撃が当たったとき（ブロックで全部防がれても）',row.when)}</select></div>
+     </div>`;
+   },
+   apply(ctx){
+     const notes = [];
+     ctx.entries.forEach(en=>{
+       (en.value||[]).forEach(row=>{
+         const ok = row.when==='hit' ? (ctx.hit.total>0) : (ctx.hit.hpLoss>0);
+         if(!ok || !rollChance(row.chance)) return;
+         const toSelf = row.target==='self';
+         const ent = toSelf ? ctx.attacker : ctx.defender, entName = toSelf ? ctx.attackerName : ctx.defenderName;
+         if(!ent || !(ent.hp>0)) return;
+         let label = '', got = 0;
+         if(row.status.startsWith('b:')){
+           const f = row.status.slice(2), fb = FX_BUILTIN[f], nm = (ELEMENT_BUILTIN_STATUSES.find(x=>x[0]===f)||[])[1] || f;
+           got = grantBuiltin(ent, f, row.stacks); label = (fb ? fb[0] : '') + nm;
+         } else {
+           const id = row.status.slice(3), st = (S.customStatuses||[]).find(x=>x.id===id); if(!st) return;
+           got = grantCustomStatus(ent, id, row.stacks); label = `${st.emoji||''}${st.name}`;
+         }
+         if(got>0) notes.push({text:`${en.element.name}の効果で${entName}に${label}+${row.stacks}${row.chance<100?`（${row.chance}％）`:''}。`, kind: ctx.side==='toPlayer' ? 'deal' : undefined});
+       });
+     });
+     return notes;
+   }},
 ];
 function normalizeElement(x){
   x = (x && typeof x==='object') ? x : {};
@@ -794,6 +918,7 @@ function normalizeElement(x){
   const emoji = x.emoji===undefined && d ? d.emoji : (typeof x.emoji==='string' ? x.emoji.trim().slice(0,4) : '');
   const props = (x.props && typeof x.props==='object' && !Array.isArray(x.props)) ? {...x.props} : {};
   ELEMENT_PROP_DEFS.forEach(def=>{
+    if(def.type==='list'){ const v = def.clean(props[def.key]); if(v.length) props[def.key] = v; else delete props[def.key]; return; }
     const v = Number(props[def.key]);
     if(Number.isFinite(v) && v>0) props[def.key] = Math.min(def.max, Math.max(def.min, Math.round(v))); else delete props[def.key];
   });
@@ -931,7 +1056,7 @@ function cardById(id){
   if((permBuffs && Object.keys(permBuffs).length) || (tempBuffs && Object.keys(tempBuffs).length)){
     const merged = {...card};
     [permBuffs, tempBuffs].forEach(b=>{
-      if(b) Object.keys(b).forEach(k=>{ merged[k] = (merged[k]||0) + b[k]; });
+      if(b) Object.keys(b).forEach(k=>{ merged[k] = (typeof b[k]==='string') ? b[k] : ((merged[k]||0) + b[k]); });   // 文字列（付与先 csT_<状態ID>）は上書き
     });
     if(merged.cost<0) merged.cost = 0;   // 「コストを増減する」で0未満にはならない
     return merged;
@@ -948,6 +1073,11 @@ function cardOpsOf(c){
 
 /* ============================= CARD TEXT ============================= */
 
+// 効果付与の付与先の表記（カスタム状態の付与で、付与先を指定したときだけ）
+function buffTargetText(op){
+  if(!String(op.buffField||'').startsWith('cs_')) return '';
+  return op.buffTarget==='self' ? '（付与先: 自分）' : op.buffTarget==='opponent' ? '（付与先: 相手）' : '';
+}
 function cardOpDescParts(op){
   const parts = [];
   const isGenerate = GENERATE_TYPES.includes(op.type);
@@ -957,7 +1087,7 @@ function cardOpDescParts(op){
   if(isSelf){
     if(op.type==='grantBuff'){
       const fd = allEffectFieldDefs().find(d=>d.key===op.buffField);
-      parts.push(`このカードの「${fd ? fd.label : op.buffField}」を${sg(op.buffAmount||0)}する`);
+      parts.push(`このカードの「${fd ? fd.label : op.buffField}」を${sg(op.buffAmount||0)}する${buffTargetText(op)}`);
     } else if(op.type==='costChange'){
       parts.push(`このカードのコストを${sg(op.costDelta|0)}する`);
     } else parts.push(`このカード自身を${typeLabel}`);
@@ -975,7 +1105,7 @@ function cardOpDescParts(op){
     if(op.type==='grantBuff'){
       const fieldDef = allEffectFieldDefs().find(d=>d.key===op.buffField);
       const fieldLabel = fieldDef ? fieldDef.label : op.buffField;
-      parts.push(`${rangeLabel}の${tagText}カードを${countText}選び、「${fieldLabel}」を${sg(op.buffAmount||0)}する`);
+      parts.push(`${rangeLabel}の${tagText}カードを${countText}選び、「${fieldLabel}」を${sg(op.buffAmount||0)}する${buffTargetText(op)}`);
     } else if(op.type==='costChange'){
       parts.push(`${rangeLabel}の${tagText}カードを${countText}選び、コストを${sg(op.costDelta|0)}する`);
     } else if(isGenerate){
@@ -1001,7 +1131,7 @@ function cardDescription(c){
     if(scale && scale.source && scale.source!=='none' && scale.perPoint){
       const src = allScaleSources().find(s=>s.key===scale.source);
       const label = src ? src.label : scale.source;
-      const tagPart = (scale.source==='tagCountHand'||scale.source==='tagCountPlayedThisTurn'||scale.source==='tagCountDrawDiscard'||scale.source==='selfTagStacks'||scale.source==='enemyTagStacks') && scale.tag ? `[${scale.tag}]` : '';
+      const tagPart = (scale.source==='tagCountHand'||scale.source==='tagCountPlayedThisTurn'||scale.source==='combatTagPlayed'||scale.source==='tagCountDrawDiscard'||scale.source==='selfTagStacks'||scale.source==='enemyTagStacks') && scale.tag ? `[${scale.tag}]` : '';
       parts.push(`${def.label}: ${label}${tagPart}×${scale.perPoint}`);
     }
   });
@@ -1018,9 +1148,15 @@ function cardDescription(c){
   if(c.timing==='trigger'){
     const tagPart = c.triggerTag ? `[${c.triggerTag}]` : '任意の';
     const durPart = triggerDurText(c);
+    const tgp = c.triggerTag ? `[${c.triggerTag}]の` : '';
     desc = c.triggerOn==='damaged'
       ? `【仕込み】今後、敵の攻撃で${c.triggerBlocked?'':'HPが減る'}ダメージを受けるたびに発動（${durPart}）: ` + desc
+      : c.triggerOn==='drawn'
+      ? `【仕込み】今後、カードの効果で${tgp}カードを引くたびに発動（${durPart}）: ` + desc
+      : c.triggerOn==='discarded'
+      ? `【仕込み】今後、カードの効果で${tgp}カードが捨て札に移るたびに発動（${durPart}）: ` + desc
       : `【仕込み】今後${tagPart}カードを使うたびに発動（${durPart}）: ` + desc;
+    if(triggerEveryOf(c)>1) desc = desc.replace('たびに発動', `たびに数え、${triggerEveryOf(c)}回目ごとに発動`);
   }
   const drawParts = [];
   drawEffectFieldDefs().forEach(def=>{
@@ -1137,7 +1273,8 @@ function normalizeCard(c){
   c = migrateCard({...c});
   c.cost = Number.isFinite(c.cost) ? Math.max(0, Math.floor(c.cost)) : 1;
   if(!RARITY_LABEL[c.rarity]) c.rarity = 'common';
-  c.triggerOn = c.triggerOn==='damaged' ? 'damaged' : 'cardUsed';
+  c.triggerOn = cleanTriggerOn(c.triggerOn);
+  c.triggerEvery = triggerEveryOf(c);
   c.triggerBlocked = !!c.triggerBlocked;
   if(!Array.isArray(c.tags)) c.tags = [];
   c.tags = c.tags.map(cleanTag).filter((t,i,a)=>t && a.indexOf(t)===i);
@@ -1183,6 +1320,7 @@ function normalizeStatusOp(o){
     filterTag: cleanTag(o.filterTag),
     buffField: typeof o.buffField==='string' ? o.buffField : '',
     buffAmount: clampInt(o.buffAmount,-99,99,0),
+    buffTarget: ['self','opponent'].includes(o.buffTarget) ? o.buffTarget : 'default',   // カスタム状態の付与先（default＝カード側の設定／状態の標準のまま）
     costDelta: clampInt(o.costDelta,-9,9,1),
     deckWeight: clampInt(o.deckWeight,1,99,1),
     drawNext: !!o.drawNext,
@@ -1320,8 +1458,15 @@ function normalizeEnemy(e){
   e.forcedMoves = cleanForcedMoves(e.forcedMoves);
   e.chains = cleanChains(e.chains);
   e.lines = cleanEnemyLines(e.lines);
+  e.elementMods = cleanElementMods(e.elementMods);
   e.image = cleanImage(e.image);
   return e;
+}
+// ---- 敵の属性相性（弱点・耐性） ----
+// elementMods: [{element:属性ID, pct:被ダメージの増減％}]。+50＝弱点（1.5倍）、-50＝耐性（半分）、-100＝無効。0は持たない。
+function cleanElementMods(list){
+  return (Array.isArray(list) ? list : []).filter(x=>x && typeof x==='object' && typeof x.element==='string' && x.element)
+    .map(x=>({element:x.element.slice(0,64), pct:clampInt(x.pct,-100,500,0)})).filter(x=>x.pct!==0).slice(0,30);
 }
 // ---- 敵のセリフ ----
 // 各セリフは、条件を満たしたとき戦闘中に1回だけ言う。trigger の種類と、HPの割合(pct)を使うもの。
@@ -1620,18 +1765,21 @@ function renderWorldSettings(){
       <div><p class="eyebrow">WORLD</p><h2>世界観・見た目の設定</h2></div>
       <button class="ghost" id="btn-back">← ホームへ</button>
     </div>
-    <div class="settings-card">
+    <div class="settings-card" data-noblock>
       <div class="section-label">題名</div>
       ${txt('title','ゲームの題名')}${txt('subtitle','サブタイトル')}${txt('eyebrow','題名の上の小さな文字')}
       <div class="section-label">テーマカラー</div>
       <div class="row">${col('accent','アクセント色（枠・ボタンの強調）')}${col('bg','背景色')}${col('panel','パネルの色')}</div>
       <div class="row">${col('colorAttack','アタックカードの色')}${col('colorSkill','スキルカードの色')}${col('colorPower','パワーカードの色')}</div>
+      <div class="section-label">ブロック</div>
+      <p class="hint">ブロックの呼び名とアイコンを変えられます（例：障壁・シールド・加護）。カードの説明、戦闘ログ、編集画面など、画面に出る「ブロック」の文字がすべて置き換わります（「自動ブロック」は「自動＋呼び名」になります）。入力欄に入れた文字そのものは置き換わりません。色は、HPバー・戦闘ログ・メニューの強調に使います。</p>
+      <div class="row">${txt('blockName','ブロックの呼び名（12文字まで）')}${txt('blockIcon','アイコン（絵文字など3文字まで）')}${col('colorBlockUi','ブロックの色（HPバー・ログ）')}</div>
       <div class="section-label">戦闘エフェクト</div>
       <p class="hint">戦闘中に、ダメージ・回復などの数字や、攻撃を受けたときの光が出ます。属性や状態に色を指定していれば、そちらが優先されます。</p>
       <div class="checkbox-field"><input type="checkbox" id="fx-on" ${FX.prefs.on?'checked':''}><label for="fx-on">戦闘エフェクトを表示する（この端末の設定）</label></div>
       <div class="field"><label>簡易表示（揺れ・光・輪・HPバーの残像を省き、数字だけを静かに出す）</label><select id="fx-simple">${[['auto','OSの「動きを減らす」設定に従う'],['on','常にオン（省略する）'],['off','常にオフ（OSの設定にかかわらず、すべて出す）']].map(([v,t])=>`<option value="${v}" ${FX.prefs.simple===v?'selected':''}>${t}</option>`).join('')}</select></div>
       <div class="field"><label>エフェクトの速さ</label><select id="fx-speed">${[[0.5,'ゆっくり'],[1,'ふつう'],[1.5,'はやい'],[2,'とてもはやい']].map(([v,t])=>`<option value="${v}" ${FX.prefs.speed===v?'selected':''}>${t}</option>`).join('')}</select></div>
-      <div class="row">${col('colorDamage','通常ダメージの色')}${col('colorBlock','ブロックの色')}${col('colorHeal','回復の色')}</div>
+      <div class="row">${col('colorDamage','通常ダメージの色')}${col('colorBlock','ブロックの色（エフェクトの数字）')}${col('colorHeal','回復の色')}</div>
       <div class="row">${col('colorPoison','毒などの継続ダメージの色')}${col('colorBuff','良い状態の色（強化など）')}${col('colorDebuff','悪い状態の色（弱体など）')}</div>
       <div class="section-label">世界観の文章</div>
       <p class="hint">改行できます。文中の {floors} は探索の総階層数、{floor} は倒れた階層に置き換わります。</p>
@@ -1750,6 +1898,13 @@ const SCALE_SOURCES = [
   {key:'enemyBlock', label:'敵の現在ブロック'},
   {key:'enemyStrength', label:'敵の強化値'},
   {key:'cardsPlayedThisTurn', label:'このターンに使ったカード枚数'},
+  {key:'combatPlayed', label:'この戦闘中に使ったカード枚数'},
+  {key:'combatTagPlayed', label:'この戦闘中に使った指定タグ枚数'},
+  {key:'combatDrawn', label:'この戦闘中に引いたカード枚数（ターン開始時のドローを含む）'},
+  {key:'combatDiscarded', label:'この戦闘中に効果で捨て札に移したカード枚数（使用後・ターン終了時の捨て札は除く）'},
+  {key:'combatExhausted', label:'この戦闘中に消滅したカード枚数'},
+  {key:'combatHitsTaken', label:'この戦闘中に敵の攻撃を受けた回数（多段攻撃は1ヒットごと）'},
+  {key:'combatTurn', label:'この戦闘の経過ターン数（いまのターンを含む）'},
   {key:'tagCountHand', label:'手札内の指定タグ枚数'},
   {key:'tagCountPlayedThisTurn', label:'このターン使った指定タグ枚数'},
   {key:'tagCountDrawDiscard', label:'山札+捨て札内の指定タグ枚数（合計）'},
@@ -1797,6 +1952,13 @@ function scaleSourceValue(key, tag, actor){
     case 'enemyBlock': return n(foe,'block');
     case 'enemyStrength': return n(foe,'strength');
     case 'cardsPlayedThisTurn': return ownPile ? (r.cardsPlayedThisTurn || 0) : 0;
+    case 'combatPlayed': return ownPile ? ((r.combatStats||{}).played || 0) : 0;
+    case 'combatTagPlayed': return ownPile && tag ? (((r.combatStats||{}).tagsPlayed)||[]).filter(t=>t===tag).length : 0;
+    case 'combatDrawn': return ownPile ? ((r.combatStats||{}).drawn || 0) : 0;
+    case 'combatDiscarded': return ownPile ? ((r.combatStats||{}).discarded || 0) : 0;
+    case 'combatExhausted': return ownPile ? (r.exhausted||[]).length : 0;
+    case 'combatHitsTaken': return ownPile ? ((r.combatStats||{}).hitsTaken || 0) : 0;
+    case 'combatTurn': return ownPile ? (r.turnNo || 0) : 0;
     case 'tagCountHand': return ownPile && tag ? r.hand.filter(cid=>{ const c=cardById(cid); return c && c.tags && c.tags.includes(tag); }).length : 0;
     case 'tagCountPlayedThisTurn': return ownPile && tag ? (r.tagsPlayedThisTurn||[]).filter(t=>t===tag).length : 0;
     case 'selfTagStacks': return tag ? tagStacks(me, tag) : 0;
@@ -2241,7 +2403,7 @@ function enemyOpText(op){
       const def = allEffectFieldDefs().find(d=>d.key===op.buffField);
       const name = def ? def.label.replace(/（.*$/,'') : (op.buffField||'');
       const amt = op.buffAmount||0;
-      return `自分のデッキの${tag}カード${n}の${name}${amt>=0?'+':''}${amt}`;
+      return `自分のデッキの${tag}カード${n}の${name}${amt>=0?'+':''}${amt}${buffTargetText(op)}`;
     }
     default: return '';
   }
@@ -2259,7 +2421,10 @@ function runTurnStartCardOps(r, done){
     if(i>=list.length || r.enemy.hp<=0 || r.player.hp<=0){ done(); return; }
     const item = list[i++];
     pushLog(item.op.fromEnemy ? item.label : `${item.label}が発動。`);
-    resolveCardOp(r, item.op, next);
+    resolveCardOp(r, item.op, ()=>{
+      if(r.pileEvents && r.pileEvents.length) firePileTriggers(r, next);
+      else next();
+    });
   })();
 }
 
@@ -2319,7 +2484,8 @@ function resolveEnemyMoveBody(r, e, c){
     e.triggers = e.triggers || [];
     e.triggers.push({
       card: c,
-      triggerOn: c.triggerOn==='damaged' ? 'damaged' : 'cardUsed',
+      triggerOn: cleanTriggerOn(c.triggerOn),
+      every: triggerEveryOf(c), count: 0,
       triggerTag: c.triggerTag || '',
       triggerBlocked: !!c.triggerBlocked,
       duration: triggerTurns(c)>0 ? 'turn' : 'combat',
@@ -2350,7 +2516,7 @@ function applyEnemyCardPayload(r, e, c){
         if(!(dmg>0)) return;
         applyDamageToPlayer(dmg + e.strength, c.pierce, attackElements(e, c));
         const lh = r.lastHit;
-        if(lh && lh.total>0){ (r.damageEvents = r.damageEvents||[]).push({...lh}); }
+        if(lh && lh.total>0){ (r.damageEvents = r.damageEvents||[]).push({...lh}); if(r.combatStats) r.combatStats.hitsTaken++; }
         logEnemyHit(e, c, lh, {base:c.damage||0, scale:dmg-(c.damage||0), str:e.strength});
         const st = r.enemyTurnStat;
         if(st && lh && lh.total>0){ st.hits++; st.total += lh.total; st.blocked += lh.blocked; st.hpLoss += lh.hpBefore - lh.hpAfter; }
@@ -2431,6 +2597,7 @@ function fireEnemyTriggers(r, kind, info, list){
     } else {
       if(!(info.hpLoss>0 || (t.triggerBlocked && info.total>0))) return;
     }
+    if(!triggerCountReady(t)) return;
     pushLog(`${e.name}の「${t.card.name}」が発動！`);
     applyEnemyCardPayload(r, e, t.card);
   });
@@ -2647,6 +2814,7 @@ function resolveEnemyCardOp(r, op, done){
         const useIid = iid || newId();
         if(!r.tempInstanceBuffs[useIid]) r.tempInstanceBuffs[useIid] = {};
         r.tempInstanceBuffs[useIid][field] = (r.tempInstanceBuffs[useIid][field]||0) + amount;
+        if(field.startsWith('cs_') && ['self','opponent'].includes(op.buffTarget)) r.tempInstanceBuffs[useIid]['csT_'+field.slice(3)] = op.buffTarget;
         x.d.cardId = withInstanceSuffix(cid, useIid);
       });
       const fd = allEffectFieldDefs().find(d=>d.key===field);
@@ -2822,6 +2990,7 @@ function resolveCardOp(r, op, done){
           const useIid = iid || newId();
           if(!store[useIid]) store[useIid] = {};
           store[useIid][field] = (store[useIid][field]||0) + amount;
+          if(field.startsWith('cs_') && ['self','opponent'].includes(op.buffTarget)) store[useIid]['csT_'+field.slice(3)] = op.buffTarget;
           r[e.pile][e.idx] = withInstanceSuffix(cid, useIid);
         });
         const fieldDef = allEffectFieldDefs().find(d=>d.key===field);
@@ -2890,7 +3059,11 @@ function resolveCardOp(r, op, done){
     if(dest==='hand'){
       // 山札から手札に来たカードは、通常のドローと同じく「引いたとき」の効果が発動する
       selected.forEach(e=>{ if(e.pile==='draw') applyCardDrawEffect(r, cardById(e.rawId)); });
+      notePileEvent(r, 'drawn', selected.filter(e=>e.pile==='draw').map(e=>e.rawId));
+      if(r.combatStats) r.combatStats.drawn += selected.filter(e=>e.pile==='draw').length;
     }
+    if(dest==='discard' && r.combatStats) r.combatStats.discarded += selected.filter(e=>e.pile!=='discard').length;
+    if(dest==='discard') notePileEvent(r, 'discarded', selected.filter(e=>e.pile!=='discard').map(e=>e.rawId));
     pushLog(`${movedIds.length}枚のカードを${{hand:'手札に',discard:'捨て札に',draw:'山札に',exhausted:'消滅済みに'}[dest]}移動した。`);
     done();
   }
@@ -2991,7 +3164,7 @@ function applyEffectValues(r, c){
         else if(lh && lh.total>0) pushLog(`${c.name}: 吸収は全て防がれたので回復なし。`);
       }
       // 敵が持つカスタム状態の「反射」: 攻撃を受けた敵が、攻撃した側にダメージを返す（ブロック無視）
-      const foeReflect = r.enemy ? customReflectDamage(r.enemy) : 0;
+      const foeReflect = r.enemy ? ((r.enemy.thorns||0) + (r.enemy.permThorns||0) + customReflectDamage(r.enemy)) : 0;
       if(foeReflect>0 && r.enemy.hp>0 && r.player.hp>0){
         const pBefore = r.player.hp;
         r.player.hp = Math.max(0, r.player.hp - foeReflect);
@@ -3088,10 +3261,47 @@ function applyEffectValues(r, c){
 
 // One repetition of a card's effect: its numeric effects plus its card-operation.
 function applyCardEffectsOnce(r, c, done){
+  // _effectDepth: いまカードの効果を解決している最中か。ドロー・捨て札移動の仕込みは、効果によるものだけ数える
+  // （ターン開始時のドロー、カード使用後・ターン終了時の捨て札、敵の行動によるカード操作は数えない）。
+  r._effectDepth = (r._effectDepth||0) + 1;
+  const fin = ()=>{ r._effectDepth -= 1; firePileTriggers(r, done); };
   applyEffectValues(r, c);
   const ops = cardOpsOf(c);
-  if(ops.length) resolveCardOps(r, ops, done);
-  else done();
+  if(ops.length) resolveCardOps(r, ops, fin);
+  else fin();
+}
+// カードの効果で、カードを引いた／捨て札に移した出来事を記録する（効果の解決中だけ）
+function notePileEvent(r, kind, rawIds){
+  if(!r || !rawIds || !rawIds.length) return;
+  const events = r.pileEvents = r.pileEvents || [];
+  rawIds.forEach(id=>events.push({kind, ids:[id]}));
+}
+// 記録した出来事に応じて、「引いたとき」「捨て札に移ったとき」の仕込みを発動する。
+// ドロー／捨て札移動したカード1枚につき1回の出来事として数える。
+function firePileTriggers(r, done){
+  const events = r.pileEvents || [];
+  r.pileEvents = [];
+  if(!events.length || !r.activeTriggers || !r.activeTriggers.some(t=>PILE_TRIGGER_KINDS.includes(t.triggerOn))){ done(); return; }
+  if((r._pileTrigDepth||0) >= 3){ pushLog('仕込みの連鎖が深すぎるため、発動を打ち切った。'); done(); return; }
+  r._pileTrigDepth = (r._pileTrigDepth||0) + 1;
+  const fin = ()=>{ r._pileTrigDepth -= 1; done(); };
+  let ei = 0;
+  (function nextEvent(){
+    if(ei>=events.length || r.enemy.hp<=0 || r.player.hp<=0){ fin(); return; }
+    const ev = events[ei++];
+    const snapshot = r.activeTriggers.filter(t=>t.triggerOn===ev.kind);
+    let ti = 0;
+    (function nextTrig(){
+      if(ti>=snapshot.length){ nextEvent(); return; }
+      const t = snapshot[ti++];
+      if(!r.activeTriggers.includes(t)){ nextTrig(); return; }
+      const tagOk = !t.triggerTag || ev.ids.some(id=>{ const cc = cardById(id); return cc && cc.tags && cc.tags.includes(t.triggerTag); });
+      if(tagOk && triggerCountReady(t)){
+        pushLog(`${t.cardData.name}: カードを${ev.kind==='drawn' ? '引いた' : '捨て札に移した'}ため発動。`);
+        applyCardEffects(r, t.cardData, nextTrig);
+      } else nextTrig();
+    })();
+  })();
 }
 
 // 複数のカード操作を、並んでいる順に1つずつ解決する（選択画面が出る操作は、選び終わってから次へ）。
@@ -3139,6 +3349,7 @@ function applyCardEffects(r, c, done){
 // reactions (relics, then previously registered card triggers) fire for it.
 function registerCardUse(r, c, done){
   r.cardsPlayedThisTurn = (r.cardsPlayedThisTurn||0) + 1;
+  { const cs = r.combatStats = r.combatStats || {played:0, tagsPlayed:[], drawn:0, discarded:0, hitsTaken:0}; cs.played++; if(c.tags && c.tags.length) cs.tagsPlayed = cs.tagsPlayed.concat(c.tags); }
   if(c.tags && c.tags.length){ r.tagsPlayedThisTurn = (r.tagsPlayedThisTurn||[]).concat(c.tags); }
   fireRelicTiming(r, 'onTagCardUsed', c);
   fireMatchingTriggers(r, c, done);
@@ -3154,13 +3365,14 @@ function resolveCardPlayCore(r, c, done){
     registerCardUse(r, c, ()=>{
       r.activeTriggers.push({
         triggerTag: c.triggerTag || '',
-        triggerOn: c.triggerOn==='damaged' ? 'damaged' : 'cardUsed',
+        triggerOn: cleanTriggerOn(c.triggerOn),
+        every: triggerEveryOf(c), count: 0,
         triggerBlocked: !!c.triggerBlocked,
         duration: triggerTurns(c)>0 ? 'turn' : 'combat',
         turnsLeft: triggerTurns(c)>0 ? triggerTurns(c) : undefined,
         cardData: c,
       });
-      pushLog(`${c.name}: 効果を仕込んだ（今後の該当カード使用時に発動。${triggerDurText(c)}）。`);
+      pushLog(`${c.name}: 効果を仕込んだ（今後、${triggerWhenShort(c)}${triggerEveryOf(c)>1 ? `、${triggerEveryOf(c)}回に1回` : ''}発動。${triggerDurText(c)}）。`);
       done();
     });
     return;
@@ -3193,7 +3405,7 @@ function fireDamageTriggers(r, done){
       if(ti>=snapshot.length){ nextEvent(); return; }
       const t = snapshot[ti++];
       const ok = ev.hpLoss>0 || (t.triggerBlocked && ev.total>0);
-      if(ok){ pushLog(`${t.cardData.name}: ダメージを受けて発動。`); applyCardEffects(r, t.cardData, nextTrig); }
+      if(ok && triggerCountReady(t)){ pushLog(`${t.cardData.name}: ダメージを受けて発動。`); applyCardEffects(r, t.cardData, nextTrig); }
       else nextTrig();
     })();
   })();
@@ -3208,9 +3420,9 @@ function fireMatchingTriggers(r, playedCard, done){
   (function next(){
     if(idx>=snapshot.length){ done(); return; }
     const trig = snapshot[idx++];
-    if(trig.triggerOn==='damaged'){ next(); return; }
+    if(trig.triggerOn!=='cardUsed'){ next(); return; }
     const tagOk = !trig.triggerTag || (playedCard.tags && playedCard.tags.includes(trig.triggerTag));
-    if(tagOk) applyCardEffects(r, trig.cardData, next);
+    if(tagOk && triggerCountReady(trig)) applyCardEffects(r, trig.cardData, next);
     else next();
   })();
 }
@@ -3430,7 +3642,7 @@ function renderEnemyEditor(){
 }
 
 function openEnemyModal(enemy, isNew){
-  const en = {...enemy, dropCardIds:(enemy.dropCardIds||[]).slice(), dropCardChances:(enemy.dropCardChances||[]).slice(), startCards:(enemy.startCards||[]).slice(), forcedMoves:(enemy.forcedMoves||[]).map(x=>({...x})), chains:(enemy.chains||[]).map(x=>({...x})), lines:(enemy.lines||[]).map(x=>({...x})), deck: (enemy.deck||[]).map(x=>({...x})), startEffect:{...(enemy.startEffect||{})}, dropCardIds:(enemy.dropCardIds||[]).slice(), dropRelicId: enemy.dropRelicId||''};
+  const en = {...enemy, dropCardIds:(enemy.dropCardIds||[]).slice(), dropCardChances:(enemy.dropCardChances||[]).slice(), startCards:(enemy.startCards||[]).slice(), forcedMoves:(enemy.forcedMoves||[]).map(x=>({...x})), chains:(enemy.chains||[]).map(x=>({...x})), lines:(enemy.lines||[]).map(x=>({...x})), elementMods:(enemy.elementMods||[]).map(x=>({...x})), deck: (enemy.deck||[]).map(x=>({...x})), startEffect:{...(enemy.startEffect||{})}, dropCardIds:(enemy.dropCardIds||[]).slice(), dropRelicId: enemy.dropRelicId||''};
   const dropRelicPool = S.relics.slice().sort((a,b)=> a.name.localeCompare(b.name,'ja'));
   const dropCardPool = S.cards.slice().sort((a,b)=> a.name.localeCompare(b.name,'ja'));
   // Any card can go in an enemy's deck — including ordinary player cards like "ストライク".
@@ -3499,6 +3711,10 @@ function openEnemyModal(enemy, isNew){
       <p class="hint">「この行動が選ばれたら、次は必ずこの行動を使う」を設定します。抽選で選ばれた場合も、条件付きの確定行動で選ばれた場合も同じです。選ばれた行動が実行されたあとの次の予告で、設定した行動が決まります。連続行動で選ばれた行動にさらに連続行動を設定すると、3連続以上もつなげられます。同じ行動を複数設定した場合は、上のものが使われます。</p>
       <div id="em-chain-list"></div>
       <button type="button" id="em-chain-add">＋ 連続行動を追加</button>
+      <div class="section-label">属性相性（弱点・耐性）</div>
+      <p class="hint">この敵が、属性ごとに受けるダメージの増減（％）を設定します。+50＝弱点（1.5倍）、−50＝耐性（半分）、−100＝無効。攻撃が複数の属性を持つときは、該当する属性の分を足し合わせます。計算は、状態による補正のあと、ブロックを引く前です。戦闘中は、敵のアイコンの下に表示されます。</p>
+      <div id="em-mod-list"></div>
+      <button type="button" id="em-mod-add">＋ 属性相性を追加</button>
       <div class="section-label">セリフ</div>
       <p class="hint">条件を満たしたとき、この敵が吹き出しでセリフを言います。各セリフは、1回の戦闘で1回だけ言います（同じ条件のセリフを複数入れると、上から順に続けて言います）。吹き出しは、クリック・Enter・スペースで送れます（しばらくすると自動でも消えます）。戦闘ログにも残ります。「倒されたとき」のセリフは、言い終わってから勝利・敗北の画面に進みます。HPの割合の条件は、HPが0になったときは対象外で、倒されたときのセリフが担当します。</p>
       <div id="em-line-list"></div>
@@ -3754,6 +3970,31 @@ function openEnemyModal(enemy, isNew){
       renderLineList();
     });
   })();
+  function modRowHTML(m, i){
+    return `<div class="ev-eff" data-idx="${i}">
+      <div class="ev-eff-head"><span>属性相性 ${i+1}</span><button type="button" class="ghost em-mod-del">削除</button></div>
+      <div class="ev-eff-grid"><div><label>属性</label><select data-f="element">${(S.elements||[]).map(x=>`<option value="${escapeHtml(x.id)}" ${x.id===m.element?'selected':''}>${escapeHtml((x.emoji||'')+' '+x.name)}</option>`).join('')}</select></div>
+        <div><label>被ダメージの増減（％）</label><input type="number" data-f="pct" value="${m.pct}" min="-100" max="500"></div></div>
+    </div>`;
+  }
+  function renderModList(){
+    const box = qs('#em-mod-list',overlay);
+    box.innerHTML = !(S.elements||[]).length ? '<p class="hint">属性がありません。先に属性を作ってください。</p>'
+      : (en.elementMods.length ? en.elementMods.map(modRowHTML).join('') : '<p class="hint">なし</p>');
+  }
+  renderModList();
+  (function(){
+    const box = qs('#em-mod-list',overlay);
+    const rowOf = t=>{ const r = t.closest && t.closest('[data-idx]'); return r ? en.elementMods[parseInt(r.dataset.idx,10)] : null; };
+    box.addEventListener('input', ev=>{ const m = rowOf(ev.target); if(m && ev.target.dataset.f==='pct') m.pct = ev.target.value; });
+    box.addEventListener('change', ev=>{ const m = rowOf(ev.target); if(m && ev.target.dataset.f==='element') m.element = ev.target.value; });
+    box.addEventListener('click', ev=>{ const b = ev.target.closest('.em-mod-del'); if(!b) return; en.elementMods.splice(parseInt(b.closest('[data-idx]').dataset.idx,10),1); renderModList(); });
+    qs('#em-mod-add',overlay).onclick = ()=>{
+      if(!(S.elements||[]).length || en.elementMods.length>=30) return;
+      const used = en.elementMods.map(m=>m.element), first = S.elements.find(x=>!used.includes(x.id)) || S.elements[0];
+      en.elementMods.push({element:first.id, pct:50}); renderModList();
+    };
+  })();
   qs('#em-line-add',overlay).onclick = ()=>{
     en.lines.push({id:newId(), trigger:'start', pct:50, text:''});
     renderLineList();
@@ -3766,6 +4007,7 @@ function openEnemyModal(enemy, isNew){
       forcedMoves: cleanForcedMoves(en.forcedMoves),
       chains: cleanChains(en.chains),
       lines: cleanEnemyLines(en.lines),
+      elementMods: cleanElementMods(en.elementMods),
       dropRelicId: qs('#em-drop-relic',overlay).value,
       dropRelicChance: clampInt(qs('#em-drop-relic-chance',overlay).value,0,100,100),
       dropCardIds: en.dropCardIds.slice(),
@@ -3943,7 +4185,8 @@ function renderStatusEditor(){
 /* ============================= 属性エディタ ============================= */
 function elementUsage(id){
   return {cardIds: S.cards.filter(c=>Array.isArray(c.elements) && c.elements.includes(id)).map(c=>c.id),
-          statusIds: (S.customStatuses||[]).filter(st=>(st.effects||[]).some(x=>ELEMENT_REF_KINDS.includes(x.kind) && x.element===id)).map(st=>st.id)};
+          statusIds: (S.customStatuses||[]).filter(st=>(st.effects||[]).some(x=>ELEMENT_REF_KINDS.includes(x.kind) && x.element===id)).map(st=>st.id),
+          enemyIds: (S.enemies||[]).filter(en=>(en.elementMods||[]).some(m=>m.element===id)).map(en=>en.id)};
 }
 function renderElementEditor(){
   const list = S.elements||[];
@@ -3953,9 +4196,9 @@ function renderElementEditor(){
       <div><p class="eyebrow">ELEMENT EDITOR</p><h2>属性を編集する</h2></div>
       <div class="topbar-btns"><button class="ghost" id="btn-back">← ホームへ</button></div>
     </div>
-    <p class="hint">攻撃ダメージに付ける「属性」を作ります（カード編集の「攻撃の属性」で選びます）。属性ごとに、エフェクトの色・絵文字と、特殊効果（今は吸血）を設定できます。</p>
+    <p class="hint">攻撃ダメージに付ける「属性」を作ります（カード編集の「攻撃の属性」で選びます）。属性ごとに、エフェクトの色・絵文字と、特殊効果（吸血・貫通・ブロック破壊・ヒット時ブロック獲得・ヒット時の状態付与）を設定できます。敵ごとの弱点・耐性は、敵の編集画面で設定します。</p>
     <div class="section-label">属性一覧（${list.length}種）</div>
-    <div id="el-rows">${list.length ? list.map(el=>`<div class="ev-add" data-id="${escapeHtml(el.id)}" style="margin-bottom:6px;"><span style="flex:1; font-size:15px;">${el.color?`<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${el.color}; margin-right:6px;"></span>`:''}${escapeHtml(el.emoji||'')} ${escapeHtml(el.name)}${ELEMENT_PROP_DEFS.filter(d=>(el.props||{})[d.key]>0).map(d=>` <span class="hint" style="font-size:12px;">${escapeHtml(d.short((el.props||{})[d.key]))}</span>`).join('')}</span>
+    <div id="el-rows">${list.length ? list.map(el=>`<div class="ev-add" data-id="${escapeHtml(el.id)}" style="margin-bottom:6px;"><span style="flex:1; font-size:15px;">${el.color?`<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${el.color}; margin-right:6px;"></span>`:''}${escapeHtml(el.emoji||'')} ${escapeHtml(el.name)}${ELEMENT_PROP_DEFS.filter(d=> d.has ? d.has((el.props||{})[d.key]) : (el.props||{})[d.key]>0).map(d=>` <span class="hint" style="font-size:12px;">${escapeHtml(d.short((el.props||{})[d.key]))}</span>`).join('')}</span>
       <button type="button" class="el-edit">編集</button><button type="button" class="el-dup">複製</button><button type="button" class="el-del">削除</button></div>`).join('') : '<p class="hint">属性がありません。</p>'}</div>
     <div style="margin-top:12px;"><button type="button" class="primary" id="el-new">＋ 属性を追加</button></div>
   </div>`;
@@ -3968,14 +4211,15 @@ function renderElementEditor(){
   });
   qsa('.el-del').forEach(b=> b.onclick = ()=>{
     const id = b.closest('[data-id]').dataset.id, el = elementById(id); if(!el) return;
-    const use = elementUsage(id), n = use.cardIds.length, ns = use.statusIds.length;
-    if(!confirm((n||ns) ? `「${el.name}」は ${n}枚のカード・${ns}個の状態で使われています。\nカードから外し、状態のこの属性の効果も削除して、削除しますか？` : `「${el.name}」を削除しますか？`)) return;
+    const use = elementUsage(id), n = use.cardIds.length, ns = use.statusIds.length, ne = use.enemyIds.length;
+    if(!confirm((n||ns||ne) ? `「${el.name}」は ${n}枚のカード・${ns}個の状態・${ne}体の敵で使われています。\nカードから外し、状態のこの属性の効果と、敵の属性相性も削除して、削除しますか？` : `「${el.name}」を削除しますか？`)) return;
     S.cards.forEach(c=>{ if(Array.isArray(c.elements)) c.elements = c.elements.filter(x=>x!==id); });
     if(n) saveCards(S.cards);
     if(ns){
       S.customStatuses.forEach(st=>{ st.effects = (st.effects||[]).filter(x=> !(ELEMENT_REF_KINDS.includes(x.kind) && x.element===id)); });
       saveCustomStatuses(S.customStatuses);
     }
+    if(ne){ S.enemies.forEach(en=>{ en.elementMods = (en.elementMods||[]).filter(m=>m.element!==id); }); saveEnemies(S.enemies); }
     S.elements = S.elements.filter(x=>x.id!==id); saveElements(S.elements); renderElementEditor();
   });
   qs('#el-new').onclick = ()=> openElementModal({id:newId(), name:'新しい属性', props:{}}, true);
@@ -3991,16 +4235,32 @@ function openElementModal(el, isNew){
     <div class="checkbox-field"><input type="checkbox" id="elm-usecolor" ${e.color?'checked':''}><label for="elm-usecolor">エフェクトの色を指定する（オフなら、通常ダメージの色）</label></div>
     <div class="field"><input type="color" id="elm-color" value="${e.color||'#E04848'}" style="width:100%; height:38px; padding:2px;"></div>
     <div class="section-label">特殊効果</div>
-    ${ELEMENT_PROP_DEFS.map(def=>`<div class="field"><label>${escapeHtml(def.label)}</label><input type="number" id="elm-prop-${def.key}" value="${(e.props||{})[def.key]||0}" min="${def.min}" max="${def.max}" step="1"><p class="hint">${escapeHtml(def.hint)}</p></div>`).join('')}
+    ${ELEMENT_PROP_DEFS.map(def=> def.type==='list'
+      ? `<div class="field"><label>${escapeHtml(def.label)}</label><div id="elm-list-${def.key}"></div><button type="button" class="ghost" id="elm-listadd-${def.key}">＋ 追加</button><p class="hint">${escapeHtml(def.hint)}</p></div>`
+      : `<div class="field"><label>${escapeHtml(def.label)}</label><input type="number" id="elm-prop-${def.key}" value="${(e.props||{})[def.key]||0}" min="${def.min}" max="${def.max}" step="1"><p class="hint">${escapeHtml(def.hint)}</p></div>`).join('')}
     <div class="modal-actions"><button class="ghost" id="elm-cancel">キャンセル</button><button class="primary" id="elm-save">保存する</button></div>
   </div>`;
   document.body.appendChild(overlay);
+  // 行を並べて編集する特殊効果（type:'list'）
+  const rowLists = {};
+  ELEMENT_PROP_DEFS.filter(d=>d.type==='list').forEach(def=>{
+    rowLists[def.key] = (Array.isArray((e.props||{})[def.key]) ? e.props[def.key] : []).map(x=>({...x}));
+    const box = qs('#elm-list-'+def.key, overlay);
+    const render = ()=>{ box.innerHTML = rowLists[def.key].length ? rowLists[def.key].map((row,i)=>def.rowHTML(row,i)).join('') : '<p class="hint">なし</p>'; };
+    render();
+    const rowOf = t=>{ const r = t.closest && t.closest('[data-idx]'); return r ? rowLists[def.key][parseInt(r.dataset.idx,10)] : null; };
+    box.addEventListener('input', ev=>{ const row = rowOf(ev.target), f = ev.target.dataset && ev.target.dataset.f; if(row && f && ev.target.tagName!=='SELECT') row[f] = ev.target.value; });
+    box.addEventListener('change', ev=>{ const row = rowOf(ev.target), f = ev.target.dataset && ev.target.dataset.f; if(row && f) row[f] = ev.target.value; });
+    box.addEventListener('click', ev=>{ const b = ev.target.closest('.elm-row-del'); if(!b) return; rowLists[def.key].splice(parseInt(b.closest('[data-idx]').dataset.idx,10),1); render(); });
+    qs('#elm-listadd-'+def.key, overlay).onclick = ()=>{ if(rowLists[def.key].length>=6) return; rowLists[def.key].push(def.newRow()); render(); };
+  });
   qs('#elm-cancel',overlay).onclick = ()=> overlay.remove();
   qs('#elm-save',overlay).onclick = ()=>{
     const name = qs('#elm-name',overlay).value.trim();
     if(!name){ alert('名前を入力してください。'); return; }
     const props = {...(e.props||{})};
     ELEMENT_PROP_DEFS.forEach(def=>{
+      if(def.type==='list'){ const v = def.clean(rowLists[def.key]); if(v.length) props[def.key] = v; else delete props[def.key]; return; }
       const v = clampInt(qs('#elm-prop-'+def.key,overlay).value, def.min, def.max, 0);
       if(v>0) props[def.key] = v; else delete props[def.key];
     });
@@ -4105,9 +4365,10 @@ function statusEffectFormHTML(eff, i){
       ${CARDOP_REVERTIBLE_TYPES.includes(op.type) ? `<label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="permanent" ${op.permanent?'checked':''}> 永続（戦闘が終わっても元に戻さない。チェックなしはこの戦闘中のみ）</label>` : ''}
       ${op.type==='costChange' ? `<div class="field"><label>コストの増減量（マイナスで軽減。0未満にはならない）</label><input type="number" ${opAt} data-f="costDelta" data-num="1" value="${op.costDelta|0}" min="-9" max="9"></div>` : ''}
       ${op.type==='grantBuff' ? `
-        <div class="field"><label>付与する効果</label><select ${opAt} data-f="buffField">
+        <div class="field"><label>付与する効果</label><select ${opAt} data-f="buffField" data-rerender="1">
           ${allEffectFieldDefs().map(def=>`<option value="${escapeHtml(def.key)}" ${op.buffField===def.key?'selected':''}>${escapeHtml(def.label)}</option>`).join('')}</select></div>
-        <div class="field"><label>付与量（マイナスで減少も可）</label><input type="number" ${opAt} data-f="buffAmount" data-num="1" value="${op.buffAmount||0}" min="-99" max="99"></div>` : ''}`;
+        <div class="field"><label>付与量（マイナスで減少も可）</label><input type="number" ${opAt} data-f="buffAmount" data-num="1" value="${op.buffAmount||0}" min="-99" max="99"></div>
+        ${String(op.buffField||'').startsWith('cs_') ? `<div class="field"><label>付与先（付与したカードを使ったとき、この状態をどちらに付与するか）</label><select ${opAt} data-f="buffTarget">${[['default','カード側の設定／状態の標準のまま'],['self','自分に付与'],['opponent','相手に付与']].map(([v,t])=>`<option value="${v}" ${(op.buffTarget||'default')===v?'selected':''}>${t}</option>`).join('')}</select></div>` : ''}` : ''}`;
   }
   return `<div class="ev-eff">
     <div class="ev-eff-head"><span>${escapeHtml(statusEffectLabel(eff.kind))}</span><button type="button" class="ghost" data-del="${i}">削除</button></div>
@@ -4376,16 +4637,22 @@ function openCardModal(card, isNew){
       <div id="timing-trigger-fields" style="${c.timing==='trigger'?'':'display:none;'}">
         <div class="field"><label>発動のきっかけ</label>
           <select id="m-triggeron">
-            <option value="cardUsed" ${c.triggerOn!=='damaged'?'selected':''}>指定タグのカードを使うたび</option>
+            <option value="cardUsed" ${cleanTriggerOn(c.triggerOn)==='cardUsed'?'selected':''}>指定タグのカードを使うたび</option>
             <option value="damaged" ${c.triggerOn==='damaged'?'selected':''}>敵の攻撃でダメージを受けるたび</option>
+            <option value="drawn" ${c.triggerOn==='drawn'?'selected':''}>カードの効果でカードを引いたとき</option>
+            <option value="discarded" ${c.triggerOn==='discarded'?'selected':''}>カードの効果でカードが捨て札に移ったとき</option>
           </select></div>
         <div id="trigger-cardused-fields" style="${c.triggerOn==='damaged'?'display:none;':''}">
-          <div class="field"><label>発動条件（このタグのカードを使うたび。空欄でどのカードでも）</label><input type="text" id="m-triggertag" value="${c.triggerTag||''}"></div>
-          <p class="hint">敵が使った場合は、「その敵がこのタグのカードを使うたび」（次の行動以降）に発動します。</p>
+          <div class="field"><label id="m-triggertag-label">${triggerTagLabelText(c.triggerOn)}</label><input type="text" id="m-triggertag" value="${c.triggerTag||''}"></div>
+          <p class="hint" id="m-trigger-hint">${triggerKindHint(c.triggerOn)}</p>
         </div>
         <div id="trigger-damaged-fields" style="${c.triggerOn==='damaged'?'':'display:none;'}">
           <div class="checkbox-field"><input type="checkbox" id="m-triggerblocked" ${c.triggerBlocked?'checked':''}><label for="m-triggerblocked">ブロックで全部防いだ攻撃でも発動する（OFFなら、HPが減ったときだけ）</label></div>
           <p class="hint">攻撃1回（多段攻撃なら1ヒット）ごとに発動します。毒や棘など、攻撃以外のダメージでは発動しません。敵が使った場合は、「その敵がプレイヤーの攻撃でダメージを受けるたび」に発動します。持続期間「このターンのみ」は、次の自分のターンの開始までです。</p>
+        </div>
+        <div class="field"><label>何回ごとに発動するか（1または空欄で、条件を満たすたび毎回）</label>
+          <input type="number" id="m-triggerevery" value="${triggerEveryOf(c)>1?triggerEveryOf(c):''}" min="1" max="99" placeholder="1（毎回）">
+          <p class="hint">たとえば3なら、上の条件を満たした3回目・6回目・9回目…に発動します。数えるのは条件を満たした出来事だけです（タグが合わないカードや、HPが減らなかった攻撃などは数えません）。仕込んだあとから数え始め、仕込みが切れるか、戦闘が終わると数え直しになります。</p>
         </div>
         <div class="field"><label>有効ターン数（0または空欄で、この戦闘中ずっと）</label>
           <input type="number" id="m-durturns" value="${triggerTurns(c)||''}" min="0" max="99" placeholder="0（この戦闘中ずっと）">
@@ -4584,9 +4851,11 @@ function openCardModal(card, isNew){
     refresh();
   })();
   qs('#m-triggeron',overlay).onchange = ()=>{
-    const d = qs('#m-triggeron',overlay).value==='damaged';
+    const v = qs('#m-triggeron',overlay).value, d = v==='damaged';
     qs('#trigger-cardused-fields',overlay).style.display = d ? 'none' : 'block';
     qs('#trigger-damaged-fields',overlay).style.display = d ? 'block' : 'none';
+    qs('#m-triggertag-label',overlay).textContent = triggerTagLabelText(v);
+    qs('#m-trigger-hint',overlay).textContent = triggerKindHint(v);
   };
   qs('#m-timing',overlay).onchange = ()=>{
     qs('#timing-trigger-fields',overlay).style.display = qs('#m-timing',overlay).value==='trigger' ? 'block' : 'none';
@@ -4736,7 +5005,8 @@ function openCardModal(card, isNew){
         ${opLab('付与する効果')}
         <select data-opf="buffField" style="margin-bottom:8px; width:100%;">${defs.map(d=>`<option value="${escapeHtml(d.key)}" ${op.buffField===d.key?'selected':''}>${escapeHtml(d.label)}</option>`).join('')}</select>
         ${opLab('付与量（マイナスで減少も可）')}
-        <input type="number" data-opf="buffAmount" data-opnum="1" value="${op.buffAmount|0}" min="-99" max="99" style="width:100%;"></div>` : ''}
+        <input type="number" data-opf="buffAmount" data-opnum="1" value="${op.buffAmount|0}" min="-99" max="99" style="width:100%;">
+        ${String(op.buffField||'').startsWith('cs_') ? `<div style="margin-top:8px;">${opLab('付与先（付与したカードを使ったとき、この状態をどちらに付与するか）')}<select data-opf="buffTarget" style="width:100%;">${[['default','カード側の設定／状態の標準のまま'],['self','自分に付与'],['opponent','相手に付与']].map(([v,t])=>`<option value="${v}" ${(op.buffTarget||'default')===v?'selected':''}>${t}</option>`).join('')}</select></div>` : ''}</div>` : ''}
     </div>`;
   }
   const renderOps = ()=>{
@@ -4757,7 +5027,7 @@ function openCardModal(card, isNew){
     if(!opSync(e.target)) return;
     const f = e.target.dataset.opf, op = opsState[+e.target.closest('.op-block').dataset.i];
     if(f==='type' && op.type==='play' && op.fromPile==='self') op.fromPile = 'hand';   // 自分自身を使い直す操作は作れない
-    if(f==='type' || f==='fromPile' || f==='countMode') renderOps();
+    if(f==='type' || f==='fromPile' || f==='countMode' || f==='buffField') renderOps();
   });
   opBox.addEventListener('click', e=>{ const b = e.target.closest('[data-opdel]'); if(b){ opsState.splice(+b.dataset.opdel,1); renderOps(); } });
   qs('#op-add', overlay).onclick = ()=>{ opsState.push(defaultStatusOp()); renderOps(); };
@@ -4783,8 +5053,9 @@ function openCardModal(card, isNew){
       upgrades: { costDelta: clampInt(qs('#m-costdelta',overlay).value,-6,6,0), scalePP: {} },
       timing: qs('#m-timing',overlay).value,
       triggerTag: cleanTag(qs('#m-triggertag',overlay).value),
-      triggerOn: qs('#m-triggeron',overlay).value==='damaged' ? 'damaged' : 'cardUsed',
+      triggerOn: cleanTriggerOn(qs('#m-triggeron',overlay).value),
       triggerBlocked: qs('#m-triggerblocked',overlay).checked,
+      triggerEvery: clampInt(qs('#m-triggerevery',overlay).value,1,99,1),
       durationTurns: clampInt(qs('#m-durturns',overlay).value,0,99,0),
       duration: clampInt(qs('#m-durturns',overlay).value,0,99,0)>0 ? 'turn' : 'combat',
     };
@@ -5067,7 +5338,41 @@ function enqueueEnemyOp(r, op, label, sep){
 }
 // 敵のカードの「使用後に消滅する」: 使ったカードをこの戦闘のデッキから取り除く（最後の1枚は残す）。
 // entry を渡すと、そのデッキ項目を対象にする。渡さなければ、同じIDの最初の項目。
+// 仕込みの発動のきっかけ: cardUsed=指定タグのカードを使う／damaged=ダメージを受ける／drawn=カードの効果でカードを引く／discarded=カードの効果でカードが捨て札に移る
+function cleanTriggerOn(v){ return ['damaged','drawn','discarded'].includes(v) ? v : 'cardUsed'; }
+const PILE_TRIGGER_KINDS = ['drawn','discarded'];
+// 仕込みの「何回ごと」。1（または未設定）なら毎回。条件を満たした出来事だけを数え、n回目・2n回目…に発動する。
+function triggerEveryOf(c){ return Math.max(1, Math.min(99, (c && c.triggerEvery|0) || 1)); }
+function triggerCountReady(t){
+  const n = Math.max(1, t.every|0 || 1);
+  if(n<=1) return true;
+  t.count = (t.count||0) + 1;
+  if(t.count>=n){ t.count = 0; return true; }
+  return false;
+}
+function triggerEveryText(n){ return n>1 ? `（条件を満たすたびに数え、${n}回目ごとに発動）` : ''; }
+// 仕込みの発動条件の短い説明（ログ・敵の予告などに使う）
+function triggerWhenShort(c){
+  const tg = c.triggerTag ? `[${c.triggerTag}]の` : '';
+  switch(cleanTriggerOn(c.triggerOn)){
+    case 'damaged':   return 'ダメージを受けたとき';
+    case 'drawn':     return `${tg}カードを効果で引いたとき`;
+    case 'discarded': return `${tg}カードが効果で捨て札に移ったとき`;
+    default:          return `${tg}カードを使ったとき`;
+  }
+}
 // 仕込みの有効ターン数。0＝この戦闘中ずっと。旧設定（duration:'turn'）は1ターン。
+// カード編集画面: 発動のきっかけごとの、タグ欄の見出しと説明
+function triggerTagLabelText(kind){
+  if(kind==='drawn') return '発動条件（引いたカードに、このタグのカードが含まれるとき。空欄でどのカードでも）';
+  if(kind==='discarded') return '発動条件（捨て札に移ったカードに、このタグのカードが含まれるとき。空欄でどのカードでも）';
+  return '発動条件（このタグのカードを使うたび。空欄でどのカードでも）';
+}
+function triggerKindHint(kind){
+  if(kind==='drawn') return '「ドロー枚数」や、カード操作「山札から手札へ移動」など、カードの効果でカードを引いたときに発動します。ターン開始時のドロー、レリックによるドローでは発動しません。カードを1枚以上引いた効果1回につき1回発動します（3枚引いても1回）。敵が使った場合は発動しません。';
+  if(kind==='discarded') return 'カード操作「捨て札に移動」など、カードの効果でカードが捨て札に移ったときに発動します。カードを使ったあとの捨て札、ターン終了時の手札の捨て札、敵の行動によるものでは発動しません。カードを1枚以上動かした効果1回につき1回発動します。敵が使った場合は発動しません。';
+  return '敵が使った場合は、「その敵がこのタグのカードを使うたび」（次の行動以降）に発動します。';
+}
 function triggerTurns(c){
   if(c && c.durationTurns!==undefined) return Math.max(0, c.durationTurns|0);
   return (c && c.duration==='turn') ? 1 : 0;
@@ -5164,6 +5469,7 @@ function makeEnemy(floorIndex){
     startCards: (t.startCards||[]).slice(), forcedMoves: (t.forcedMoves||[]).map(x=>({...x})), forcedUsed: {}, rollCount: 0, nextForced: false,
     chains: (t.chains||[]).map(x=>({...x})), followId: '', deferredIdx: -1,
     lines: (t.lines||[]).map(x=>({...x})),
+    elementMods: (t.elementMods||[]).map(x=>({...x})),
   };
   runtimeEnemy.nextMoveId = rollEnemyMove(runtimeEnemy);
   return runtimeEnemy;
@@ -5382,10 +5688,10 @@ function fxElementStyle(elems){
 function fxHit(entity, hit, elems){
   const side = fxSide(entity); if(!side || !hit || !(hit.total>0)) return;
   const st = fxElementStyle(elems);
-  fxEmit({type:'hit', side, hpLoss:hit.hpLoss||0, blocked:hit.blocked||0, pierce:!!hit.pierce, color: st.color || fxWorldColor('damage'), emoji: st.emoji});
+  fxEmit({type:'hit', side, hpLoss:hit.hpLoss||0, blocked:hit.blocked||0, pierce:!!hit.pierce || hit.pierceAmt>0, color: st.color || fxWorldColor('damage'), emoji: st.emoji});
 }
 function fxHeal(entity, n){ const side = fxSide(entity); if(side && n>0) fxEmit({type:'num', side, text:'+'+n, color:fxWorldColor('heal')}); }
-function fxBlock(entity, n){ const side = fxSide(entity); if(side && n>0) fxEmit({type:'num', side, text:'🛡+'+n, color:fxWorldColor('block'), small:true}); }
+function fxBlock(entity, n){ const side = fxSide(entity); if(side && n>0) fxEmit({type:'num', side, text:blockIcon()+'+'+n, color:fxWorldColor('block'), small:true}); }
 // 攻撃以外でHPが減るとき（毒・反射・代償など）。kind='poison' なら毒の色
 function fxLose(entity, n, kind){
   const side = fxSide(entity); if(!side || !(n>0)) return;
@@ -5465,7 +5771,7 @@ function fxPlay(ev){
   const sp = FX.prefs.speed;
   if(ev.type==='hit'){
     if(ev.blocked>0){
-      fxNum(ev.side, '🛡'+ev.blocked, fxWorldColor('block'), {small:true});
+      fxNum(ev.side, blockIcon()+ev.blocked, fxWorldColor('block'), {small:true});
       if(ev.hpLoss<=0) fxBurst(ev.side, fxWorldColor('block'), '✦', true);
     }
     if(ev.hpLoss>0){
@@ -5737,6 +6043,8 @@ function beginFloor(){
     r.player.customStatus = keep;
   }
   r.activeTriggers = [];
+  r.pileEvents = []; r._effectDepth = 0; r._pileTrigDepth = 0;
+  r.combatStats = {played:0, tagsPlayed:[], drawn:0, discarded:0, hitsTaken:0};
   r.pendingTurnStartOps = [];
 
   r.enemy = makeEnemy(r.floor);
@@ -5761,18 +6069,22 @@ function beginFloor(){
 
 function drawCards(n){
   const r = S.run;
+  const drawn = [];   // 引いたカード（呼び出し元が、仕込みの記録などに使う）
   for(let i=0;i<n;i++){
     if(r.draw.length===0){
-      if(r.discard.length===0) return;
+      if(r.discard.length===0) return drawn;
       r.draw = shuffle(r.discard);
       r.discard = [];
       pushLog('捨札を山札に戻した。');
     }
     const cid = r.draw.pop();
-    r.hand.push(cid);
+    r.hand.push(cid); drawn.push(cid);
+    notePileEvent(r, 'drawn', [cid]);
+    if(r.combatStats) r.combatStats.drawn++;
     applyCardDrawEffect(r, cardById(cid));
-    if(r.enemy.hp<=0 || r.player.hp<=0) return; // stop drawing further cards; the caller checks for defeat
+    if(r.enemy.hp<=0 || r.player.hp<=0) return drawn; // stop drawing further cards; the caller checks for defeat
   }
+  return drawn;
 }
 
 // A card's "drawn" effect is a second, independent set of the same numeric fields
@@ -5852,6 +6164,11 @@ function startPlayerTurn(first){
   r.tagsPlayedThisTurn = [];
   if(r.activeTriggers) r.activeTriggers = expireTriggers(r.activeTriggers);
   drawCards(S.settings.handSize + (r.player.extraDraw||0));
+  if(r.pileEvents && r.pileEvents.length){ firePileTriggers(r, ()=>continueAfterTurnDraw(customSkip)); return; }
+  continueAfterTurnDraw(customSkip);
+}
+function continueAfterTurnDraw(customSkip){
+  const r = S.run;
   if(enemyFallen()){ onEnemyDefeated(); return; }
   if(playerFallen()){ onPlayerDefeated(); return; }
   // Card operations queued by statuses / enemy moves resolve now that the hand is drawn.
@@ -5871,22 +6188,70 @@ function startPlayerTurn(first){
   sync = false;
 }
 
-// 攻撃のダメージ確定後に、攻撃が持つ属性の特殊効果（ELEMENT_PROP_DEFS）を適用する。
+// その効果（def）を持つ属性（攻撃が持つ属性のうち）を集める
+function elementEntriesFor(def, elems){
+  const entries = [];
+  (elems||[]).forEach(id=>{
+    const el = elementById(id); if(!el || !el.props) return;
+    const raw = el.props[def.key];
+    if(def.has ? def.has(raw) : Number(raw)>0) entries.push({element:el, value: def.type==='list' ? raw : Number(raw)});
+  });
+  return entries;
+}
+// 攻撃のダメージ確定後に、攻撃が持つ属性の特殊効果（ELEMENT_PROP_DEFS の apply）を適用する。
 // ログは hit.elementNotes に溜め、攻撃のログのあとに flushElementNotes で出す（敵の攻撃・プレイヤーの攻撃のどちらも）。
 function applyElementProps(elems, side, hit){
   const r = S.run; if(!r || !hit || !elems || !elems.length) return;
-  const attacker = side==='toEnemy' ? r.player : r.enemy;
+  const attacker = side==='toEnemy' ? r.player : r.enemy, defender = side==='toEnemy' ? r.enemy : r.player;
   const attackerName = side==='toEnemy' ? 'あなた' : ((r.enemy && r.enemy.name) || '敵');
+  const defenderName = side==='toEnemy' ? ((r.enemy && r.enemy.name) || '敵') : 'あなた';
   ELEMENT_PROP_DEFS.forEach(def=>{
-    const entries = [];
-    elems.forEach(id=>{
-      const el = elementById(id), v = el && el.props ? Number(el.props[def.key]) : 0;
-      if(el && v>0) entries.push({element:el, value:v});
-    });
+    if(!def.apply) return;
+    const entries = elementEntriesFor(def, elems);
     if(!entries.length) return;
-    const note = def.apply({side, hit, attacker, attackerName, entries});
-    if(note) (hit.elementNotes = hit.elementNotes || []).push(note);
+    [].concat(def.apply({side, hit, attacker, attackerName, defender, defenderName, entries}) || []).forEach(note=>{
+      if(note) (hit.elementNotes = hit.elementNotes || []).push(note);
+    });
   });
+}
+// ブロックを引く計算の前に効く特殊効果（貫通・ブロック破壊）を、攻撃が持つ属性から集める
+function elementBlockMods(elems){
+  const out = {pierce:0, breakPct:0, pierceNames:[], breakNames:[]};
+  ELEMENT_PROP_DEFS.forEach(def=>{
+    if(!def.blockMod) return;
+    elementEntriesFor(def, elems).forEach(en=>{
+      const m = def.blockMod(en.value) || {};
+      if(m.pierce){ out.pierce += m.pierce; out.pierceNames.push(en.element.name); }
+      if(m.breakPct){ out.breakPct += m.breakPct; out.breakNames.push(en.element.name); }
+    });
+  });
+  out.pierce = Math.min(100, out.pierce);
+  return out;
+}
+// ダメージ dmg が、ブロック block に当たったときの結果。
+//   pierceAmt: ブロックを無視してHPに入る分／absorbed: ブロックで防がれたダメージ／blockUsed: 失うブロック／hpLoss: HPに通る分
+function resolveBlock(dmg, block, bm){
+  const pierceAmt = bm.pierce>0 ? Math.min(dmg, Math.floor(dmg*bm.pierce/100)) : 0;
+  const rest = dmg - pierceAmt, mult = 1 + (bm.breakPct||0)/100;
+  const absorbed = Math.min(rest, block>0 ? Math.ceil(block/mult) : 0);
+  const blockUsed = Math.min(block, Math.ceil(absorbed*mult));
+  return {pierceAmt, absorbed, blockUsed, hpLoss: dmg - absorbed};
+}
+// 貫通・ブロック破壊が実際に効いたときの、ログの文
+function blockModNotes(hit, bm, rb, side){
+  const kind = side==='toPlayer' ? 'deal' : undefined, out = [];
+  if(rb.pierceAmt>0) out.push({text:`${bm.pierceNames.join('・')}の貫通: ${rb.pierceAmt}ダメージがブロックを無視した。`, kind});
+  const extra = rb.blockUsed - rb.absorbed;
+  if(extra>0) out.push({text:`${bm.breakNames.join('・')}のブロック破壊: ブロックを余分に${extra}失った。`, kind});
+  if(out.length) hit.elementNotes = (hit.elementNotes||[]).concat(out);
+}
+// 敵に最初から設定された、属性の弱点・耐性（被ダメージの増減％）。攻撃が持つ属性の分を足し合わせる
+function enemyElementMod(e, elems){
+  let pct = 0; const names = [];
+  (e.elementMods||[]).forEach(m=>{
+    if((elems||[]).includes(m.element)){ pct += m.pct; const el = elementById(m.element); if(el) names.push(el.name); }
+  });
+  return {pct, names};
 }
 function flushElementNotes(hit){
   if(!hit || !hit.elementNotes) return;
@@ -5907,12 +6272,18 @@ function applyDamageToEnemy(raw, pierce, onHit, elems){
   if(takenFlat && dmg>0){ dmg = Math.max(0, dmg + takenFlat); steps.push({t:'flat', v:takenFlat, label:csLabel(e,'damageTakenFlat',elems)}); }
   const takenPct = customDamageTakenPct(e, elems);
   if(takenPct){ dmg = Math.max(0, Math.floor(dmg*(1+takenPct/100))); steps.push({t:'mult', v:pctMult(takenPct), label:csLabel(e,'damageTakenPct',elems)}); }
+  const innate = enemyElementMod(e, elems);   // 敵の弱点・耐性
+  if(innate.pct){ dmg = Math.max(0, Math.floor(dmg*(1+innate.pct/100))); steps.push({t:'mult', v:pctMult(innate.pct), label:`${innate.names.join('・')}の${innate.pct>0?'弱点':'耐性'}`}); }
   dmg = Math.max(0, dmg);
-  const hpBefore = e.hp, blockBefore = e.block;
-  let blocked = 0;
-  if(!pierce){ blocked = Math.min(e.block, dmg); e.block -= blocked; dmg -= blocked; }
+  const hpBefore = e.hp, blockBefore = e.block, dmgTotal = dmg;
+  let blocked = 0, rb = {pierceAmt:0, absorbed:0, blockUsed:0, hpLoss:dmg}, bm = null;
+  if(!pierce){
+    bm = elementBlockMods(elems); rb = resolveBlock(dmg, e.block, bm);
+    blocked = rb.absorbed; e.block -= rb.blockUsed; dmg -= blocked;
+  }
   e.hp = Math.max(0, e.hp - dmg);
-  const hit = {raw, steps, total: dmg+blocked, blocked, hpLoss: dmg, pierce: !!pierce, hpBefore, hpAfter: e.hp, blockBefore, blockAfter: e.block};
+  const hit = {raw, steps, total: dmg+blocked, blocked, hpLoss: dmg, pierce: !!pierce, pierceAmt: rb.pierceAmt, hpBefore, hpAfter: e.hp, blockBefore, blockAfter: e.block};
+  if(bm) blockModNotes(hit, bm, rb, 'toEnemy');
   r.lastEnemyHit = hit;
   fxHit(e, hit, elems);
   applyElementProps(elems, 'toEnemy', hit);
@@ -5947,11 +6318,14 @@ function applyDamageToPlayer(raw, pierce, elems){
   const calc = calcPlayerDamage(raw, {elems});
   const total = calc.total;
   const hpBefore = p.hp, blockBefore = p.block;
-  const blocked = pierce ? 0 : Math.min(p.block, total);   // 貫通なら、ブロックを無視する
-  p.block -= blocked;
+  let rb = {pierceAmt:0, absorbed:0, blockUsed:0, hpLoss:total}, bm = null;
+  if(!pierce){ bm = elementBlockMods(elems); rb = resolveBlock(total, p.block, bm); }   // カードが貫通なら、ブロックを無視する
+  const blocked = rb.absorbed;
+  p.block -= rb.blockUsed;
   const hpLoss = total - blocked;
   p.hp = Math.max(0, p.hp - hpLoss);
-  r.lastHit = {raw, steps: calc.steps, hpLoss, total, blocked, pierce: !!pierce, hpBefore, hpAfter: p.hp, blockBefore, blockAfter: p.block};
+  r.lastHit = {raw, steps: calc.steps, hpLoss, total, blocked, pierce: !!pierce, pierceAmt: rb.pierceAmt, hpBefore, hpAfter: p.hp, blockBefore, blockAfter: p.block};
+  if(bm) blockModNotes(r.lastHit, bm, rb, 'toPlayer');
   fxHit(p, r.lastHit, elems);
   applyElementProps(elems, 'toPlayer', r.lastHit);
   return total;
@@ -6010,6 +6384,18 @@ function runEnemyTurn(){
     e.poison--;
     if(enemyFallen()){ onEnemyDefeated(); return; }
   }
+  // 再生・自動ブロック（プレイヤーのターン開始と同じ。再生は1ずつ減る。敵のブロックは持ち越しなので、自動ブロックは毎ターン積み増す）
+  if(e.regen>0){
+    const hb = e.hp, rv = e.regen;
+    e.hp = Math.min(e.maxHp, e.hp + rv); fxHeal(e, e.hp-hb);
+    e.regen--;
+    pushLog(`${e.name}は再生でHPを${e.hp-hb}回復（敵HP ${hb}→${e.hp}。再生は${e.regen}に減少）。`, 'deal');
+  }
+  const eAuto = (e.metallicize||0) + (e.permMetallicize||0);
+  if(eAuto>0){
+    const bb = e.block; e.block += eAuto; fxBlock(e, eAuto);
+    pushLog(`${e.name}は自動ブロックで${eAuto}のブロックを得た（敵ブロック ${bb}→${e.block}）。`, 'deal');
+  }
   const customSkip = tickCustomStatusesForTurn(e);
   if(enemyFallen()){ onEnemyDefeated(); return; }
   if(e.stun>0){
@@ -6025,18 +6411,20 @@ function runEnemyTurn(){
     e.triggers = expireTriggers(e.triggers); // 有効ターンが尽きた構え（「このターンのみ」は次の行動の前）は解ける
     r.enemyTurnStat = {hits:0, total:0, blocked:0, hpLoss:0, hpStart:r.player.hp};
     if(move) resolveEnemyMoveEffects(r, e, move);
-    logEnemyTurnSummary(r);
-    // ダメージを受けたときのトリガー（カード操作で選択画面が出る場合は、選び終わってから続きへ）
-    fireDamageTriggers(r, ()=>{
-      // Resolved at the start of the player's next turn, once the new hand is drawn (視点反転: resolveEnemyCardOp).
-      queueEnemyCardOp(r, e, move);
-      enemyExhaustUsed(r, e, move, e.nextMoveId);
-      if(enemyFallen()){ onEnemyDefeated(); return; }
-      if(playerFallen()){ onPlayerDefeated(); return; }
-      e.nextMoveId = rollEnemyMove(e);
-      enemyTurnTail(r, e);
-    });
+    if(r.pileEvents && r.pileEvents.length){ firePileTriggers(r, ()=>finishEnemyMoveAfterPileTriggers(r, e, move)); return; }
+    finishEnemyMoveAfterPileTriggers(r, e, move);
   }
+}
+function finishEnemyMoveAfterPileTriggers(r, e, move){
+  logEnemyTurnSummary(r);
+  fireDamageTriggers(r, ()=>{
+    queueEnemyCardOp(r, e, move);
+    enemyExhaustUsed(r, e, move, e.nextMoveId);
+    if(enemyFallen()){ onEnemyDefeated(); return; }
+    if(playerFallen()){ onPlayerDefeated(); return; }
+    e.nextMoveId = rollEnemyMove(e);
+    enemyTurnTail(r, e);
+  });
 }
 function enemyTurnTail(r, e){
   if(e.weak>0) e.weak--;
@@ -6209,6 +6597,15 @@ function customStatusTip(st, stacks){
   if((st.tags||[]).length) notes.push(`タグ: ${st.tags.map(escapeHtml).join('、')}`);
   return tipHTML(nm, lines.concat(notes.filter(Boolean).map(n=>`<span class="tip-dim">${n}</span>`)));
 }
+// 敵の属性相性（弱点・耐性）のチップ。ホバー／タップで詳しい説明
+function elementModChips(e){
+  return (e.elementMods||[]).map(m=>{
+    const el = elementById(m.element); if(!el || !m.pct) return '';
+    const sg = m.pct>0 ? '+' : '', txt = `${el.emoji||''}${el.name}${m.pct>0?'弱点':'耐性'}${sg}${m.pct}％`;
+    const tip = tipHTML(escapeHtml(txt), [`${el.name}属性の攻撃を受けるとき、ダメージが${sg}${m.pct}％になります${m.pct<=-100?'（無効）':''}。攻撃が複数の属性を持つときは、該当する属性の分を足し合わせます。`]);
+    return tipChip(escapeHtml(txt), tip, m.pct>0 ? 'el-weak' : 'el-resist');
+  }).join('');
+}
 function statusChips(entity){
   const chips = [];
   BUILTIN_STATUS_INFO.forEach(info=>{
@@ -6230,7 +6627,11 @@ function triggerTipHTML(t, isEnemy, e){
   const tag = t.triggerTag ? `[${escapeHtml(t.triggerTag)}]の` : '';
   const when = t.triggerOn==='damaged'
     ? `${isEnemy ? '敵が' : ''}ダメージを受けるたびに発動${t.triggerBlocked ? '（ブロックで全部防いだ場合も）' : ''}`
+    : PILE_TRIGGER_KINDS.includes(t.triggerOn)
+    ? (isEnemy ? '（敵はカードを引いたり捨てたりしないため、発動しません）' : `カードの効果で${tag}カードを${t.triggerOn==='drawn' ? '引く' : '捨て札に移す'}たびに発動`)
     : (isEnemy ? `敵が${tag || 'どの'}カードを使うたびに発動` : `${tag || 'どの'}カードを使うたびに発動`);
+  const everyN = Math.max(1, t.every|0 || 1);
+  const everyTxt = everyN>1 ? `（${everyN}回に1回。いま${t.count||0}回）` : '';
   const left = t.turnsLeft>0 ? `あと${t.turnsLeft}ターン` : (t.duration==='turn' ? 'このターンのみ' : 'この戦闘中ずっと');
   let effect;
   if(isEnemy){
@@ -6244,7 +6645,7 @@ function triggerTipHTML(t, isEnemy, e){
     effect = cardDescription(cc);
   }
   return tipHTML(`⚡ ${escapeHtml(cardIcon(c))} ${escapeHtml(c.name)}（仕込み）`, [
-    `<span class="tip-when">${when}</span>`,
+    `<span class="tip-when">${when}${everyTxt}</span>`,
     `残り: ${left}`,
     `<span class="tip-dim">効果:</span> ${effect}`,
   ]);
@@ -6307,8 +6708,8 @@ function intentLabel(e){
   const cls = isTrig ? 'buf' : (V('damage')>0 ? 'atk' : (V('block')>0 ? 'def' : 'buf'));
   let trigText = '';
   if(isTrig){
-    const when = c.triggerOn==='damaged' ? 'ダメージを受けたとき' : `${c.triggerTag?`[${c.triggerTag}]の`:''}カードを使ったとき`;
-    trigText = `【構え：${when}】`;
+    const when = PILE_TRIGGER_KINDS.includes(c.triggerOn) ? '発動しない（敵は引く・捨てることがない）' : (c.triggerOn==='damaged' ? 'ダメージを受けたとき' : `${c.triggerTag?`[${c.triggerTag}]の`:''}カードを使ったとき`);
+    trigText = `【構え：${when}${triggerEveryOf(c)>1 ? `・${triggerEveryOf(c)}回に1回` : ''}】`;
   }
   const pred = isTrig ? null : predictEnemyAttack(e, c);
   // 表記: {カード名}：ダメージ {予測合計}({基礎}×{回数})・その他の効果…（詳細はポップオーバー）
@@ -6325,7 +6726,7 @@ function intentLabel(e){
 
 // 敵の攻撃を、実際の処理（applyEnemyCardPayload）と同じ順序でシミュレートして、被ダメージを予測する。
 // 反映するもの: 強化・弱体・脆弱・状態異常の増減、多段攻撃での「1発ごとの強化の積み上がり」「同じ行動で脆弱が付く場合の後続ヒット」、
-//              現在のブロック（1発ごとに減っていく）、貫通、プレイヤーのターン終了時に脆弱が1減る処理。
+//              現在のブロック（1発ごとに減っていく）、貫通（攻撃全体のフラグと属性の貫通）、属性のブロック破壊、プレイヤーのターン終了時に脆弱が1減る処理。
 // 反映しないもの: 敵の構え（トリガー）による追加攻撃、敵のターン開始時の状態の変化、プレイヤーの仕込みの効果。
 function predictEnemyAttack(e, c){
   const r = S.run, p = r.player;
@@ -6340,10 +6741,16 @@ function predictEnemyAttack(e, c){
   const vulnStart = vuln;
   let blk = p.block, hp = p.hp, strAdd = 0;
   const rows = [];
+  const atkElems = attackElements(e, c);
+  const bm = c.pierce ? null : elementBlockMods(atkElems);
+  let pierceSum = 0;
   for(let i=0; i<hits && hp>0; i++){
-    const calc = calcPlayerDamage(base + e.strength + strAdd, {vulnerable: vuln, elems: attackElements(e, c)});
-    const blocked = c.pierce ? 0 : Math.min(blk, calc.total);
-    blk -= blocked;
+    const calc = calcPlayerDamage(base + e.strength + strAdd, {vulnerable: vuln, elems: atkElems});
+    let blocked = 0;
+    if(!c.pierce){
+      const rb = resolveBlock(calc.total, blk, bm);
+      blocked = rb.absorbed; blk -= rb.blockUsed; pierceSum += rb.pierceAmt;
+    }
     const loss = calc.total - blocked;
     hp = Math.max(0, hp - loss);
     rows.push({total: calc.total, blocked, loss, steps: calc.steps, str: e.strength + strAdd, hpAfter: hp});
@@ -6354,8 +6761,26 @@ function predictEnemyAttack(e, c){
   const total = sum('total');
   return {base, hits, rows, total, blocked: sum('blocked'), loss: sum('loss'), strGain, newVuln: vulnGain>0 && vulnStart<=0,
           hpBefore: p.hp, hpAfter: hp, blockBefore: p.block, blockAfter: blk,
-          lethal: hp<=0, pierce: !!c.pierce, needBlock: c.pierce ? 0 : Math.max(0, total - p.block),
+          lethal: hp<=0, pierce: !!c.pierce, bm, pierceSum,
+          needBlock: c.pierce ? 0 : needBlockFor(rows, p.block, bm),
           vulnNote: ticking ? `あなたの脆弱${p.vulnerable}は、ターン終了時に${vulnStart}へ減る前提` : ''};
+}
+// 全部防ぐのに必要なブロック量（貫通で素通りする分、ブロック破壊で余計に減る分を含む）。足りるまで二分探索
+function needBlockFor(rows, have, bm){
+  const need = start=>{
+    let b = start;
+    for(const x of rows){
+      const rb = resolveBlock(x.total, b, bm);
+      if(x.total - rb.absorbed > (bm.pierce>0 ? rb.pierceAmt : 0)) return false;
+      b -= rb.blockUsed;
+    }
+    return true;
+  };
+  if(need(have)) return 0;
+  let lo = have, hi = Math.max(have+1, 1);
+  while(!need(hi) && hi<100000) hi *= 2;
+  while(hi-lo>1){ const m = (lo+hi)>>1; if(need(m)) hi = m; else lo = m; }
+  return hi - have;
 }
 // ポップオーバー: 1発ごとの計算（基礎・参照増減・固定値・倍率・ブロック）と、最終的なHP・ブロックの変化
 function predictionPopHTML(e, c, pr){
@@ -6374,7 +6799,12 @@ function predictionPopHTML(e, c, pr){
   if(pr.rows.length>1 && pr.strGain>0) notes.push(`1発ごとに強化+${pr.strGain}`);
   if(pr.rows.length>1 && pr.newVuln) notes.push('この攻撃で脆弱が付くため、2発目以降は×1.5');
   if(pr.pierce) notes.push('貫通（ブロック無視）');
-  else if(pr.loss>0) notes.push(`完全に防ぐには、あと${pr.needBlock}ブロック`);
+  else {
+    if(pr.bm && pr.bm.pierce>0) notes.push(`${pr.bm.pierceNames.join('・')}の貫通${pr.bm.pierce}%（${pr.pierceSum}ダメージがブロックを無視）`);
+    if(pr.bm && pr.bm.breakPct>0) notes.push(`${pr.bm.breakNames.join('・')}のブロック破壊+${pr.bm.breakPct}%`);
+    if(pr.loss>0 && pr.needBlock>0) notes.push(`完全に防ぐには、あと${pr.needBlock}ブロック`);
+    else if(pr.loss>0) notes.push('ブロックだけでは防ぎきれない（貫通）');
+  }
   if(pr.vulnNote) notes.push(pr.vulnNote);
   notes.push('敵の構え・ターン開始時の状態変化は含みません');
   html += `<div class="ip-note">${notes.join('／')}</div>`;
@@ -6428,7 +6858,7 @@ function hpBarHTML(ent){
   // プレイヤーは、ターン開始時に自動ブロックで入った分を「ブロック」から除いて表示する（0+1のように）
   const shownBlock = auto>0 ? Math.max(0, ent.block - (ent.autoGranted||0)) : ent.block;
   const badge = on
-    ? `<div class="hpbar-block">🛡${shownBlock}${auto>0?`<span class="blk-auto" title="次の自分のターン開始時に自動で入るブロック">+${auto}</span>`:''}</div>` : '';
+    ? `<div class="hpbar-block">${escapeHtml(blockIcon())}${shownBlock}${auto>0?`<span class="blk-auto" title="次の自分のターン開始時に自動で入るブロック">+${auto}</span>`:''}</div>` : '';
   const now = Math.max(0, 100*ent.hp/ent.maxHp), side = (S.run && ent===S.run.player) ? 'player' : 'enemy';
   const from = FX.hpShown[side];
   // 減ったときだけ、前に表示していた長さの残像を、バーの後ろに残す（fxStartGhosts が、少し遅れて縮める）
@@ -6473,7 +6903,7 @@ function renderBattle(){
         <div class="portrait ${e.image?'has-img':''}">${e.image ? `<img src="${e.image}" alt="">` : e.emoji}</div>
         <div class="cname">${e.name}</div>
         ${hpBarHTML(e)}
-        <div class="statuses">${statusChips(e)}</div>
+        <div class="statuses">${statusChips(e)}${elementModChips(e)}</div>
         <div class="intent ${intent.cls}${intent.lethal?' lethal':''}${INTENT_OPEN?' open':''}" id="intent-box"><div class="intent-main">${intent.text}</div>${intent.pop||''}</div>
       </div>
     </div>
@@ -6657,18 +7087,19 @@ const DEFAULT_RELICS = [
 // only ever apply at onPickup (goldBonus also applies at combatEnd).
 function fireRelicTiming(r, timing, playedCard){
   if(!r.player.relics || r.player.relics.length===0) return;
-  r.player.relics.forEach(relicId=>{
-    const relic = S.relics.find(x=>x.id===relicId);
-    if(!relic || (relic.timing||'onPickup')!==timing) return;
-    if(timing==='onTagCardUsed'){
-      const tagOk = !relic.triggerTag || (playedCard && playedCard.tags && playedCard.tags.includes(relic.triggerTag));
-      if(!tagOk) return;
+  const ids = r.player.relics.slice(); let i=0;
+  (function nextRelic(){
+    while(i<ids.length){
+      const relicId=ids[i++], relic=S.relics.find(x=>x.id===relicId);
+      if(!relic || (relic.timing||'onPickup')!==timing) continue;
+      if(timing==='onTagCardUsed' && relic.triggerTag && !(playedCard && playedCard.tags && playedCard.tags.includes(relic.triggerTag))) continue;
+      const e=relic.effect||{};
+      if(timing==='combatEnd'){ applyCombatEndRelic(r,relic,e); continue; }
+      applyRelicMeta(r,relic,e,'battle');
+      applyEffectValues(r,{name:relic.name,...e});
+      if(r.pileEvents && r.pileEvents.length){ firePileTriggers(r, nextRelic); return; }
     }
-    const e = relic.effect || {};
-    if(timing==='combatEnd'){ applyCombatEndRelic(r, relic, e); return; }
-    applyRelicMeta(r, relic, e, 'battle');
-    applyEffectValues(r, {name: relic.name, ...e});
-  });
+  })();
 }
 
 // Permanent, non-card gains shared by every timing. mode: 'pickup' (silent, outside combat),
