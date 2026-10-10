@@ -1117,7 +1117,19 @@ function cardOpDescParts(op){
   if(CARDOP_REVERTIBLE_TYPES.includes(op.type)){
     parts.push(op.permanent ? '（永続：戦闘後も残る）' : '（この戦闘中のみ）');
   }
+  { const sn = opScaleNote(op); if(sn) parts.push(sn); }
   return parts;
+}
+function opScaleNote(op){
+  if(!op || !op.scales) return '';
+  const out = [];
+  Object.keys(OP_SCALE_LABELS).forEach(f=>{
+    const x = op.scales[f];
+    if(!x || !x.source || x.source==='none' || !x.perPoint) return;
+    const src = allScaleSources().find(v=>v.key===x.source);
+    out.push(`${OP_SCALE_LABELS[f]}: ${src ? src.label : x.source}${x.tag ? `[${x.tag}]` : ''}×${x.perPoint}`);
+  });
+  return out.length ? `（${out.join('、')}）` : '';
 }
 
 function cardDescription(c){
@@ -1300,6 +1312,19 @@ function normalizeRelic(r){
   r.favorPct = clampInt(r.favorPct,0,1000,0);
   return r;
 }
+// カード操作の数値に付けられる参照増減。値: [最小, 最大]。参照増減の結果はこの範囲に収める。
+const OP_SCALE_FIELDS = {countFixed:[0,99], countMin:[0,99], countMax:[0,99], buffAmount:[-999,999], costDelta:[-99,99], deckWeight:[1,99]};
+const OP_SCALE_LABELS = {countFixed:'枚数', countMin:'ランダム最小', countMax:'ランダム最大', buffAmount:'付与量', costDelta:'コスト増減量', deckWeight:'重み'};
+function cleanOpScales(sc){
+  const out = {};
+  if(!sc || typeof sc!=='object') return out;
+  Object.keys(OP_SCALE_FIELDS).forEach(f=>{
+    const x = sc[f];
+    if(!x || typeof x.source!=='string' || !x.source || x.source==='none') return;
+    out[f] = {source:x.source, tag: cleanTag(x.tag), perPoint: clampFloat(x.perPoint,-10,10,0)};
+  });
+  return out;
+}
 function defaultStatusOp(){
   return {enabled:true, type:'moveToDiscard', fromPile:'hand', genPool:'normal', countMode:'fixed',
     countFixed:1, countMin:1, countMax:1, filterTag:'', buffField:'', buffAmount:0, costDelta:1, deckWeight:1, drawNext:false, sequential:false, permanent:false};
@@ -1326,6 +1351,7 @@ function normalizeStatusOp(o){
     drawNext: !!o.drawNext,
     sequential: !!o.sequential,
     permanent: !!o.permanent,
+    scales: cleanOpScales(o.scales),
   };
 }
 function normalizeStatusEffect(x){
@@ -2418,13 +2444,10 @@ function runTurnStartCardOps(r, done){
   r.pendingTurnStartOps = [];
   let i = 0;
   (function next(){
-    if(i>=list.length || r.enemy.hp<=0 || r.player.hp<=0){ done(); return; }
+    if(i>=list.length || r.enemy.hp<=0 || r.player.hp<=0){ firePileTriggers(r, done); return; }
     const item = list[i++];
     pushLog(item.op.fromEnemy ? item.label : `${item.label}が発動。`);
-    resolveCardOp(r, item.op, ()=>{
-      if(r.pileEvents && r.pileEvents.length) firePileTriggers(r, next);
-      else next();
-    });
+    resolveCardOp(r, item.op, next);
   })();
 }
 
@@ -2826,8 +2849,22 @@ function resolveEnemyCardOp(r, op, done){
   done();
 }
 
+// カード操作の参照増減: 基本値 + floor(増減量 × 参照値) を、解決する時点で反映する。反映後は scales を外す（1枚ずつ選び直す処理などで二重に足さないため）。
+function withOpScales(op, actor){
+  if(!op || !op.scales) return op;
+  const out = {...op}; delete out.scales;
+  Object.keys(OP_SCALE_FIELDS).forEach(f=>{
+    const x = op.scales[f];
+    if(!x || !x.source || x.source==='none') return;
+    const [lo, hi] = OP_SCALE_FIELDS[f];
+    const bonus = Math.floor((x.perPoint||0) * scaleSourceValue(x.source, x.tag, actor));
+    out[f] = Math.max(lo, Math.min(hi, (out[f]|0) + bonus));
+  });
+  return out;
+}
 function resolveCardOp(r, op, done){
   if(!op || !op.enabled){ done(); return; }
+  op = withOpScales(op, op.fromEnemy ? 'enemy' : undefined);
   // レリックの「戦闘開始時にカードを使用する」: 指定のカードをコストなしで使う（山にも手札にも入らない）
   if(op.type==='useCardById'){
     const cc = cardById(op.cardId);
@@ -3183,7 +3220,7 @@ function applyEffectValues(r, c){
     draw(){
       const drawVal = val('draw');
       if(!(drawVal>0)) return;
-      const before = r.hand.length; drawCards(drawVal);
+      const before = r.hand.length; notePileEvent(r, 'drawn', drawCards(drawVal));
       L({who:'あなた', key:'p:hand', eff:'ドロー', v:drawVal, base:c.draw||0, before, after:r.hand.length, state:'手札', legacy:`${c.name}: カードを${drawVal}枚引いた。`});
     },
     energy(){
@@ -3272,14 +3309,15 @@ function applyCardEffectsOnce(r, c, done){
 }
 // カードの効果で、カードを引いた／捨て札に移した出来事を記録する（効果の解決中だけ）
 function notePileEvent(r, kind, rawIds){
-  if(!r || !rawIds || !rawIds.length) return;
-  const events = r.pileEvents = r.pileEvents || [];
-  rawIds.forEach(id=>events.push({kind, ids:[id]}));
+  if(!r || !r.enemy || !rawIds || !rawIds.length) return;
+  (r.pileEvents = r.pileEvents || []).push({kind, ids: rawIds.slice()});
 }
 // 記録した出来事に応じて、「引いたとき」「捨て札に移ったとき」の仕込みを発動する。
-// ドロー／捨て札移動したカード1枚につき1回の出来事として数える。
+// カードを1枚以上動かした効果1回につき、1回の出来事として数える（3枚引いても1回）。
 function firePileTriggers(r, done){
-  const events = r.pileEvents || [];
+  // 引いた・捨て札に移したカード1枚ごとに、1回の出来事として数える（タグの条件・「何回ごと」もカード1枚ごと）
+  const events = [];
+  (r.pileEvents || []).forEach(ev=> ev.ids.forEach(id=> events.push({kind:ev.kind, ids:[id]})));
   r.pileEvents = [];
   if(!events.length || !r.activeTriggers || !r.activeTriggers.some(t=>PILE_TRIGGER_KINDS.includes(t.triggerOn))){ done(); return; }
   if((r._pileTrigDepth||0) >= 3){ pushLog('仕込みの連鎖が深すぎるため、発動を打ち切った。'); done(); return; }
@@ -4967,6 +5005,17 @@ function openCardModal(card, isNew){
   const opLab = t=>`<div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">${t}</div>`;
   const opSel = (f, list, cur)=>`<select data-opf="${f}" style="margin-bottom:8px; width:100%;">${list.map(o=>`<option value="${escapeHtml(o.key)}" ${o.key===cur?'selected':''}>${escapeHtml(o.label)}</option>`).join('')}</select>`;
   const opNum = (f, op, label)=>`<div style="flex:1;">${opLab(label)}<input type="number" data-opf="${f}" data-opnum="1" value="${op[f]|0}" min="${OP_NUM[f][0]}" max="${OP_NUM[f][1]}" style="width:100%;"></div>`;
+  // 各数値の下に付ける参照増減（効果欄の「+参照増減」と同じ操作）
+  const opScale = (op, f)=>{
+    const x = op.scales && op.scales[f];
+    const lab = t=>`<div style="font-size:10px; color:var(--parchment-dim); margin:4px 0 2px;">${t}</div>`;
+    return `<div style="margin:4px 0 8px;"><button type="button" class="ghost" data-optoggle="${f}" style="height:28px;">${x ? '増減設定を編集' : '+参照増減'}（${OP_SCALE_LABELS[f]}）</button>
+      <div data-opscalebox="${f}" style="${x ? '' : 'display:none;'} margin-top:4px; padding:8px; background:var(--bg-void); border:1px solid var(--line); border-radius:4px;">
+        ${lab('参照元')}<select data-opscale="${f}" data-opsk="source" style="width:100%;">${allScaleSources().map(v=>`<option value="${escapeHtml(v.key)}" ${((x&&x.source)||'none')===v.key?'selected':''}>${escapeHtml(v.label)}</option>`).join('')}</select>
+        ${lab('参照タグ（タグ数・タグ状態参照時のみ）')}<input type="text" data-opscale="${f}" data-opsk="tag" value="${escapeHtml((x&&x.tag)||'')}" style="width:100%;">
+        ${lab('増減量（参照値1につき。小数は切り捨て）')}<input type="number" data-opscale="${f}" data-opsk="perPoint" value="${x ? (x.perPoint||0) : 0}" step="0.1" min="-10" max="10" style="width:100%;">
+      </div></div>`;
+  };
   function opBlockHTML(op, i){
     const isGen = GENERATE_TYPES.includes(op.type);
     const isSelf = !isGen && op.fromPile==='self';
@@ -4983,7 +5032,7 @@ function openCardModal(card, isNew){
         <div class="checkbox-field" style="margin-bottom:6px;"><input type="checkbox" data-opf="drawNext" ${op.drawNext?'checked':''}><label>敵が使うとき: 加えたカードを次のターンに必ず引く（山札の一番上に置く）</label></div>
         <div class="hint" style="margin-bottom:6px;">敵が使うと、このカードはプレイヤーの山札に加わります（次のターンの最初のドローより前に処理）。チェックなしなら山札にシャッフルして混ぜるので、次のターンに引くことがあります。手札の枚数より多く加えた場合、引ききれない分は山札の上に残ります。</div>
         ${opLab('敵のデッキでの重み（大きいほど選ばれやすい）')}
-        <input type="number" data-opf="deckWeight" data-opnum="1" value="${op.deckWeight|0}" min="1" max="99" style="width:100%; margin-bottom:4px;">
+        <input type="number" data-opf="deckWeight" data-opnum="1" value="${op.deckWeight|0}" min="1" max="99" style="width:100%; margin-bottom:4px;">${opScale(op,'deckWeight')}
         <div class="hint" style="margin-bottom:8px;">敵のデッキ一覧に、この戦闘の間だけ追加されます（戦闘が終わると消えます）。敵は毎ターン、デッキ一覧から3つを無作為に引き、その中から重みに比例して行動を選びます。今表示されている予告は変わらず、次の次の行動から反映されます。</div>` : ''}
       ${isSelf ? `<div class="hint" style="margin-bottom:8px;">使用中のこのカード1枚が対象です（枚数・選択・タグ絞り込みは使いません）。</div>` : `
         ${opLab('枚数の決め方')}
@@ -4994,18 +5043,19 @@ function openCardModal(card, isNew){
           <option value="choose" ${op.countMode==='choose'?'selected':''}>プレイヤーが任意に選ぶ</option>
         </select>
         <div style="display:flex; gap:6px; margin-bottom:8px;">${opNum('countFixed',op,'固定数 / 選ぶ枚数')}${opNum('countMin',op,'ランダム最小')}${opNum('countMax',op,'ランダム最大')}</div>
+        ${op.countMode==='random' ? opScale(op,'countMin')+opScale(op,'countMax') : (op.countMode==='all' ? '' : opScale(op,'countFixed'))}
         ${isGen ? '' : `${opLab('対象タグ絞り込み（空欄で絞り込みなし）')}<input type="text" data-opf="filterTag" value="${escapeHtml(op.filterTag||'')}" style="width:100%;">`}
         <div class="checkbox-field" style="margin-top:8px; margin-bottom:4px;"><input type="checkbox" data-opf="sequential" ${op.sequential?'checked':''}><label>1枚ずつ選び直す（1枚処理するたびに次の1枚を選ぶ）</label></div>
         <div class="hint">オフ＝最初に全部まとめて選ぶ。オン＝1枚処理してから次を選ぶので、直前の効果で増減した手札なども対象になります（任意選択なら1枚ずつ選択画面が出ます。「対象すべて」では無効）。</div>`}
       ${CARDOP_REVERTIBLE_TYPES.includes(op.type) ? `<div style="margin-top:10px;">
         <div class="checkbox-field" style="margin-bottom:4px;"><input type="checkbox" data-opf="permanent" ${op.permanent?'checked':''}><label>永続にする（戦闘後も元に戻さない）</label></div>
         <div class="hint">オフ＝この戦闘中のみ（強化・付与・コスト増減・複製・生成は戦闘後に元へ戻る）。消滅は、オンにするとそのカードを探索から完全に取り除きます。</div></div>` : ''}
-      ${op.type==='costChange' ? `<div style="margin-top:10px;">${opLab('コストの増減量（マイナスで軽減。0未満にはなりません）')}<input type="number" data-opf="costDelta" data-opnum="1" value="${op.costDelta|0}" min="-9" max="9" style="width:100%;"></div>` : ''}
+      ${op.type==='costChange' ? `<div style="margin-top:10px;">${opLab('コストの増減量（マイナスで軽減。0未満にはなりません）')}<input type="number" data-opf="costDelta" data-opnum="1" value="${op.costDelta|0}" min="-9" max="9" style="width:100%;">${opScale(op,'costDelta')}</div>` : ''}
       ${op.type==='grantBuff' ? `<div style="margin-top:10px;">
         ${opLab('付与する効果')}
         <select data-opf="buffField" style="margin-bottom:8px; width:100%;">${defs.map(d=>`<option value="${escapeHtml(d.key)}" ${op.buffField===d.key?'selected':''}>${escapeHtml(d.label)}</option>`).join('')}</select>
         ${opLab('付与量（マイナスで減少も可）')}
-        <input type="number" data-opf="buffAmount" data-opnum="1" value="${op.buffAmount|0}" min="-99" max="99" style="width:100%;">
+        <input type="number" data-opf="buffAmount" data-opnum="1" value="${op.buffAmount|0}" min="-99" max="99" style="width:100%;">${opScale(op,'buffAmount')}
         ${String(op.buffField||'').startsWith('cs_') ? `<div style="margin-top:8px;">${opLab('付与先（付与したカードを使ったとき、この状態をどちらに付与するか）')}<select data-opf="buffTarget" style="width:100%;">${[['default','カード側の設定／状態の標準のまま'],['self','自分に付与'],['opponent','相手に付与']].map(([v,t])=>`<option value="${v}" ${(op.buffTarget||'default')===v?'selected':''}>${t}</option>`).join('')}</select></div>` : ''}</div>` : ''}
     </div>`;
   }
@@ -5013,6 +5063,15 @@ function openCardModal(card, isNew){
     opBox.innerHTML = opsState.length ? opsState.map(opBlockHTML).join('') : '<p class="hint">カード操作はありません。</p>';
   };
   const opSync = (t)=>{
+    const sf = t.dataset && t.dataset.opscale; const blk0 = t.closest && t.closest('.op-block');
+    if(sf && blk0){   // 参照増減の入力
+      const op0 = opsState[+blk0.dataset.i]; if(!op0) return false;
+      op0.scales = op0.scales || {};
+      const x = op0.scales[sf] = op0.scales[sf] || {source:'none', tag:'', perPoint:0};
+      const k = t.dataset.opsk;
+      if(k==='perPoint') x.perPoint = clampFloat(t.value,-10,10,0); else if(k==='tag') x.tag = cleanTag(t.value); else x.source = t.value;
+      return true;
+    }
     const f = t.dataset && t.dataset.opf; const blk = t.closest && t.closest('.op-block');
     if(!f || !blk) return false;
     const op = opsState[+blk.dataset.i]; if(!op) return false;
@@ -5029,7 +5088,8 @@ function openCardModal(card, isNew){
     if(f==='type' && op.type==='play' && op.fromPile==='self') op.fromPile = 'hand';   // 自分自身を使い直す操作は作れない
     if(f==='type' || f==='fromPile' || f==='countMode' || f==='buffField') renderOps();
   });
-  opBox.addEventListener('click', e=>{ const b = e.target.closest('[data-opdel]'); if(b){ opsState.splice(+b.dataset.opdel,1); renderOps(); } });
+  opBox.addEventListener('click', e=>{ const tg = e.target.closest('[data-optoggle]'); if(tg){ const box = tg.parentElement.querySelector('[data-opscalebox]'); const show = box.style.display==='none'; box.style.display = show ? '' : 'none'; return; }
+    const b = e.target.closest('[data-opdel]'); if(b){ opsState.splice(+b.dataset.opdel,1); renderOps(); } });
   qs('#op-add', overlay).onclick = ()=>{ opsState.push(defaultStatusOp()); renderOps(); };
   renderOps();
   qs('#m-save',overlay).onclick = async ()=>{
@@ -5326,7 +5386,7 @@ function queueEnemyCardOp(r, e, move){
 // ただし「プレイヤーの山札に加える」だけは、次のターンの最初のドローより前に、今すぐ山札へ入れる
 // （そうしないと、加えたカードを次のターンに引けない）。
 function enqueueEnemyOp(r, op, label, sep){
-  const t = enemyOpText(op);
+  const t = enemyOpText(withOpScales(op, 'enemy'));
   const full = `${label}${t ? (sep||': ')+t : ''}`;
   if(op.type==='generateToEnemyDeck'){
     pushLog(full);
@@ -5369,8 +5429,8 @@ function triggerTagLabelText(kind){
   return '発動条件（このタグのカードを使うたび。空欄でどのカードでも）';
 }
 function triggerKindHint(kind){
-  if(kind==='drawn') return '「ドロー枚数」や、カード操作「山札から手札へ移動」など、カードの効果でカードを引いたときに発動します。ターン開始時のドロー、レリックによるドローでは発動しません。カードを1枚以上引いた効果1回につき1回発動します（3枚引いても1回）。敵が使った場合は発動しません。';
-  if(kind==='discarded') return 'カード操作「捨て札に移動」など、カードの効果でカードが捨て札に移ったときに発動します。カードを使ったあとの捨て札、ターン終了時の手札の捨て札、敵の行動によるものでは発動しません。カードを1枚以上動かした効果1回につき1回発動します。敵が使った場合は発動しません。';
+  if(kind==='drawn') return '「ドロー枚数」や、カード操作「山札から手札へ移動」など、カードの効果でカードを引いたときに発動します。ターン開始時のドローでは発動しません。引いたカード1枚ごとに1回発動します（3枚引けば3回。タグの条件・「何回ごと」も1枚ごとに数えます）。レリックや、敵の行動・状態によるカード操作でも発動します。敵が使った場合は発動しません。';
+  if(kind==='discarded') return 'カード操作「捨て札に移動」など、カードの効果でカードが捨て札に移ったときに発動します。カードを使ったあとの捨て札、ターン終了時の手札の捨て札では発動しません。動いたカード1枚ごとに1回発動します。レリックや、敵の行動・状態によるカード操作でも発動します。敵が使った場合は発動しません。';
   return '敵が使った場合は、「その敵がこのタグのカードを使うたび」（次の行動以降）に発動します。';
 }
 function triggerTurns(c){
@@ -6079,7 +6139,6 @@ function drawCards(n){
     }
     const cid = r.draw.pop();
     r.hand.push(cid); drawn.push(cid);
-    notePileEvent(r, 'drawn', [cid]);
     if(r.combatStats) r.combatStats.drawn++;
     applyCardDrawEffect(r, cardById(cid));
     if(r.enemy.hp<=0 || r.player.hp<=0) return drawn; // stop drawing further cards; the caller checks for defeat
@@ -6164,11 +6223,6 @@ function startPlayerTurn(first){
   r.tagsPlayedThisTurn = [];
   if(r.activeTriggers) r.activeTriggers = expireTriggers(r.activeTriggers);
   drawCards(S.settings.handSize + (r.player.extraDraw||0));
-  if(r.pileEvents && r.pileEvents.length){ firePileTriggers(r, ()=>continueAfterTurnDraw(customSkip)); return; }
-  continueAfterTurnDraw(customSkip);
-}
-function continueAfterTurnDraw(customSkip){
-  const r = S.run;
   if(enemyFallen()){ onEnemyDefeated(); return; }
   if(playerFallen()){ onPlayerDefeated(); return; }
   // Card operations queued by statuses / enemy moves resolve now that the hand is drawn.
@@ -6411,20 +6465,18 @@ function runEnemyTurn(){
     e.triggers = expireTriggers(e.triggers); // 有効ターンが尽きた構え（「このターンのみ」は次の行動の前）は解ける
     r.enemyTurnStat = {hits:0, total:0, blocked:0, hpLoss:0, hpStart:r.player.hp};
     if(move) resolveEnemyMoveEffects(r, e, move);
-    if(r.pileEvents && r.pileEvents.length){ firePileTriggers(r, ()=>finishEnemyMoveAfterPileTriggers(r, e, move)); return; }
-    finishEnemyMoveAfterPileTriggers(r, e, move);
+    logEnemyTurnSummary(r);
+    // ダメージを受けたときのトリガー（カード操作で選択画面が出る場合は、選び終わってから続きへ）
+    fireDamageTriggers(r, ()=>{
+      // Resolved at the start of the player's next turn, once the new hand is drawn (視点反転: resolveEnemyCardOp).
+      queueEnemyCardOp(r, e, move);
+      enemyExhaustUsed(r, e, move, e.nextMoveId);
+      if(enemyFallen()){ onEnemyDefeated(); return; }
+      if(playerFallen()){ onPlayerDefeated(); return; }
+      e.nextMoveId = rollEnemyMove(e);
+      enemyTurnTail(r, e);
+    });
   }
-}
-function finishEnemyMoveAfterPileTriggers(r, e, move){
-  logEnemyTurnSummary(r);
-  fireDamageTriggers(r, ()=>{
-    queueEnemyCardOp(r, e, move);
-    enemyExhaustUsed(r, e, move, e.nextMoveId);
-    if(enemyFallen()){ onEnemyDefeated(); return; }
-    if(playerFallen()){ onPlayerDefeated(); return; }
-    e.nextMoveId = rollEnemyMove(e);
-    enemyTurnTail(r, e);
-  });
 }
 function enemyTurnTail(r, e){
   if(e.weak>0) e.weak--;
@@ -6692,7 +6744,7 @@ function enemyMoveParts(e, c){
   });
   { const so = statusOpText(c.statusOp); if(so) parts.push(so); }
   cardOpsOf(c).forEach(op=>{
-    const t = enemyOpText(op);
+    const t = enemyOpText(withOpScales(op, 'enemy'));   // 参照増減を反映した値で予告する
     if(t) parts.push(t);
   });
   return parts;
@@ -7087,19 +7139,19 @@ const DEFAULT_RELICS = [
 // only ever apply at onPickup (goldBonus also applies at combatEnd).
 function fireRelicTiming(r, timing, playedCard){
   if(!r.player.relics || r.player.relics.length===0) return;
-  const ids = r.player.relics.slice(); let i=0;
-  (function nextRelic(){
-    while(i<ids.length){
-      const relicId=ids[i++], relic=S.relics.find(x=>x.id===relicId);
-      if(!relic || (relic.timing||'onPickup')!==timing) continue;
-      if(timing==='onTagCardUsed' && relic.triggerTag && !(playedCard && playedCard.tags && playedCard.tags.includes(relic.triggerTag))) continue;
-      const e=relic.effect||{};
-      if(timing==='combatEnd'){ applyCombatEndRelic(r,relic,e); continue; }
-      applyRelicMeta(r,relic,e,'battle');
-      applyEffectValues(r,{name:relic.name,...e});
-      if(r.pileEvents && r.pileEvents.length){ firePileTriggers(r, nextRelic); return; }
+  r.player.relics.forEach(relicId=>{
+    const relic = S.relics.find(x=>x.id===relicId);
+    if(!relic || (relic.timing||'onPickup')!==timing) return;
+    if(timing==='onTagCardUsed'){
+      const tagOk = !relic.triggerTag || (playedCard && playedCard.tags && playedCard.tags.includes(relic.triggerTag));
+      if(!tagOk) return;
     }
-  })();
+    const e = relic.effect || {};
+    if(timing==='combatEnd'){ applyCombatEndRelic(r, relic, e); return; }
+    applyRelicMeta(r, relic, e, 'battle');
+    applyEffectValues(r, {name: relic.name, ...e});
+  });
+  if(timing!=='combatEnd') firePileTriggers(r, ()=>{});
 }
 
 // Permanent, non-card gains shared by every timing. mode: 'pickup' (silent, outside combat),
@@ -7117,7 +7169,7 @@ function applyRelicMeta(r, relic, e, mode){
   if(e.extraDraw){
     p.extraDraw = (p.extraDraw||0) + e.extraDraw;
     L(`毎ターンのドロー+${e.extraDraw}（永続）。`);
-    if(mode==='battle') drawCards(e.extraDraw);
+    if(mode==='battle') notePileEvent(r, 'drawn', drawCards(e.extraDraw));
   }
   if(e.extraRewardChoices){ p.extraRewardChoices = (p.extraRewardChoices||0) + e.extraRewardChoices; L(`カード報酬の選択肢+${e.extraRewardChoices}。`); }
   if(e.rerollTokens){ p.rerollTokens = (p.rerollTokens||0) + e.rerollTokens; L(`リロールトークン+${e.rerollTokens}。`); }
