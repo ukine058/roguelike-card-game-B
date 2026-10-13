@@ -178,6 +178,30 @@
   .card.mini .card-icon{ font-size:34px; }
   .card .rarity-dot{ position:absolute; bottom:5px; right:7px; font-size:9px; letter-spacing:.03em; color:var(--ink-soft); font-family:var(--font-en); }
 
+
+  /* ===== デッキ・レリックの閲覧（探索中、いつでも） ===== */
+  #run-viewer-btn{ position:fixed; top:8px; right:8px; z-index:40; display:none; gap:6px; }
+  #run-viewer-btn.on{ display:flex; }
+  #run-viewer-btn button{ padding:5px 10px; font-size:12px; background:var(--bg-panel); border:1px solid var(--line); color:var(--parchment); border-radius:14px; cursor:pointer; opacity:.88; }
+  #run-viewer-btn button:hover{ opacity:1; border-color:var(--gold); }
+  .rv-overlay{ position:fixed; inset:0; background:rgba(10,8,6,.78); z-index:70; display:flex; align-items:center; justify-content:center; padding:12px; }
+  .rv-box{ background:var(--bg-panel); border:1px solid var(--line); border-radius:8px; width:100%; max-width:860px; max-height:92vh; display:flex; flex-direction:column; }
+  .rv-head{ display:flex; gap:6px; align-items:center; padding:10px 12px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .rv-head .rv-title{ flex:1; font-size:15px; min-width:80px; }
+  .rv-tabs button, .rv-filters button{ padding:4px 10px; font-size:12px; background:transparent; border:1px solid var(--line); color:var(--parchment-dim); border-radius:12px; cursor:pointer; }
+  .rv-tabs button.sel, .rv-filters button.sel{ border-color:var(--gold); color:var(--gold); }
+  .rv-filters{ display:flex; gap:6px; flex-wrap:wrap; padding:8px 12px 0; }
+  .rv-body{ padding:12px; overflow-y:auto; overscroll-behavior:contain; }
+  .rv-grid{ display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-start; }
+  .rv-cell{ position:relative; }
+  .rv-cell .rv-pile{ position:absolute; top:-6px; left:-4px; z-index:3; font-size:10px; background:var(--bg-void); border:1px solid var(--line); color:var(--parchment); border-radius:8px; padding:0 6px; }
+  .rv-cell.rv-temp .card{ box-shadow:0 0 0 2px #4aa3ff, 0 0 14px 3px rgba(74,163,255,.75); }
+  .rv-cell.rv-enemy .card{ box-shadow:0 0 0 2px #b46bff, 0 0 14px 3px rgba(180,107,255,.75); }
+  .rv-cell .rv-stay{ position:absolute; bottom:-6px; left:-4px; z-index:3; font-size:10px; background:var(--bg-void); border:1px solid #b46bff; color:#d3a8ff; border-radius:8px; padding:0 6px; }
+  .rv-legend{ font-size:11px; color:var(--parchment-dim); margin:6px 0 10px; }
+  .rv-legend .b{ color:#6bb6ff; } .rv-legend .p{ color:#c79bff; }
+  .rv-relic{ display:flex; gap:10px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; }
+  .rv-relic .rn{ font-size:14px; color:var(--gold); } .rv-relic .rd{ font-size:12px; color:var(--parchment-dim); margin-top:2px; line-height:1.6; }
   /* small card for editor list */
   .card.mini{ width:120px; height:168px; }
   .card.mini .name{ font-size:11px; }
@@ -264,6 +288,29 @@
     display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%;
     background:radial-gradient(circle at 35% 30%, #f0d488, var(--gold)); color:#3a2a06; font-family:var(--font-en); font-weight:700; font-size:18px; border:2px solid #8a6a1e;
   }
+  .map-screen{ max-width:520px; margin:0 auto; padding-bottom:0; }
+  .map-head{ text-align:center; margin-bottom:6px; }
+  .map-legend{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:6px; }
+  .map-chip{ font-size:11px; padding:2px 8px; border:1px solid var(--line); border-radius:999px; color:var(--parchment-dim); }
+  .map-wrap{ position:relative; width:100%; margin:8px 0 12px; }
+  .map-svg{ position:absolute; left:0; top:0; width:100%; pointer-events:none; }
+  .map-svg line{ stroke:var(--line); stroke-width:2; vector-effect:non-scaling-stroke; opacity:.7; }
+  .map-svg line.done{ stroke:var(--parchment-dim); opacity:.9; }
+  .map-svg line.hot{ stroke:var(--gold); stroke-width:3; opacity:1; }
+  .map-rowno{ position:absolute; left:2px; transform:translateY(-50%); font-size:10px; color:var(--parchment-dim); opacity:.6; }
+  .map-node{ position:absolute; transform:translate(-50%,-50%); width:68px; background:none; border:none; padding:0; display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; color:var(--parchment); font-family:var(--font-ui); }
+  .map-node .mi{ width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px; background:var(--bg-void); border:2px solid var(--nc,var(--line)); opacity:.55; }
+  .map-node .ml{ font-size:10px; color:var(--parchment-dim); text-shadow:0 0 4px var(--bg-void); }
+  .map-node.boss .mi{ width:56px; height:56px; font-size:28px; }
+  .map-node.visited .mi{ opacity:.35; filter:grayscale(1); }
+  .map-node.current .mi{ border-color:var(--gold); opacity:1; filter:none; box-shadow:0 0 10px var(--gold); }
+  .map-node.selectable .mi{ opacity:1; box-shadow:0 0 10px var(--nc,rgba(255,255,255,.3)); animation:mapPulse 1.6s ease-in-out infinite; }
+  .map-node.selectable.free .mi{ border-style:dashed; border-color:var(--gold); }
+  .map-node.peek .mi{ border-style:dotted; }
+  .map-node.picked .mi{ border-color:var(--gold); box-shadow:0 0 12px var(--gold); }
+  @keyframes mapPulse{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.08);} }
+  .map-bar{ position:sticky; bottom:0; display:flex; gap:10px; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--bg-void); border-top:1px solid var(--line); font-size:13px; }
+  .map-bar #map-info{ flex:1; }
   .floor-progress{ font-size:12px; color:var(--parchment-dim); text-align:center; margin-bottom:6px;}
 
   .log-head{ display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:11px; color:var(--parchment-dim);}
@@ -516,13 +563,30 @@ const SETTING_COSTS = [
   {key:'shopRelicPrice', label:'ショップのレリック価格', def:200, max:9999},
   {key:'shopRemoveCost', label:'ショップのカード除去料金', def:75, max:999},
   {key:'shopUpgradeCost', label:'ショップのカード強化料金', def:100, max:999},
+  {key:'shopRemoveStep', label:'ショップのカード除去料金の1回ごとの値上がり', def:0, max:999},
+  {key:'shopUpgradeStep', label:'ショップのカード強化料金の1回ごとの値上がり', def:0, max:999},
 ];
 const DEFAULT_SETTINGS = {
   startingHp: 70,
   energyPerTurn: 3,
   handSize: 5,
   floorCount: 8,
+  roundCount: 1,          // ラウンド（層）の数。ボスを倒すと次のラウンドのマップへ。最後のラウンドのボスで勝利
   eliteEvery: 4,
+  eliteRarePct: 200,      // エリートを倒したあとのカード報酬で、コモン以外のカードの出やすさ（%。100で通常）
+  eliteExtraChoices: 1,   // エリートを倒したあとのカード報酬の、候補の追加枚数
+  eliteRelicChance: 100,  // エリートがレリックを落とす確率（%）
+  // マップ（新しい探索から有効）
+  mapWidth: 5, mapPaths: 4,
+  mapWBattle: 50, mapWUnknown: 20, mapWEvent: 12, mapWShop: 8, mapWRest: 10,   // 通常の階層のマスの出現比率
+  mapUBattle: 45, mapUEvent: 30, mapUShop: 10, mapURest: 15,                    // ？のマスに入ったときの中身の比率
+  mapEliteChance: 60,
+  shopCardCount: 3, shopRelicCount: 1,   // ショップの品揃え（カード・レリックの数）
+  shopStepScope: 0,       // 入れ替え・除去・強化の値上がりの数え方。0=店ごと／1=探索全体
+  restActions: 1,         // 休憩マスで選べる行動の回数
+  restUpgrade: 1,         // 休憩所でカードを強化できる（1=できる）
+  restRemove: 0,          // 休憩所でカードを除去できる（1=できる）
+  mapDefaultPick: 2,      // 次のマスを選ぶ場面の初期値。0=選ばない／1=一本道のときだけ／2=現在の列に最も近いマス
   enemyHpScalePct: 12, // % increase per floor
   restHealPct: 30,
   startRelicPickEnabled: false, // 開始時にレリックを選んで獲得する
@@ -557,6 +621,23 @@ function cardIcon(c){
 }
 // タグの空白（半角・全角・タブなど）はすべて取り除く。複数タグの区切りは , 、 ，
 function cleanTag(v){ return typeof v==='string' ? v.replace(/[\s\u3000]+/g,'') : ''; }
+// ===== 有効タグ（明示タグ＋自動タグ） =====
+// 自動タグ: 種類（アタック／スキル／パワー）と、印刷コスト（コスト0, コスト1 …。一時的なコスト増減・強化では変わらない）。
+// カードごとに suppressTypeTag / suppressCostTag で自動タグを外せる。明示タグの配列（c.tags）には書き込まない。
+const TYPE_TAG_NAME = {attack:'アタック', skill:'スキル', power:'パワー'};
+function effectiveCardTags(c){
+  if(!c) return [];
+  const out = Array.isArray(c.tags) ? c.tags.slice() : [];
+  if(!c.suppressTypeTag){ const t = TYPE_TAG_NAME[c.type]; if(t && !out.includes(t)) out.push(t); }
+  if(!c.suppressCostTag){
+    const m = (typeof S!=='undefined' && S.cards) ? S.cards.find(x=>x.id===String(c.id||'').replace(/\+$/,'')) : null;
+    const v = Number((m||c).cost);
+    const t = isXCost(m||c) ? 'コストX' : (Number.isFinite(v) ? 'コスト'+Math.max(0,Math.floor(v)) : '');
+    if(t && !out.includes(t)) out.push(t);
+  }
+  return out;
+}
+function cardHasTag(c, tag){ return !!tag && effectiveCardTags(c).includes(tag); }
 function parseTags(v){
   const out = [];
   String(v||'').split(/[,、，]/).forEach(x=>{ const t = cleanTag(x); if(t && !out.includes(t)) out.push(t); });
@@ -624,6 +705,15 @@ const DEFAULT_WORLD = {
   colorDamage:'#E04848', colorBlock:'#5B9BD5', colorHeal:'#4CAF6A', colorPoison:'#9B59B6', colorBuff:'#D4A73E', colorDebuff:'#C0392B',
   // ブロック（呼び名・アイコン・HPバーやログに使う色）。戦闘エフェクトの数字の色は colorBlock
   blockName:'ブロック', blockIcon:'🛡️', colorBlockUi:'#5CC8E8',
+  // マップ（マスの名前・アイコン・色、ラウンドの名前）
+  roundNames:'',
+  mapLabelBattle:'戦闘', mapIconBattle:'⚔️', colorMapBattle:'#9AA3AD',
+  mapLabelElite:'エリート', mapIconElite:'💀', colorMapElite:'#C1502E',
+  mapLabelRest:'休憩', mapIconRest:'🏕️', colorMapRest:'#6C8A3E',
+  mapLabelEvent:'イベント', mapIconEvent:'📜', colorMapEvent:'#7A5FA0',
+  mapLabelShop:'ショップ', mapIconShop:'🛒', colorMapShop:'#D4A73E',
+  mapLabelUnknown:'？', mapIconUnknown:'❓', colorMapUnknown:'#4C7A8C',
+  mapLabelBoss:'ボス', mapIconBoss:'👑', colorMapBoss:'#A63A3A',
   introText:'',
   victoryEyebrow:'THE CODEX CLOSES', victoryTitle:'探索を制覇した！',
   victoryText:'全{floors}階層を踏破し、灰燼の書庫を鎮めた。',
@@ -638,6 +728,8 @@ function cleanWorld(o){
     const dv = DEFAULT_WORLD[k], v = o[k];
     if(/^(accent|bg|panel|color)/.test(k)) out[k] = hex(v) ? v : dv;
     else if(k==='blockName'){ const t = (typeof v==='string' ? v.trim() : '').slice(0,12); out[k] = t || dv; }
+    else if(/^mapLabel/.test(k)){ const t = (typeof v==='string' ? v.trim() : '').slice(0,12); out[k] = t || dv; }
+    else if(/^mapIcon/.test(k)){ const t = typeof v==='string' ? Array.from(v.trim()).slice(0,3).join('') : ''; out[k] = t || dv; }
     else if(k==='blockIcon'){ const t = typeof v==='string' ? Array.from(v.trim()).slice(0,3).join('') : ''; out[k] = t || dv; }
     else out[k] = typeof v==='string' ? v.slice(0,2000) : dv;
   });
@@ -922,7 +1014,8 @@ function normalizeElement(x){
     const v = Number(props[def.key]);
     if(Number.isFinite(v) && v>0) props[def.key] = Math.min(def.max, Math.max(def.min, Math.round(v))); else delete props[def.key];
   });
-  return {...x, id:String(x.id||''), name:String(x.name||'').trim(), props, color, emoji};
+  const tags = (Array.isArray(x.tags)?x.tags:[]).map(cleanTag).filter((t,i,a)=>t && a.indexOf(t)===i);
+  return {...x, id:String(x.id||''), name:String(x.name||'').trim(), props, color, emoji, tags};
 }
 function loadElements(){
   try{
@@ -935,6 +1028,18 @@ function saveElements(list){
   try{ localStorage.setItem('elements', JSON.stringify(list)); }catch(e){ console.error(e); storageFailed(); }
 }
 function elementById(id){ return (S.elements||[]).find(x=>x.id===id) || null; }
+// 属性の選択子: 'all'（全属性）／属性ID／'tag:<タグ>'（そのタグを持つ属性すべて）
+function elementTagList(){ return [...new Set((S.elements||[]).flatMap(x=>x.tags||[]))]; }
+function elementMatchesSelector(elemId, sel){
+  if(!sel || sel==='all') return true;
+  if(typeof sel==='string' && sel.startsWith('tag:')){ const el = elementById(elemId); return !!(el && (el.tags||[]).includes(sel.slice(4))); }
+  return elemId===sel;
+}
+function elementSelectorOptionsHTML(cur, withAll, allLabel){
+  return (withAll ? `<option value="all" ${(!cur||cur==='all')?'selected':''}>${allLabel}</option>` : '')
+    + (S.elements||[]).map(x=>`<option value="${escapeHtml(x.id)}" ${cur===x.id?'selected':''}>${escapeHtml(x.name)}</option>`).join('')
+    + elementTagList().map(t=>`<option value="tag:${escapeHtml(t)}" ${cur==='tag:'+t?'selected':''}>タグ「${escapeHtml(t)}」の属性すべて</option>`).join('');
+}
 function elementName(id){ const el = elementById(id); return el ? el.name : ''; }
 // カードが持つ属性ID（削除された属性は除く）
 function cardElementIds(c){
@@ -996,6 +1101,7 @@ function purgeTemporaryCards(r){
       if(isTemp(rawId)){
         const {iid} = splitInstanceId(rawId);
         if(r.instanceBuffs) delete r.instanceBuffs[iid];
+        if(r.permExhaustIids) delete r.permExhaustIids[iid];
         return false;
       }
       return true;
@@ -1021,7 +1127,7 @@ function isUpgradedInstanceId(raw){
 function upgradedCardView(base){
   const up = {...base, id: base.id+'+', name: base.name+'+', baseId: base.id};
   const upg = base.upgrades || {};
-  up.cost = Math.max(0, (base.cost||0) + (upg.costDelta||0));
+  up.cost = isXCost(base) ? base.cost : Math.max(0, (base.cost||0) + (upg.costDelta||0));
   up.scales = {};
   allEffectFieldDefs().forEach(def=>{
     const baseVal = base[def.key]!==undefined ? base[def.key] : (def.default||0);
@@ -1041,6 +1147,19 @@ function upgradedCardView(base){
   return up;
 }
 
+// ===== コスト =====
+// costMode:'x' のカード（Xコスト）は、使用するとき所持エネルギーをすべて消費し、その値（X）を効果計算に渡す。エネルギー0では使えない。
+function isXCost(c){ return !!c && c.costMode==='x'; }
+// 画面に表示するコスト（Xカードは 'X'）。表示と支払いは別の関数にしてあり、一時的な増減で分けられる。
+function getDisplayedCardCost(c){ return isXCost(c) ? 'X' : c.cost; }
+// 実際に支払うコスト。Xカードは「いまの所持エネルギーすべて」。
+function getCardPaymentCost(c, energy){ return isXCost(c) ? Math.max(0, energy|0) : c.cost; }
+function canAffordCard(c, energy){ return isXCost(c) ? energy>0 : c.cost<=energy; }
+// 効果解決中のX値（r.xValue）を一時的に設定して fn を呼ぶ。fn には完了コールバックを渡す。
+function withXValue(r, x, fn, done){
+  const prev = r.xValue; r.xValue = x||0;
+  fn(()=>{ r.xValue = prev; done(); });
+}
 function cardById(id){
   const {cid, iid} = splitInstanceId(id);
   let card;
@@ -1055,9 +1174,26 @@ function cardById(id){
   const tempBuffs = iid && S.run && S.run.tempInstanceBuffs && S.run.tempInstanceBuffs[iid];
   if((permBuffs && Object.keys(permBuffs).length) || (tempBuffs && Object.keys(tempBuffs).length)){
     const merged = {...card};
+    // 補正の記録: 数値は加算、文字列（付与先 csT_<状態ID>）は上書き、'='+欄名 は「その値に上書き（set）」、__el は属性の付与／除去の記録
+    const elOps = [];
     [permBuffs, tempBuffs].forEach(b=>{
-      if(b) Object.keys(b).forEach(k=>{ merged[k] = (typeof b[k]==='string') ? b[k] : ((merged[k]||0) + b[k]); });   // 文字列（付与先 csT_<状態ID>）は上書き
+      if(!b) return;
+      Object.keys(b).forEach(k=>{
+        if(k==='__el'){ (b[k]||[]).forEach(x=>elOps.push(x)); return; }
+        if(k.charAt(0)==='=') return;
+        merged[k] = (typeof b[k]==='string') ? b[k] : ((merged[k]||0) + b[k]);
+      });
+      Object.keys(b).forEach(k=>{ if(k.charAt(0)==='=') merged[k.slice(1)] = b[k]; });
     });
+    if(elOps.length){
+      let els = Array.isArray(merged.elements) ? merged.elements.slice() : [];
+      elOps.forEach(([kind,id])=>{
+        if(kind==='+'){ if(id && elementById(id) && !els.includes(id)) els.push(id); }
+        else if(id==='all' || !id) els = [];
+        else els = els.filter(e=>!elementMatchesSelector(e, id));
+      });
+      merged.elements = els;
+    }
     if(merged.cost<0) merged.cost = 0;   // 「コストを増減する」で0未満にはならない
     return merged;
   }
@@ -1078,16 +1214,47 @@ function buffTargetText(op){
   if(!String(op.buffField||'').startsWith('cs_')) return '';
   return op.buffTarget==='self' ? '（付与先: 自分）' : op.buffTarget==='opponent' ? '（付与先: 相手）' : '';
 }
+// 続けの操作1つぶんの説明
+function thenOpText(t){
+  const sg = n=> n>=0 ? `+${n}` : `${n}`;
+  const x = t.valueMode==='targetCount' ? '対象の枚数×' : '';
+  const perm = CARDOP_REVERTIBLE_TYPES.includes(t.type) ? (t.permanent ? '（永続）' : '') : '';
+  switch(t.type){
+    case 'moveToHand': return '手札に移動';
+    case 'moveToDiscard': return '捨て札に移動';
+    case 'moveToDraw': return '山札に加える';
+    case 'moveToExhausted': return t.exhaustMode==='stay' ? '消滅（永続・復活しない）' : t.exhaustMode==='destroy' ? '消滅（デッキから取り除く）' : '消滅';
+    case 'elementAdd': return `属性「${elementName(t.elementId)||'?'}」を付与${perm}`;
+    case 'elementRemove': return `属性${t.elementId==='all'?'すべて':'「'+tipElementName(t.elementId)+'」'}を取り除く${perm}`;
+    case 'upgrade': return '強化'+perm;
+    case 'duplicate': return '複製'+perm;
+    case 'play': return 'コストなしで使用';
+    case 'grantBuff': { if(t.buffSource==='captured') return `取得した効果を${t.buffMode==='set'?'上書き':'加算'}で付与${perm}`; const fd = allEffectFieldDefs().find(d=>d.key===t.buffField); return `「${fd ? fd.label : t.buffField}」${x}${sg(t.buffAmount||0)}を付与${perm}`; }
+    case 'costChange': return `コストを${x}${sg(t.costDelta|0)}${perm}`;
+  }
+  return t.type;
+}
 function cardOpDescParts(op){
+  const parts = cardOpDescPartsBase(op);
+  if(op.valueMode==='targetCount' && (op.type==='grantBuff' || op.type==='costChange')) parts.push('（付与量・増減量は、設定値×対象の枚数）');
+  if(op.then && op.then.length) parts.push(`その同じカードに続けて: ${op.then.map(thenOpText).join('→')}`);
+  return parts;
+}
+function cardOpDescPartsBase(op){
   const parts = [];
   const isGenerate = GENERATE_TYPES.includes(op.type);
   const isSelf = !isGenerate && op.fromPile==='self';
-  const typeLabel = (CARDOP_TYPES.find(t=>t.key===op.type)||{}).label || op.type;
+  let typeLabel = (CARDOP_TYPES.find(t=>t.key===op.type)||{}).label || op.type;
   const sg = n=> n>=0 ? `+${n}` : `${n}`;
+  if(op.type==='captureEffect') typeLabel = `選び、効果を取得する（${(op.captureFields||[]).includes(CAPTURE_ALL) ? 'すべての効果' : (op.captureFields||[]).map(k=>{ const d = allEffectFieldDefs().find(x=>x.key===k); return d ? d.label : k; }).join('・')}）`;
+  if(op.type==='elementAdd') typeLabel = `選び、攻撃の属性に「${elementName(op.elementId)||'?'}」を付与する`;
+  if(op.type==='elementRemove') typeLabel = `選び、攻撃の属性から${op.elementId==='all' ? 'すべて' : '「'+tipElementName(op.elementId)+'」'}を取り除く`;
+  if(op.type==='moveToExhausted') typeLabel = op.exhaustMode==='stay' ? '消滅させる（永続：戦闘後も復活しない）' : op.exhaustMode==='destroy' ? '消滅させる（デッキから完全に取り除く）' : '消滅させる';
+  if(op.type==='grantBuff' && op.buffSource==='captured') typeLabel = `選び、取得した効果を${op.buffMode==='set'?'上書き':'加算'}で付与する`;
   if(isSelf){
-    if(op.type==='grantBuff'){
+    if(op.type==='grantBuff' && op.buffSource!=='captured'){
       const fd = allEffectFieldDefs().find(d=>d.key===op.buffField);
-      parts.push(`このカードの「${fd ? fd.label : op.buffField}」を${sg(op.buffAmount||0)}する${buffTargetText(op)}`);
+      parts.push(`このカードの「${fd ? fd.label : op.buffField}」を${op.buffMode==='set' ? sg(op.buffAmount||0).replace('+','')+'に上書き' : sg(op.buffAmount||0)+'する'}${buffTargetText(op)}`);
     } else if(op.type==='costChange'){
       parts.push(`このカードのコストを${sg(op.costDelta|0)}する`);
     } else parts.push(`このカード自身を${typeLabel}`);
@@ -1096,16 +1263,19 @@ function cardOpDescParts(op){
       ? genPoolLabel(op)
       : ((PILE_OPTIONS.find(p=>p.key===op.fromPile)||{}).label || op.fromPile);
     const seqText = (op.sequential && op.countMode!=='all') ? '（1枚ずつ選び直し）' : '';
-    const countText = (op.countMode==='all' ? '対象すべて'
+    const xCount = (op.countSource==='xLast' || op.countSource==='xTotal') && (op.countMode==='fixed' || op.countMode==='choose')
+      ? `X${op.xMult!==undefined && op.xMult!==1 ? '×'+op.xMult : ''}${op.countFixed ? sg(op.countFixed) : ''}枚（X＝${op.countSource==='xTotal' ? 'ここまでのカード操作の対象枚数の合計' : '直前のカード操作の対象枚数'}）` : '';
+    const countText = (xCount ? ((op.countMode==='choose' && op.type!=='generateToEnemyDeck') ? '任意の'+xCount : xCount)
+      : op.countMode==='all' ? '対象すべて'
       : (op.countMode==='choose' && op.type!=='generateToEnemyDeck') ? `任意の${op.countFixed}枚`
       : op.countMode==='choose' ? `${op.countFixed}枚`
       : op.countMode==='random' ? `${op.countMin}〜${op.countMax}枚`
       : `${op.countFixed}枚`) + seqText;
     const tagText = op.filterTag ? `[${op.filterTag}]の` : '';
-    if(op.type==='grantBuff'){
+    if(op.type==='grantBuff' && op.buffSource!=='captured'){
       const fieldDef = allEffectFieldDefs().find(d=>d.key===op.buffField);
       const fieldLabel = fieldDef ? fieldDef.label : op.buffField;
-      parts.push(`${rangeLabel}の${tagText}カードを${countText}選び、「${fieldLabel}」を${sg(op.buffAmount||0)}する${buffTargetText(op)}`);
+      parts.push(`${rangeLabel}の${tagText}カードを${countText}選び、「${fieldLabel}」を${op.buffMode==='set' ? String(op.buffAmount||0)+'に上書き' : sg(op.buffAmount||0)+'する'}${buffTargetText(op)}`);
     } else if(op.type==='costChange'){
       parts.push(`${rangeLabel}の${tagText}カードを${countText}選び、コストを${sg(op.costDelta|0)}する`);
     } else if(isGenerate){
@@ -1114,7 +1284,7 @@ function cardOpDescParts(op){
       parts.push(`${rangeLabel}の${tagText}カードを${countText}${typeLabel}`);
     }
   }
-  if(CARDOP_REVERTIBLE_TYPES.includes(op.type)){
+  if(CARDOP_REVERTIBLE_TYPES.includes(op.type) && op.type!=='moveToExhausted'){
     parts.push(op.permanent ? '（永続：戦闘後も残る）' : '（この戦闘中のみ）');
   }
   { const sn = opScaleNote(op); if(sn) parts.push(sn); }
@@ -1148,27 +1318,36 @@ function cardDescription(c){
     }
   });
   { const so = statusOpText(c.statusOp); if(so) parts.push(so); }
+  if(isXCost(c)) parts.unshift('Xコスト（エネルギーをすべて消費。Xは消費した量）');
   if(c.pierce) parts.push('ブロックを無視する（貫通）');
   if(c.lifesteal) parts.push('与えたダメージ分HP回復（吸血。ブロックで防がれた分は回復しない）');
   if(c.retain) parts.push('ターンをまたいで手札に残る（保持）');
   cardOpsOf(c).forEach(op=> parts.push(...cardOpDescParts(op)));
   const elNames = cardElementIds(c).map(elementName);
   if(elNames.length) parts.push(`属性: ${elNames.join('・')}`);
-  if(c.tags && c.tags.length) parts.push(`タグ: ${c.tags.join(', ')}`);
+  { const et = effectiveCardTags(c); if(et.length) parts.push(`タグ: ${et.join(', ')}`); }
   if(c.exhaust) parts.push(`(使用後: 消滅)`);
   let desc = parts.length ? parts.join('。')+'。' : '効果なし';
-  if(c.timing==='trigger'){
+  if(hasTrigger(c)){
     const tagPart = c.triggerTag ? `[${c.triggerTag}]` : '任意の';
     const durPart = triggerDurText(c);
     const tgp = c.triggerTag ? `[${c.triggerTag}]の` : '';
-    desc = c.triggerOn==='damaged'
-      ? `【仕込み】今後、敵の攻撃で${c.triggerBlocked?'':'HPが減る'}ダメージを受けるたびに発動（${durPart}）: ` + desc
-      : c.triggerOn==='drawn'
-      ? `【仕込み】今後、カードの効果で${tgp}カードを引くたびに発動（${durPart}）: ` + desc
-      : c.triggerOn==='discarded'
-      ? `【仕込み】今後、カードの効果で${tgp}カードが捨て札に移るたびに発動（${durPart}）: ` + desc
-      : `【仕込み】今後${tagPart}カードを使うたびに発動（${durPart}）: ` + desc;
-    if(triggerEveryOf(c)>1) desc = desc.replace('たびに発動', `たびに数え、${triggerEveryOf(c)}回目ごとに発動`);
+    const onKind = cleanTriggerOn(c.triggerOn);
+    const th = triggerHitsOf(c);
+    const both = hasImmediate(c);
+    const head = both ? '【仕込み】' : '【仕込み】';
+    const body = both ? `同じ効果${th>1?`を${th}回`:''}` : desc;
+    let t = onKind==='damaged'
+      ? `${head}今後、敵の攻撃で${c.triggerBlocked?'':'HPが減る'}ダメージを受けるたびに発動（${durPart}）: ` + body
+      : onKind==='drawn'
+      ? `${head}今後、カードの効果で${tgp}カードを引くたびに発動（${durPart}）: ` + body
+      : onKind==='discarded'
+      ? `${head}今後、カードの効果で${tgp}カードが捨て札に移るたびに発動（${durPart}）: ` + body
+      : onKind==='turnStart'
+      ? `${head}今後、${turnIntervalOf(c)>1 ? `${turnIntervalOf(c)}ターンごとに、` : '毎ターン、'}自分のターンの開始時に発動（${durPart}）: ` + body
+      : `${head}今後${tagPart}カードを使うたびに発動（${durPart}）: ` + body;
+    if(onKind!=='turnStart' && triggerEveryOf(c)>1) t = t.replace('たびに発動', `たびに数え、${triggerEveryOf(c)}回目ごとに発動`);
+    desc = both ? `【即時】${desc} ／ ${t}` : t;
   }
   const drawParts = [];
   drawEffectFieldDefs().forEach(def=>{
@@ -1200,7 +1379,7 @@ function renderCardHTML(c, opts){
   const unplayable = opts.unplayable ? 'unplayable' : '';
   return `
   <div class="card type-${c.type} ${mini} ${unplayable}" data-cardinst="${opts.instId||''}" data-cardid="${c.id}"${opts.reason ? ` title="${escapeHtml('使えない: '+opts.reason)}"` : ''}>
-    <div class="cost">${c.cost}</div>
+    <div class="cost">${getDisplayedCardCost(c)}</div>
     <div class="banner"><div class="name">${c.name}</div></div>
     <div class="art"><span class="card-icon">${cardIcon(c)}</span></div>
     <div class="desc">${cardDescription(c)}</div>
@@ -1284,12 +1463,26 @@ function deepClean(v){
 function normalizeCard(c){
   c = migrateCard({...c});
   c.cost = Number.isFinite(c.cost) ? Math.max(0, Math.floor(c.cost)) : 1;
+  c.costMode = c.costMode==='x' ? 'x' : 'fixed';
   if(!RARITY_LABEL[c.rarity]) c.rarity = 'common';
+  // 発動タイミング: 即時効果と予約（仕込み）を独立して有効にできる。旧データ（timing:'trigger'）は予約のみに移行し、hits は予約側（triggerHits）へ引き継ぐ。
+  if(c.immediateEnabled===undefined && c.triggerEnabled===undefined){
+    if(c.timing==='trigger'){ c.triggerEnabled = true; c.immediateEnabled = false; c.triggerHits = clampInt(c.hits,1,99,1); c.hits = 1; }
+    else { c.immediateEnabled = true; c.triggerEnabled = false; }
+  } else {
+    c.triggerEnabled = !!c.triggerEnabled;
+    c.immediateEnabled = c.immediateEnabled===undefined ? !c.triggerEnabled : !!c.immediateEnabled;
+  }
+  if(!c.immediateEnabled && !c.triggerEnabled) c.immediateEnabled = true;
+  c.triggerHits = clampInt(c.triggerHits,1,99,1);
+  c.turnInterval = clampInt(c.turnInterval,1,99,1);
+  c.timing = (c.triggerEnabled && !c.immediateEnabled) ? 'trigger' : 'immediate';   // 旧版との互換用（新しい処理は hasTrigger / hasImmediate を使う）
   c.triggerOn = cleanTriggerOn(c.triggerOn);
   c.triggerEvery = triggerEveryOf(c);
   c.triggerBlocked = !!c.triggerBlocked;
   if(!Array.isArray(c.tags)) c.tags = [];
   c.tags = c.tags.map(cleanTag).filter((t,i,a)=>t && a.indexOf(t)===i);
+  c.suppressTypeTag = !!c.suppressTypeTag; c.suppressCostTag = !!c.suppressCostTag;
   c.elements = Array.isArray(c.elements) ? c.elements.filter((id,i,a)=>typeof id==='string' && a.indexOf(id)===i) : [];
   if(!c.scales || typeof c.scales!=='object') c.scales = {};
   if(!Number.isFinite(c.startingCount)) c.startingCount = 0;
@@ -1298,6 +1491,7 @@ function normalizeCard(c){
   // カード操作は複数持てる（cardOps）。旧データの単一の cardOp は1件の配列に変換する。
   if(Array.isArray(c.cardOps)) c.cardOps = c.cardOps.filter(o=>o && typeof o==='object').map(normalizeStatusOp);
   else c.cardOps = (c.cardOp && c.cardOp.enabled) ? [normalizeStatusOp(c.cardOp)] : [];
+  ensureOpIds(c.cardOps);
   delete c.cardOp;
   return c;
 }
@@ -1310,6 +1504,9 @@ function normalizeRelic(r){
   r.favorTag = cleanTag(r.favorTag);
   r.triggerTag = cleanTag(r.triggerTag);
   r.favorPct = clampInt(r.favorPct,0,1000,0);
+  r.useLimit = clampInt(r.useLimit,0,99,0);                                  // 使える回数の上限（0で無制限）
+  r.useScope = ['run','round','battle'].includes(r.useScope) ? r.useScope : 'run';   // 回数を数える範囲
+  r.shopPrice = clampInt(r.shopPrice,0,9999,0);                              // ショップでの価格（0で標準）
   return r;
 }
 // カード操作の数値に付けられる参照増減。値: [最小, 最大]。参照増減の結果はこの範囲に収める。
@@ -1329,10 +1526,18 @@ function defaultStatusOp(){
   return {enabled:true, type:'moveToDiscard', fromPile:'hand', genPool:'normal', countMode:'fixed',
     countFixed:1, countMin:1, countMax:1, filterTag:'', buffField:'', buffAmount:0, costDelta:1, deckWeight:1, drawNext:false, sequential:false, permanent:false};
 }
+// 空のIDに、カード内で一意なID（op1, op2…）を振る。すでにあるIDは変えない。
+function ensureOpIds(list){
+  const used = new Set();
+  list.forEach(o=>{ if(o && o.id){ if(used.has(o.id)) o.id = ''; else used.add(o.id); } });
+  let n = 1;
+  list.forEach(o=>{ if(o && !o.id){ while(used.has('op'+n)) n++; o.id = 'op'+n; used.add(o.id); } });
+  return list;
+}
 function normalizeStatusOp(o){
   const d = defaultStatusOp();
   o = (o && typeof o==='object') ? o : {};
-  const okType = ['moveToHand','moveToDiscard','moveToDraw','moveToExhausted','upgrade','duplicate','play','grantBuff','costChange','generateToHand','generateToDraw','generatePlay','generateToEnemyDeck'];
+  const okType = ['moveToHand','moveToDiscard','moveToDraw','moveToExhausted','upgrade','duplicate','play','grantBuff','costChange','captureEffect','elementAdd','elementRemove','generateToHand','generateToDraw','generatePlay','generateToEnemyDeck'];
   return {
     enabled:true,
     type: okType.includes(o.type) ? o.type : d.type,
@@ -1340,6 +1545,9 @@ function normalizeStatusOp(o){
     genPool: GENERATE_POOL_OPTIONS.some(x=>x.key===o.genPool) ? o.genPool : d.genPool,
     countMode: ['fixed','random','all','choose'].includes(o.countMode) ? o.countMode : d.countMode,
     countFixed: clampInt(o.countFixed,0,20,1),
+    // 枚数の元: value=設定値／xLast=直前のカード操作の対象枚数(X)／xTotal=ここまでのカード操作の対象枚数の合計(X)。X×倍率＋設定値（加算）が、枚数になる
+    countSource: ['xLast','xTotal'].includes(o.countSource) ? o.countSource : 'value',
+    xMult: clampFloat(o.xMult,0,20,1),
     countMin: clampInt(o.countMin,0,20,1),
     countMax: clampInt(o.countMax,0,20,1),
     filterTag: cleanTag(o.filterTag),
@@ -1351,7 +1559,18 @@ function normalizeStatusOp(o){
     drawNext: !!o.drawNext,
     sequential: !!o.sequential,
     permanent: !!o.permanent,
+    exhaustMode: EXHAUST_MODES.some(m=>m.key===o.exhaustMode) ? o.exhaustMode : (o.permanent ? 'destroy' : 'combat'),
+    buffSource: o.buffSource==='captured' ? 'captured' : 'fixed',   // fixed=設定した効果／captured=直前に取得した効果
+    buffMode: o.buffMode==='set' ? 'set' : 'add',                  // add=加算／set=上書き
+    captureFields: Array.isArray(o.captureFields) && o.captureFields.length ? o.captureFields.filter(k=>typeof k==='string').slice(0,80) : [CAPTURE_ALL],
+    elementId: typeof o.elementId==='string' ? o.elementId.slice(0,64) : '',
+    id: (typeof o.id==='string' && /^[A-Za-z0-9_-]{1,24}$/.test(o.id)) ? o.id : '',   // 効果の順番で、この操作を指す安定したID（カード内で一意）
     scales: cleanOpScales(o.scales),
+    // 値（付与量・コスト増減量）を「設定値 × 対象の枚数」にする（枚数は、絞り込みと選択が終わったあとの実際の対象数）
+    valueMode: o.valueMode==='targetCount' ? 'targetCount' : 'fixed',
+    // 続けて、同じ対象のカードに行う操作（カードを追跡して順に行う。生成・敵のデッキへの追加は入れられない）
+    ...(Array.isArray(o.then) && o.then.length ? {then: o.then.filter(t=>t && typeof t==='object' && !['generateToHand','generateToDraw','generatePlay','generateToEnemyDeck','useCardById','captureEffect'].includes(t.type)).slice(0,6)
+      .map(t=>normalizeStatusOp({...t, then:[], countMode:'all', fromPile:'hand', sequential:false, filterTag:''}))} : {}),
   };
 }
 function normalizeStatusEffect(x){
@@ -1369,6 +1588,12 @@ function normalizeStatusEffect(x){
   if(ELEMENT_ATTACH_KINDS.includes(x.kind)){
     e.element = (typeof x.element==='string' && x.element) ? x.element.slice(0,64) : '';
     if(x.kind==='elGrant' && e.element==='all') e.element = '';   // 付与に「全属性」はない
+  }
+  if(x.kind==='cardMod'){
+    e.modField = (typeof x.modField==='string' && x.modField) ? x.modField.slice(0,80) : 'damage';
+    e.modTag = cleanTag(x.modTag);
+    e.decayOnUse = !!x.decayOnUse;
+    e.decayN = clampInt(x.decayN,1,99,1);
   }
   if(x.kind==='revive'){
     e.reviveUnit = x.reviveUnit==='percent' ? 'percent' : 'fixed';
@@ -1473,6 +1698,9 @@ function normalizeEnemy(e){
   if(!['normal','elite','boss'].includes(e.category)) e.category = 'normal';
   e.baseHp = Number.isFinite(e.baseHp) ? Math.max(1, Math.floor(e.baseHp)) : 30;
   e.weight = Number.isFinite(e.weight) ? Math.max(1, Math.floor(e.weight)) : 1;
+  e.minFloor = clampInt(e.minFloor,1,99,1);     // この階層以降から出る（1で制限なし）
+  e.minRound = clampInt(e.minRound,1,99,1);     // このラウンド以降から出る（1で制限なし）
+  e.noRepeat = !!e.noRepeat;                    // 1度出たら、同じラウンドでは出ない
   if(!Array.isArray(e.deck)) e.deck = [];
   e.deck = e.deck.filter(x=> x && S.cards.some(c=>c.id===x.cardId))
     .map(x=>({cardId:x.cardId, weight: Number.isFinite(x.weight) ? Math.max(1, Math.floor(x.weight)) : 1}));
@@ -1800,6 +2028,10 @@ function renderWorldSettings(){
       <div class="section-label">ブロック</div>
       <p class="hint">ブロックの呼び名とアイコンを変えられます（例：障壁・シールド・加護）。カードの説明、戦闘ログ、編集画面など、画面に出る「ブロック」の文字がすべて置き換わります（「自動ブロック」は「自動＋呼び名」になります）。入力欄に入れた文字そのものは置き換わりません。色は、HPバー・戦闘ログ・メニューの強調に使います。</p>
       <div class="row">${txt('blockName','ブロックの呼び名（12文字まで）')}${txt('blockIcon','アイコン（絵文字など3文字まで）')}${col('colorBlockUi','ブロックの色（HPバー・ログ）')}</div>
+      <div class="section-label">マップ</div>
+      <p class="hint">マップのマスの名前・アイコン・色を変えられます（説明文は変わりません）。ラウンドの名前は、1行に1つ。1行目が1ラウンド目です（空欄の行は「ラウンド1」の形になります）。</p>
+      ${MAP_TYPES.map(t=>`<div class="row">${txt('mapLabel'+MAP_TYPE_CAP[t],'マスの名前（'+MAP_NODE_INFO[t].label+'）')}${txt('mapIcon'+MAP_TYPE_CAP[t],'アイコン')}${col('colorMap'+MAP_TYPE_CAP[t],'色')}</div>`).join('')}
+      ${txt('roundNames','ラウンドの名前（1行に1つ）',3)}
       <div class="section-label">戦闘エフェクト</div>
       <p class="hint">戦闘中に、ダメージ・回復などの数字や、攻撃を受けたときの光が出ます。属性や状態に色を指定していれば、そちらが優先されます。</p>
       <div class="checkbox-field"><input type="checkbox" id="fx-on" ${FX.prefs.on?'checked':''}><label for="fx-on">戦闘エフェクトを表示する（この端末の設定）</label></div>
@@ -1846,14 +2078,40 @@ function renderSettings(){
       </div>
       <div class="row">
         <div class="field"><label>毎ターンの手札枚数</label><input type="number" id="s-hand" value="${s.handSize}" min="1" max="10"></div>
-        <div class="field"><label>探索の総戦闘数</label><input type="number" id="s-floors" value="${s.floorCount}" min="1" max="30"></div>
+        <div class="field"><label>探索の総階層数（マップの高さ。最後の階層がボス）</label><input type="number" id="s-floors" value="${s.floorCount}" min="1" max="30"></div>
+        <div class="field"><label>ラウンド数（ボスを倒すと次のラウンドのマップへ）</label><input type="number" id="s-rounds" value="${s.roundCount}" min="1" max="20"></div>
       </div>
       <div class="row">
-        <div class="field"><label>エリート出現間隔（○戦ごと）</label><input type="number" id="s-elite" value="${s.eliteEvery}" min="1" max="20"></div>
+        <div class="field"><label>エリート出現間隔（○階層ごとに、エリートのマスが出る）</label><input type="number" id="s-elite" value="${s.eliteEvery}" min="1" max="20"></div>
         <div class="field"><label>階層ごとの敵HP増加率(%)</label><input type="number" id="s-scale" value="${s.enemyHpScalePct}" min="0" max="200"></div>
       </div>
+      <p class="hint">敵のHPは、ラウンドをまたいで通しの階層数で増えます（2ラウンド目の1階層目は、全体で「総階層数＋1」階層目として計算）。ゴールドも同様です。</p>
+      <div class="row">
+        <div class="field"><label>エリート報酬: コモン以外のカードの出やすさ(%)</label><input type="number" id="s-elite-rare" value="${s.eliteRarePct}" min="0" max="2000"></div>
+        <div class="field"><label>エリート報酬: カード候補の追加枚数</label><input type="number" id="s-elite-extra" value="${s.eliteExtraChoices}" min="0" max="5"></div>
+        <div class="field"><label>エリートのレリックのドロップ確率(%)</label><input type="number" id="s-elite-relic" value="${s.eliteRelicChance}" min="0" max="100"></div>
+      </div>
       <div class="field"><label>休憩所での回復率(%)</label><input type="number" id="s-rest" value="${s.restHealPct}" min="0" max="100">
-        <p class="hint">3階層に一度、休憩所として最大HPのこの割合を回復します。</p>
+        <p class="hint">休憩マスで休むと、最大HPのこの割合を回復します（カードは手に入りません）。</p>
+      </div>
+      <div class="section-label">マップ</div>
+      <p class="hint">新しい探索から有効です。比率は、足した合計に対する割合として使います（0にするとそのマスは出ません）。</p>
+      <div class="row">
+        <div class="field"><label>列の数（マップの横幅）</label><input type="number" id="s-mapWidth" value="${s.mapWidth}" min="3" max="9"></div>
+        <div class="field"><label>道の数（多いほど分岐が増える）</label><input type="number" id="s-mapPaths" value="${s.mapPaths}" min="2" max="8"></div>
+        <div class="field"><label>エリートの階層で、エリートになる確率(%)</label><input type="number" id="s-mapEliteChance" value="${s.mapEliteChance}" min="0" max="100"></div>
+      </div>
+      <div class="field"><label>通常の階層のマスの出現比率</label>
+        <div class="row">${MAP_WEIGHT_FIELDS.slice(0,5).map(f=>`<div class="field"><label>${f[1]}</label><input type="number" id="s-${f[0]}" value="${s[f[0]]}" min="0" max="999"></div>`).join('')}</div></div>
+      <div class="field"><label>？のマスに入ったときの中身の比率</label>
+        <div class="row">${MAP_WEIGHT_FIELDS.slice(5).map(f=>`<div class="field"><label>${f[1]}</label><input type="number" id="s-${f[0]}" value="${s[f[0]]}" min="0" max="999"></div>`).join('')}</div></div>
+      <div class="field"><label>次のマスを選ぶ場面の、選択の初期値</label>
+        <select id="s-mapDefaultPick">
+          <option value="2" ${s.mapDefaultPick===2?'selected':''}>現在の列に最も近いマスを選んでおく（一本道なら、そのマス）</option>
+          <option value="1" ${s.mapDefaultPick===1?'selected':''}>一本道のときだけ、選んでおく</option>
+          <option value="0" ${s.mapDefaultPick===0?'selected':''}>何も選ばない</option>
+        </select>
+        <p class="hint">選んでおいても、「この道へ進む」（またはEnterキー）を押すまで進みません。別のマスを押せば、選び直せます。</p>
       </div>
       <div class="section-label">カード獲得の補助（オン/オフ）</div>
       ${SETTING_TOGGLES.map(t=>`<div class="checkbox-field"><input type="checkbox" id="s-${t.key}" ${s[t.key]?'checked':''}><label for="s-${t.key}">${t.label}</label></div>`).join('')}
@@ -1864,6 +2122,25 @@ function renderSettings(){
       <div class="checkbox-field"><input type="checkbox" id="s-startRelicPickEnabled" ${s.startRelicPickEnabled?'checked':''}><label for="s-startRelicPickEnabled">ゲーム開始時に、レリックを複数の中から1つ選んで獲得する</label></div>
       <div class="field"><label>ゲーム開始時に提示するレリックの数</label><input type="number" id="s-startRelicPickChoices" value="${s.startRelicPickChoices||3}" min="1" max="10"></div>
       <p class="hint">提示されるのは、まだ持っていないレリックからランダムに選ばれます。「最初から所持」と併用できます。</p>
+      <div class="section-label">休憩所</div>
+      <div class="row">
+        <div class="field"><label>休憩マスで選べる行動の回数</label><input type="number" id="s-restActions" value="${s.restActions}" min="1" max="5"></div>
+        <div class="field"><label>カードの強化</label><select id="s-restUpgrade"><option value="1" ${s.restUpgrade!==0?'selected':''}>できる</option><option value="0" ${s.restUpgrade===0?'selected':''}>できない</option></select></div>
+        <div class="field"><label>カードの除去</label><select id="s-restRemove"><option value="0" ${s.restRemove!==1?'selected':''}>できない</option><option value="1" ${s.restRemove===1?'selected':''}>できる</option></select></div>
+      </div>
+      <p class="hint">休憩マスでは、「休む」「カードの強化」「カードの除去」から、上の回数ぶん選べます（同じ行動は1回ずつ。無料）。カードが手に入らないぶんの見返りになります。</p>
+      <div class="section-label">ショップの品揃え・値上がり</div>
+      <div class="row">
+        <div class="field"><label>カードの品揃え（枚数）</label><input type="number" id="s-shopCardCount" value="${s.shopCardCount}" min="1" max="12"></div>
+        <div class="field"><label>レリックの品揃え（個数）</label><input type="number" id="s-shopRelicCount" value="${s.shopRelicCount}" min="0" max="6"></div>
+      </div>
+      <div class="field"><label>入れ替え・除去・強化の値上がりの数え方</label>
+        <select id="s-shopStepScope">
+          <option value="0" ${s.shopStepScope!==1?'selected':''}>店ごと（店を出ると、元の価格に戻る）</option>
+          <option value="1" ${s.shopStepScope===1?'selected':''}>探索全体（使うたびに上がり続ける）</option>
+        </select>
+        <p class="hint">「1回ごとの値上がり」は、下の「ゴールド消費量の調整」で設定します（0で値上がりなし）。レリックの価格は、レリックごとに設定できます（レリック編集画面）。</p>
+      </div>
       <div class="section-label">ゴールド消費量の調整</div>
       ${SETTING_COSTS.map(c=>`<div class="field"><label>${c.label}</label><input type="number" id="s-${c.key}" value="${s[c.key]}" min="0" max="${c.max}"></div>`).join('')}
       <p class="hint">0にすると無料になります。リロールトークンは、ゴールドの代わりに消費されます。</p>
@@ -1885,7 +2162,22 @@ function renderSettings(){
       energyPerTurn: clampInt(qs('#s-energy').value,1,10,3),
       handSize: clampInt(qs('#s-hand').value,1,10,5),
       floorCount: clampInt(qs('#s-floors').value,1,30,8),
+      roundCount: clampInt(qs('#s-rounds').value,1,20,1),
+      eliteRarePct: clampInt(qs('#s-elite-rare').value,0,2000,200),
+      eliteExtraChoices: clampInt(qs('#s-elite-extra').value,0,5,1),
+      eliteRelicChance: clampInt(qs('#s-elite-relic').value,0,100,100),
       eliteEvery: clampInt(qs('#s-elite').value,1,20,4),
+      mapWidth: clampInt(qs('#s-mapWidth').value,3,9,5),
+      mapPaths: clampInt(qs('#s-mapPaths').value,2,8,4),
+      mapEliteChance: clampInt(qs('#s-mapEliteChance').value,0,100,60),
+      mapDefaultPick: clampInt(qs('#s-mapDefaultPick').value,0,2,2),
+      shopCardCount: clampInt(qs('#s-shopCardCount').value,1,12,3),
+      shopRelicCount: clampInt(qs('#s-shopRelicCount').value,0,6,1),
+      shopStepScope: clampInt(qs('#s-shopStepScope').value,0,1,0),
+      restActions: clampInt(qs('#s-restActions').value,1,5,1),
+      restUpgrade: clampInt(qs('#s-restUpgrade').value,0,1,1),
+      restRemove: clampInt(qs('#s-restRemove').value,0,1,0),
+      ...Object.fromEntries(MAP_WEIGHT_FIELDS.map(f=>[f[0], clampInt(qs('#s-'+f[0]).value,0,999,f[2])])),
       enemyHpScalePct: clampInt(qs('#s-scale').value,0,200,12),
       restHealPct: clampInt(qs('#s-rest').value,0,100,30),
       startRelicPickEnabled: qs('#s-startRelicPickEnabled').checked,
@@ -1931,6 +2223,9 @@ const SCALE_SOURCES = [
   {key:'combatExhausted', label:'この戦闘中に消滅したカード枚数'},
   {key:'combatHitsTaken', label:'この戦闘中に敵の攻撃を受けた回数（多段攻撃は1ヒットごと）'},
   {key:'combatTurn', label:'この戦闘の経過ターン数（いまのターンを含む）'},
+  {key:'xValue', label:'X（Xコストで消費したエネルギー。使用中のみ）'},
+  {key:'lastOpTargets', label:'カード操作の対象枚数（直前に行ったカード操作で、選ばれた・生成されたカードの枚数。このカードの効果の中だけ。効果の順番で、カード操作より後ろに置く）'},
+  {key:'totalOpTargets', label:'カード操作の対象枚数の合計（このカードの、ここまでのカード操作すべて。このカードの効果の中だけ）'},
   {key:'tagCountHand', label:'手札内の指定タグ枚数'},
   {key:'tagCountPlayedThisTurn', label:'このターン使った指定タグ枚数'},
   {key:'tagCountDrawDiscard', label:'山札+捨て札内の指定タグ枚数（合計）'},
@@ -1985,11 +2280,14 @@ function scaleSourceValue(key, tag, actor){
     case 'combatExhausted': return ownPile ? (r.exhausted||[]).length : 0;
     case 'combatHitsTaken': return ownPile ? ((r.combatStats||{}).hitsTaken || 0) : 0;
     case 'combatTurn': return ownPile ? (r.turnNo || 0) : 0;
-    case 'tagCountHand': return ownPile && tag ? r.hand.filter(cid=>{ const c=cardById(cid); return c && c.tags && c.tags.includes(tag); }).length : 0;
+    case 'xValue': return ownPile ? (r.xValue || 0) : 0;
+    case 'lastOpTargets': return ownPile ? ((r._opX||{}).last || 0) : 0;
+    case 'totalOpTargets': return ownPile ? ((r._opX||{}).total || 0) : 0;
+    case 'tagCountHand': return ownPile && tag ? r.hand.filter(cid=>{ const c=cardById(cid); return c && cardHasTag(c,tag); }).length : 0;
     case 'tagCountPlayedThisTurn': return ownPile && tag ? (r.tagsPlayedThisTurn||[]).filter(t=>t===tag).length : 0;
     case 'selfTagStacks': return tag ? tagStacks(me, tag) : 0;
     case 'enemyTagStacks': return tag ? tagStacks(foe, tag) : 0;
-    case 'tagCountDrawDiscard': return ownPile && tag ? [...r.draw, ...r.discard].filter(cid=>{ const c=cardById(cid); return c && c.tags && c.tags.includes(tag); }).length : 0;
+    case 'tagCountDrawDiscard': return ownPile && tag ? [...r.draw, ...r.discard].filter(cid=>{ const c=cardById(cid); return c && cardHasTag(c,tag); }).length : 0;
     default: return 0;
   }
 }
@@ -2025,7 +2323,7 @@ const EFFECT_FIELD_DEFS = [
   {key:'heal', label:'自分のHP回復', max:99, desc:(v)=>`HPを${v}回復`},
   {key:'regen', label:'再生付与（自分、毎ターン開始時に回復、ターン数）', max:99, desc:(v)=>`自分に再生${v}`},
   {key:'loseHp', label:'自分へのダメージ（代償）', max:99, desc:(v)=>`自分に${v}ダメージ`},
-  {key:'hits', label:'発動回数（カード効果をこの回数分繰り返す）', max:10, min:1, default:1, showIf:(v)=>v>1, desc:(v)=>`${v}回発動`},
+  {key:'hits', label:'発動回数（即時効果をこの回数分繰り返す）', max:10, min:1, default:1, showIf:(v)=>v>1, desc:(v)=>`${v}回発動`},
 ];
 
 /* ============================= CUSTOM STATUSES ============================= */
@@ -2049,6 +2347,7 @@ const CUSTOM_STATUS_KINDS = [
   {key:'reflectDamage', label:'攻撃を受けた時に反射ダメージを与える（棘のように）'},
   {key:'skipTurn', label:'自分のターンを1回休む（麻痺のように、数値は無視）'},
   {key:'revive', label:'HPが0になったとき復活する（発動のたびにスタックを1消費。効果量が復活時のHP）'},
+  {key:'cardMod', label:'使うカードの効果を増減させる（指定タグのカードだけに働かせることもできる。効果量が増減する量）'},
   {key:'elDealtFlat', label:'属性攻撃の与ダメージに固定値を加算する（対象の属性を選ぶ。マイナス値で軽減）'},
   {key:'elDealtPct', label:'属性攻撃の与ダメージを％変化させる（対象の属性を選ぶ。マイナス値で軽減）'},
   {key:'elTakenFlat', label:'属性攻撃の被ダメージに固定値を加算する（対象の属性を選ぶ。マイナス値で軽減。ダメージが0の攻撃には加算されない）'},
@@ -2141,24 +2440,36 @@ function reduceTagStatuses(entity, tag, amount){
   });
   return total;
 }
+// タグの状態を amount だけ増やす。対象は「すでに持っている（1以上）、そのタグを持つ全状態」
+// （組み込みの状態＋カスタム状態。何も持っていなければ何も起きない）。カスタム状態は排他ルールを通す。増えた合計を返す。
+function increaseTagStatus(entity, tag, amount){
+  if(!entity || !tag || !(amount>0)) return 0;
+  let total = 0;
+  (BUILTIN_TAG_FIELDS[tag]||[]).forEach(f=>{ if((entity[f]||0)>0){ entity[f] += amount; total += amount; } });
+  (S.customStatuses||[]).forEach(st=>{
+    if(!(st.tags||[]).includes(tag) || customStatusStacks(entity, st.id)<=0) return;
+    total += grantCustomStatus(entity, st.id, amount);
+  });
+  return total;
+}
 function normalizeCardStatusOp(o){
   if(!o || typeof o!=='object' || !o.enabled) return {enabled:false};
   return {enabled:true, side:['self','opponent','both'].includes(o.side)?o.side:'self', tag:cleanTag(o.tag),
-    mode:o.mode==='reduce'?'reduce':'removeAll', amount:clampInt(o.amount,0,99,1), first:!!o.first};
+    mode:(o.mode==='reduce'||o.mode==='increase')?o.mode:'removeAll', amount:clampInt(o.amount,0,99,1), first:!!o.first};
 }
 function statusOpText(op){
   if(!op || !op.enabled || !op.tag) return '';
   const who = op.side==='opponent' ? '相手' : (op.side==='both' ? '自分と相手' : '自分');
-  const base = op.mode==='reduce' ? `${who}の[${op.tag}]の状態を${op.amount}減らす` : `${who}の[${op.tag}]の状態をすべて取り除く`;
+  const base = op.mode==='increase' ? `${who}の[${op.tag}]の状態を${op.amount}増やす` : op.mode==='reduce' ? `${who}の[${op.tag}]の状態を${op.amount}減らす` : `${who}の[${op.tag}]の状態をすべて取り除く`;
   return op.first ? base+'（付与より先）' : base;
 }
 // selfE＝このカードを使った側、foeE＝その相手
 function applyStatusOp(op, selfE, foeE, name){
   if(!op || !op.enabled || !op.tag) return;
-  const amt = op.mode==='reduce' ? Math.max(0, op.amount|0) : null;
+  const amt = op.mode==='removeAll' ? null : Math.max(0, op.amount|0);
   const targets = op.side==='both' ? [selfE, foeE] : (op.side==='opponent' ? [foeE] : [selfE]);
   let total = 0;
-  targets.forEach(t=>{ total += reduceTagStatuses(t, op.tag, amt); });
+  targets.forEach(t=>{ total += op.mode==='increase' ? increaseTagStatus(t, op.tag, amt) : reduceTagStatuses(t, op.tag, amt); });
   if(total>0) pushLog(`${name}: ${statusOpText(op)}（計${total}）。`);
 }
 function customStatusStacks(entity, statusId){
@@ -2265,6 +2576,34 @@ function customEffectsOn(entity, kind){
   });
   return out;
 }
+// ===== 使うカードの効果を増減させる状態（cardMod） =====
+// 使用するカードのコピーに、持ち主が持つ cardMod の増減を上乗せして返す。used は、実際に効果が出たものの一覧。
+// （元のカードやラン中のカード補正は書き換えない。使うたびに減る分は decayCardMods で、使用が終わってから減らす）
+function applyCardModsTo(c, entity){
+  if(!c || !entity) return {card:c, used:[]};
+  const list = customEffectsOn(entity, 'cardMod').filter(x=> x.eff.modField && (!x.eff.modTag || cardHasTag(c, x.eff.modTag)));
+  if(!list.length) return {card:c, used:[]};
+  const out = {...c}, used = [];
+  list.forEach(x=>{
+    const amt = Math.round(customStatusMagnitude(x.eff, x.stacks));
+    if(!amt) return;
+    const f = x.eff.modField;
+    const def = allEffectFieldDefs().find(d=>d.key===f);
+    const min = def && def.min!==undefined ? def.min : 0;
+    const base = out[f]!==undefined ? (Number(out[f])||0) : ((def && def.default) || 0);
+    out[f] = Math.max(min, base + amt);
+    used.push(x);
+  });
+  return {card: used.length ? out : c, used};
+}
+function decayCardMods(entity, used, who){
+  (used||[]).forEach(x=>{
+    if(!x.eff.decayOnUse) return;
+    const n = Math.max(1, x.eff.decayN||1);
+    addCustomStatusStacks(entity, x.st.id, -n);
+    pushLog(`${who}の${x.st.emoji||''}${x.st.name}が${n}減った（カードを使用）。`);
+  });
+}
 function customEffectSum(entity, kind){
   return customEffectsOn(entity, kind).reduce((sum,x)=> sum + customStatusMagnitude(x.eff, x.stacks), 0);
 }
@@ -2273,7 +2612,7 @@ function customEffectSum(entity, kind){
 function elemEffectMatches(eff, elems){
   if(!elems || !elems.length) return false;
   if(eff.element==='all' || !eff.element) return true;
-  return elems.includes(eff.element);
+  return elems.some(id=>elementMatchesSelector(id, eff.element));
 }
 // 攻撃（カードc）が実際に持つ属性ID配列。カード自身の属性に、攻撃する側(entity)の状態による「付与」を足し、
 // そのあと「取り除く」を適用する（付与→取り除くの順）。ダメージ計算・行動予告は必ずこれを使う。
@@ -2286,6 +2625,7 @@ function attackElements(entity, c){
   customEffectsOn(entity, 'elRemove').forEach(x=>{
     const id = x.eff.element;
     if(id==='all'){ out.length = 0; }
+    else if(id && id.startsWith('tag:')){ for(let i=out.length-1;i>=0;i--) if(elementMatchesSelector(out[i], id)) out.splice(i,1); }
     else if(id){ const i = out.indexOf(id); if(i>=0) out.splice(i,1); }
   });
   return out;
@@ -2495,29 +2835,43 @@ function allEffectFieldDefs(){ return EFFECT_FIELD_DEFS.concat(customStatusField
    the enemy as the actor instead of the player. */
 function resolveEnemyMoveEffects(r, e, c){
   const prior = (e.triggers||[]).slice();   // この行動より前に仕込まれていた構え
+  const mod = applyCardModsTo(c, e);   // 敵が持つ「使用カードの効果補正」状態
+  c = mod.card;
   logGroupBegin(`${e.name}：${cardIcon(c)}${c.name}`);
   resolveEnemyMoveBody(r, e, c);
+  decayCardMods(e, mod.used, e.name);
   // 「カードを使うたび」の構え：敵自身がカードを使ったときに発動（今使ったカードで仕込んだ構えは対象外）
   fireEnemyTriggers(r, 'cardUsed', {card: c}, prior);
   logGroupEnd();
 }
 function resolveEnemyMoveBody(r, e, c){
   // 仕込み（トリガー発動）のカードは、行動した時点では効果を出さず、きっかけを待つ
-  if(c.timing==='trigger'){
+  // 即時効果があれば先に出し、予約（構え）があればそのあとで構える
+  if(hasImmediate(c)) applyEnemyCardPayload(r, e, c);
+  if(hasTrigger(c)){
     e.triggers = e.triggers || [];
     e.triggers.push({
-      card: c,
+      card: triggerCardData(c),
       triggerOn: cleanTriggerOn(c.triggerOn),
-      every: triggerEveryOf(c), count: 0,
+      every: triggerCountEveryOf(c), count: 0,
       triggerTag: c.triggerTag || '',
       triggerBlocked: !!c.triggerBlocked,
       duration: triggerTurns(c)>0 ? 'turn' : 'combat',
       turnsLeft: triggerTurns(c)>0 ? triggerTurns(c) : undefined,
     });
     pushLog(`${e.name}は「${c.name}」の構えをとった（${triggerDurText(c)}）。`);
-    return;
   }
-  applyEnemyCardPayload(r, e, c);
+}
+// 敵のターン開始時に発動する構え（行動の直前。構えた次の行動から数える。戦闘開始時に構えた分は、最初の行動から数える）
+function fireEnemyTurnStartTriggers(r, e){
+  if(!e.triggers || !e.triggers.length) return;
+  e.triggers.slice().forEach(t=>{
+    if(!e.triggers.includes(t) || t.triggerOn!=='turnStart') return;
+    if(e.hp<=0 || r.player.hp<=0) return;
+    if(!triggerCountReady(t)) return;
+    pushLog(`${e.name}の「${t.card.name}」がターン開始時に発動！`);
+    applyEnemyCardPayload(r, e, t.card);
+  });
 }
 // 敵のカード効果の本体（行動時、および仕込みの発動時に使う）
 function applyEnemyCardPayload(r, e, c){
@@ -2616,7 +2970,7 @@ function fireEnemyTriggers(r, kind, info, list){
     if(t.triggerOn!==kind) return;
     if(e.hp<=0 || r.player.hp<=0) return;
     if(kind==='cardUsed'){
-      if(t.triggerTag && !((info.card && info.card.tags)||[]).includes(t.triggerTag)) return;
+      if(t.triggerTag && !cardHasTag(info.card, t.triggerTag)) return;
     } else {
       if(!(info.hpLoss>0 || (t.triggerBlocked && info.total>0))) return;
     }
@@ -2669,6 +3023,9 @@ const CARDOP_TYPES = [
   {key:'play', label:'コストを消費せず使用する'},
   {key:'grantBuff', label:'カードに効果を付与する'},
   {key:'costChange', label:'コストを増減する'},
+  {key:'captureEffect', label:'カードから効果を取得する（あとの「効果を付与」で、取得した効果を付与できる）'},
+  {key:'elementAdd', label:'カードに攻撃の属性を付与する'},
+  {key:'elementRemove', label:'カードから攻撃の属性を取り除く'},
   {key:'generateToHand', label:'カードを生成し、手札に加える'},
   {key:'generateToDraw', label:'カードを生成し、山札に加える'},
   {key:'generatePlay', label:'カードを生成し、コストを消費せず使用する'},
@@ -2676,9 +3033,14 @@ const CARDOP_TYPES = [
 ];
 const GENERATE_TYPES = ['generateToHand','generateToDraw','generatePlay','generateToEnemyDeck'];
 const ENEMY_ON_PLAYER_OPS = ['moveToHand','moveToDraw','moveToDiscard','costChange'];
+const NEW_PLAYER_ONLY_OPS = ['captureEffect','elementAdd','elementRemove'];   // 敵が使うときは効果なし
+// 消滅の期間: combat=この戦闘中（戦闘後に復活）／stay=永続（復活しない。デッキ一覧には残り、カード操作で戻せる）／destroy=デッキから完全に取り除く（従来の「永続」）
+const EXHAUST_MODES = [{key:'combat', label:'この戦闘中だけ（戦闘後に復活する）'},{key:'stay', label:'永続（戦闘後も復活しない。デッキには残り、カード操作で戻せる）'},{key:'destroy', label:'デッキから完全に取り除く'}];
+// 効果取得・付与の対象にできる効果欄（カード操作「効果付与」と同じ）
+const CAPTURE_ALL = '*';
 // Ops whose result normally only lasts for the current combat (reverted afterwards),
 // unless the op is flagged "permanent".
-const CARDOP_REVERTIBLE_TYPES = ['upgrade','duplicate','grantBuff','costChange','moveToExhausted','generateToHand','generateToDraw','generatePlay'];
+const CARDOP_REVERTIBLE_TYPES = ['upgrade','duplicate','grantBuff','costChange','elementAdd','elementRemove','moveToExhausted','generateToHand','generateToDraw','generatePlay'];
 const PILE_OPTIONS = [
   {key:'hand', label:'手札'},
   {key:'draw', label:'山札'},
@@ -2730,7 +3092,7 @@ function collectPileEntries(r, fromPileKey){
 }
 function collectGeneratePool(op){
     return S.cards.filter(c=>{
-    if(op.filterTag && !(c.tags && c.tags.includes(op.filterTag))) return false;
+    if(op.filterTag && !cardHasTag(c, op.filterTag)) return false;
     if(op.genPool==='exclusiveOnly') return isNonRewardCard(c);
     if(op.genPool==='normal') return !isNonRewardCard(c);
     return true; // 'any'
@@ -2740,6 +3102,8 @@ function collectGeneratePool(op){
 // grouped by pile and spliced highest-index-first so earlier indices stay valid.
 function removeEntries(r, entries){
   const byPile = {};
+  // 消滅札から出るカードは、「永続の消滅（復活しない）」の印を外す
+  if(r.permExhaustIids) entries.forEach(e=>{ if(e.pile==='exhausted'){ const t = splitInstanceId(e.rawId).iid; if(t) delete r.permExhaustIids[t]; } });
   entries.forEach(e=>{ if(e.pile) (byPile[e.pile] = byPile[e.pile]||[]).push(e.idx); });
   Object.keys(byPile).forEach(pileName=>{
     byPile[pileName].sort((a,b)=>b-a).forEach(i=> r[pileName].splice(i,1));
@@ -2812,7 +3176,7 @@ function resolveEnemyCardOp(r, op, done){
   }
 
   let entries = e.deck.map((d,i)=>({idx:i, d}));
-  if(op.filterTag) entries = entries.filter(x=>{ const c = cardById(x.d.cardId); return c && c.tags && c.tags.includes(op.filterTag); });
+  if(op.filterTag) entries = entries.filter(x=>{ const c = cardById(x.d.cardId); return c && cardHasTag(c, op.filterTag); });
   if(op.type==='upgrade') entries = entries.filter(x=>!isUpgradedInstanceId(x.d.cardId));
   let count = Math.min(entries.length, Math.max(0, rollCount(entries.length)));
   if(op.type==='moveToDiscard' || op.type==='moveToExhausted') count = Math.min(count, e.deck.length-1);
@@ -2862,9 +3226,51 @@ function withOpScales(op, actor){
   });
   return out;
 }
+// 追跡中のカード（インスタンスID）を、いまの山から探して、操作の対象の形（pile / idx / rawId）にする
+function findTrackedEntries(r, track){
+  const out = [];
+  const names = ['hand','draw','discard','exhausted','_selfPile'];
+  track.forEach(iid=>{
+    for(const pn of names){
+      const arr = r[pn]; if(!arr) continue;
+      const i = arr.findIndex(x=> splitInstanceId(x).iid===iid);
+      if(i>=0){ out.push({pile:pn, idx:i, rawId:arr[i]}); break; }
+    }
+  });
+  return out;
+}
+// 続けの操作を、並んでいる順に、同じ対象のカードへ行う。対象がもう見つからなければ、残りは放棄する。
+function runThenOps(r, thens, track, done){
+  let i = 0;
+  (function next(){
+    if(i>=thens.length || r.enemy.hp<=0 || r.player.hp<=0){ done(); return; }
+    const t = thens[i++];
+    const entries = findTrackedEntries(r, track);
+    if(!entries.length){ done(); return; }
+    resolveCardOp(r, {...t, enabled:true, then:[], _pre:entries}, next);
+  })();
+}
+// 枚数の元がX（直前のカード操作の対象枚数、またはその合計）のとき、いまのXから枚数を決める。固定数・プレイヤーが選ぶ、のときだけ。
+// 計算: floor(X × 倍率) ＋ 設定値（加算）。敵が使うときのXは0。反映後は countSource を外す（1枚ずつ選び直す処理などで二重に計算しないため）。
+function withOpX(r, op){
+  if(!op || !op.countSource || op.countSource==='value') return op;
+  if(op.countMode!=='fixed' && op.countMode!=='choose') return op;
+  const ox = r._opX || {};
+  const x = op.fromEnemy ? 0 : (op.countSource==='xTotal' ? (ox.total||0) : (ox.last||0));
+  const n = Math.max(0, Math.min(99, Math.floor(x * (op.xMult===undefined ? 1 : op.xMult)) + (op.countFixed|0)));
+  return {...op, countFixed:n, countSource:'value'};
+}
+// カード実体の補正の記録に、効果値を加算する（add）か、その値に上書きする（set）。数値以外（付与先 csT_ の文字列）は上書き。
+function grantToStore(rec, field, value, isSet){
+  if(typeof value==='string'){ rec[field] = value; return; }
+  if(isSet){ rec['='+field] = value; delete rec[field]; return; }
+  if(rec['='+field]!==undefined) rec['='+field] += value;   // すでに上書きされている欄は、その値に足す
+  else rec[field] = (rec[field]||0) + value;
+}
 function resolveCardOp(r, op, done){
   if(!op || !op.enabled){ done(); return; }
   op = withOpScales(op, op.fromEnemy ? 'enemy' : undefined);
+  op = withOpX(r, op);
   // レリックの「戦闘開始時にカードを使用する」: 指定のカードをコストなしで使う（山にも手札にも入らない）
   if(op.type==='useCardById'){
     const cc = cardById(op.cardId);
@@ -2872,7 +3278,7 @@ function resolveCardOp(r, op, done){
     if((r._autoPlayDepth||0) >= 4){ pushLog(`${cc.name}: 連鎖が深すぎるため発動を打ち切った。`); done(); return; }
     r._autoPlayDepth = (r._autoPlayDepth||0) + 1;
     pushLog(`「${cc.name}」をコストなしで使用した。`);
-    resolveCardPlayCore(r, cc, ()=>{ r._autoPlayDepth -= 1; done(); });
+    withXValue(r, 0, cb=>resolveCardPlayCore(r, cc, cb), ()=>{ r._autoPlayDepth -= 1; done(); });
     return;
   }
   // 「そのカード自身」: 使用中のカード（r._selfPile）だけが対象。1枚なので枚数・選択・絞り込みは使わない。
@@ -2883,8 +3289,15 @@ function resolveCardOp(r, op, done){
   }
   // 敵が使う「手札に移動／山札に加える／捨て札に移動」は、プレイヤーの山を対象にする（通常の処理で解決。
   // 枚数の決め方が「プレイヤーが選ぶ」なら、選択画面が出る）。それ以外は、敵自身のデッキに作用する。
+  if(op.fromEnemy && NEW_PLAYER_ONLY_OPS.includes(op.type)){ done(); return; }
   if(op.fromEnemy && ENEMY_ON_PLAYER_OPS.includes(op.type)) op = {...op, fromEnemy:false};
   else if(op.fromEnemy){ resolveEnemyCardOp(r, op, done); return; }
+  // 「続けて行う操作」: まず本体の操作を行い、選ばれた（生成された）カードをインスタンスIDで追跡して、同じカードに順に続けの操作を行う
+  if(op.then && op.then.length && !op._track){
+    const track = [];
+    resolveCardOp(r, {...op, then:[], _track:track}, ()=> runThenOps(r, op.then, track, done));
+    return;
+  }
   // The player never picks which card goes into the enemy's deck: "choose" acts as "fixed".
   if(op.type==='generateToEnemyDeck' && op.countMode==='choose') op = {...op, countMode:'fixed'};
 
@@ -2921,11 +3334,13 @@ function resolveCardOp(r, op, done){
     }
   }
 
+  // 続けの操作: 追跡中のカードがすでに決まっているので、選び直さずにそのまま処理する
+  if(op._pre){ finish(op._pre.slice()); return; }
   let entries = isGenerate ? collectGeneratePool(op) : collectPileEntries(r, op.fromPile || 'hand');
   if(!isGenerate && op.filterTag){
     entries = entries.filter(e=>{
       const cc = cardById(e.rawId);
-      return cc && cc.tags && cc.tags.includes(op.filterTag);
+      return cc && cardHasTag(cc, op.filterTag);
     });
   }
   if(op.type==='upgrade'){
@@ -2935,6 +3350,23 @@ function resolveCardOp(r, op, done){
 
   function finish(selected){
     if(selected.length===0){ done(); return; }
+    // 対象の枚数を記録する（このカードの効果の中で、あとの効果が参照増減の参照元「カード操作の対象枚数」として使える）
+    if(op._tally){ op._tally.n += selected.length; if(r._opX) r._opX.last = op._tally.n; }
+    // 付与量・コスト増減量を「設定値 × 対象の枚数」にする
+    if(op.valueMode==='targetCount' && (op.type==='grantBuff' || op.type==='costChange')){
+      const n = selected.length;
+      op = {...op, buffAmount:(op.buffAmount||0)*n, costDelta:(op.costDelta|0)*n};
+    }
+    // 続けの操作のために、対象のカードに安定したインスタンスIDを付けて控える（操作で山や位置が変わっても追跡できる）
+    if(op._track && !isGenerate){
+      selected.forEach(e=>{
+        if(!e.pile || !r[e.pile]) return;
+        const {cid, iid} = splitInstanceId(e.rawId);
+        const useIid = iid || newId();
+        if(!iid){ r[e.pile][e.idx] = withInstanceSuffix(cid, useIid); e.rawId = r[e.pile][e.idx]; }
+        op._track.push(useIid);
+      });
+    }
 
     // Added to the enemy's list of possible moves for the rest of this battle. The enemy
     // object is rebuilt for every battle, so nothing carries over. The move already
@@ -2953,6 +3385,7 @@ function resolveCardOp(r, op, done){
         if(!op.permanent) r.temporaryCardIids[iid] = true;
         return withInstanceSuffix(e.rawId, iid);
       });
+      if(op._track) newIds.forEach(id=>{ const t = splitInstanceId(id).iid; if(t) op._track.push(t); });
       if(op.type==='generateToHand'){
         r.hand.push(...newIds);
         pushLog(`${newIds.length}枚のカードを生成し、手札に加えた。`);
@@ -2977,7 +3410,7 @@ function resolveCardOp(r, op, done){
           nextGen(); return;
         }
         r._autoPlayDepth = (r._autoPlayDepth||0) + 1;
-        runWithSelfCard(r, rawId, cb=>resolveCardPlayCore(r, cc, cb), fin=>{
+        runWithSelfCard(r, rawId, cb=>withXValue(r, 0, cb2=>resolveCardPlayCore(r, cc, cb2), cb), fin=>{
           r._autoPlayDepth -= 1;
           if(fin){ if(cc.exhaust) r.exhausted.push(fin); else r.discard.push(fin); }
           nextGen();
@@ -3018,6 +3451,60 @@ function resolveCardOp(r, op, done){
       pushLog(`${selected.length}枚のカードを複製した${op.permanent?'（永続）':'（この戦闘中のみ）'}。`);
       done(); return;
     }
+    if(op.type==='captureEffect'){
+      // 選ばれたカードのうち、最後の1枚から効果を取得する（対象の山は動かさない）
+      const last = selected[selected.length-1];
+      const cc = last ? cardById(last.rawId) : null;
+      const fields = {};
+      if(cc){
+        const all = (op.captureFields||[CAPTURE_ALL]).includes(CAPTURE_ALL);
+        allEffectFieldDefs().forEach(def=>{
+          if(!all && !(op.captureFields||[]).includes(def.key)) return;
+          const dflt = def.default!==undefined ? def.default : 0;
+          const v = cc[def.key];
+          if(typeof v==='number' && v!==dflt){
+            fields[def.key] = v;
+            if(def._statusId){
+              if(['self','opponent','both'].includes(cc['csT_'+def._statusId])) fields['csT_'+def._statusId] = cc['csT_'+def._statusId];
+              if(typeof cc['csX_'+def._statusId]==='number' && cc['csX_'+def._statusId]) fields['csX_'+def._statusId] = cc['csX_'+def._statusId];
+            }
+          }
+        });
+      }
+      r._captured = {name: cc ? cc.name : '', fields};
+      pushLog(cc ? `「${cc.name}」から効果を取得した（${Object.keys(fields).filter(k=>!/^cs[TX]_/.test(k)).length}項目）。` : '取得できるカードがなかった。');
+      done(); return;
+    }
+    if(op.type==='elementAdd' || op.type==='elementRemove'){
+      const id = op.elementId || '';
+      if(op.type==='elementAdd' && !elementById(id)){ done(); return; }
+      if(op.type==='elementRemove' && !id){ done(); return; }
+      const store = op.permanent ? r.instanceBuffs : r.tempInstanceBuffs;
+      selected.forEach(e=>{
+        const {cid, iid} = splitInstanceId(e.rawId);
+        const useIid = iid || newId();
+        if(!store[useIid]) store[useIid] = {};
+        (store[useIid].__el = store[useIid].__el || []).push([op.type==='elementAdd' ? '+' : '-', id]);
+        r[e.pile][e.idx] = withInstanceSuffix(cid, useIid);
+      });
+      pushLog(`${selected.length}枚のカードの攻撃の属性${op.type==='elementAdd' ? `に「${elementName(id)}」を付与した` : `から${id==='all' ? 'すべて' : '「'+tipElementName(id)+'」'}を取り除いた`}${op.permanent?'（永続）':'（この戦闘中のみ）'}。`);
+      done(); return;
+    }
+    if(op.type==='grantBuff' && op.buffSource==='captured'){
+      const cap = r._captured;
+      const keys = cap ? Object.keys(cap.fields) : [];
+      if(!keys.length){ pushLog('付与する取得済みの効果がなかった。'); done(); return; }
+      const store = op.permanent ? r.instanceBuffs : r.tempInstanceBuffs;
+      selected.forEach(e=>{
+        const {cid, iid} = splitInstanceId(e.rawId);
+        const useIid = iid || newId();
+        if(!store[useIid]) store[useIid] = {};
+        keys.forEach(k=> grantToStore(store[useIid], k, cap.fields[k], op.buffMode==='set'));
+        r[e.pile][e.idx] = withInstanceSuffix(cid, useIid);
+      });
+      pushLog(`${selected.length}枚のカードに、取得した効果（${cap.name}）を${op.buffMode==='set'?'上書き':'加算'}で付与した${op.permanent?'（永続）':'（この戦闘中のみ）'}。`);
+      done(); return;
+    }
     if(op.type==='grantBuff'){
       const field = op.buffField; const amount = op.buffAmount||0;
       if(field && amount){
@@ -3026,7 +3513,7 @@ function resolveCardOp(r, op, done){
           const {cid, iid} = splitInstanceId(e.rawId);
           const useIid = iid || newId();
           if(!store[useIid]) store[useIid] = {};
-          store[useIid][field] = (store[useIid][field]||0) + amount;
+          grantToStore(store[useIid], field, amount, op.buffMode==='set');
           if(field.startsWith('cs_') && ['self','opponent'].includes(op.buffTarget)) store[useIid]['csT_'+field.slice(3)] = op.buffTarget;
           r[e.pile][e.idx] = withInstanceSuffix(cid, useIid);
         });
@@ -3068,7 +3555,7 @@ function resolveCardOp(r, op, done){
           nextPlay(); return;
         }
         r._autoPlayDepth = (r._autoPlayDepth||0) + 1;
-        runWithSelfCard(r, e.rawId, cb=>resolveCardPlayCore(r, cc, cb), fin=>{
+        runWithSelfCard(r, e.rawId, cb=>withXValue(r, 0, cb2=>resolveCardPlayCore(r, cc, cb2), cb), fin=>{
           r._autoPlayDepth -= 1;
           if(fin){ if(cc.exhaust) r.exhausted.push(fin); else r.discard.push(fin); }
           nextPlay();
@@ -3079,7 +3566,20 @@ function resolveCardOp(r, op, done){
     const destMap = {moveToHand:'hand', moveToDiscard:'discard', moveToDraw:'draw', moveToExhausted:'exhausted'};
     const dest = destMap[op.type];
     if(!dest){ done(); return; }
-    if(op.type==='moveToExhausted' && op.permanent){
+    if(op.type==='moveToExhausted' && op.exhaustMode==='stay'){
+      // 永続の消滅: 消滅札へ移し、戦闘が終わっても復活しない（デッキ一覧には残る。カード操作で戻せる）
+      r.permExhaustIids = r.permExhaustIids || {};
+      removeEntries(r, selected);
+      selected.forEach(e=>{
+        const {cid, iid} = splitInstanceId(e.rawId);
+        const useIid = iid || newId();
+        r.permExhaustIids[useIid] = true;
+        r.exhausted.push(withInstanceSuffix(cid, useIid));
+      });
+      pushLog(`${selected.length}枚のカードを消滅させた（永続：戦闘後も復活しない）。`);
+      done(); return;
+    }
+    if(op.type==='moveToExhausted' && op.exhaustMode==='destroy'){
       // Permanent exhaust: the card is destroyed for the rest of the run.
       removeEntries(r, selected);
       selected.forEach(e=>{
@@ -3174,7 +3674,7 @@ function orderedEffectIds(c, base, alias){
   return out;
 }
 
-function applyEffectValues(r, c){
+function applyEffectValues(r, c, onlyIds){
   // 戦闘前（最初のレリック選択など）は敵がまだいない。敵向けの効果は、受け皿の仮の敵に入れて捨てる。
   const P = r.player, E = r.enemy || {name:'敵', hp:1, maxHp:1, block:0, strength:0, dexterity:0, weak:0, vulnerable:0, poison:0, stun:0, thorns:0, customStatus:{}, triggers:[]};
   const val = k=> Math.max(0, (c[k]||0) + scaleBonus(c,k));
@@ -3293,7 +3793,23 @@ function applyEffectValues(r, c){
       if(!LOG_UNIFIED) pushLog(`${c.name}: ${def.desc(amt, c)}`);
     };
   });
-  orderedEffectIds(c, PLAYER_EFFECT_ORDER).forEach(id=>{ if(steps[id]) steps[id](); });
+  const stepIds = orderedEffectIds(c, PLAYER_EFFECT_ORDER);
+  (onlyIds ? stepIds.filter(id=>onlyIds.includes(id)) : stepIds).forEach(id=>{ if(steps[id]) steps[id](); });
+}
+// カードの効果の処理順（数値の効果と、カード操作 'op:<ID>'）。effectOrder に載っていない効果は従来の順で、カード操作は最後に付く。
+function opStepId(o, i){ return 'op:' + (o.id || ('#'+i)); }
+function orderedPlayerSteps(c){
+  const defaults = defaultEffectOrder(c, PLAYER_EFFECT_ORDER);
+  const opIds = cardOpsOf(c).map(opStepId);
+  const out = [];
+  (Array.isArray(c && c.effectOrder) ? c.effectOrder : []).forEach(id=>{
+    if(typeof id!=='string' || out.includes(id)) return;
+    if(id.startsWith('op:')){ if(opIds.includes(id)) out.push(id); }
+    else if(defaults.includes(id)) out.push(id);
+  });
+  defaults.forEach(k=>{ if(!out.includes(k)) out.push(k); });
+  opIds.forEach(k=>{ if(!out.includes(k)) out.push(k); });
+  return out;
 }
 
 // One repetition of a card's effect: its numeric effects plus its card-operation.
@@ -3301,11 +3817,31 @@ function applyCardEffectsOnce(r, c, done){
   // _effectDepth: いまカードの効果を解決している最中か。ドロー・捨て札移動の仕込みは、効果によるものだけ数える
   // （ターン開始時のドロー、カード使用後・ターン終了時の捨て札、敵の行動によるカード操作は数えない）。
   r._effectDepth = (r._effectDepth||0) + 1;
-  const fin = ()=>{ r._effectDepth -= 1; firePileTriggers(r, done); };
-  applyEffectValues(r, c);
+  // カード操作の対象枚数（X）: この効果の中で、直前に行ったカード操作の枚数と合計を、参照増減の参照元として使える
+  const prevOpX = r._opX; r._opX = {last:0, total:0};
+  const fin = ()=>{ r._opX = prevOpX; r._effectDepth -= 1; firePileTriggers(r, done); };
   const ops = cardOpsOf(c);
-  if(ops.length) resolveCardOps(r, ops, fin);
-  else fin();
+  if(!ops.length){ applyEffectValues(r, c); fin(); return; }
+  // 数値の効果とカード操作を、効果の順番どおりに1つずつ解決する（カード操作は選択待ちを挟むことがある）
+  const steps = orderedPlayerSteps(c);
+  let i = 0;
+  (function next(){
+    if(i>=steps.length || r.enemy.hp<=0 || r.player.hp<=0){ fin(); return; }
+    if(!steps[i].startsWith('op:')){
+      const group = [];
+      while(i<steps.length && !steps[i].startsWith('op:')) group.push(steps[i++]);
+      applyEffectValues(r, c, group);
+      next(); return;
+    }
+    const id = steps[i++];
+    const op = ops.find((o,k)=> opStepId(o,k)===id);
+    if(!op){ next(); return; }
+    const tally = {n:0};
+    resolveCardOp(r, {...op, _tally:tally}, ()=>{
+      r._opX.last = tally.n; r._opX.total += tally.n;
+      next();
+    });
+  })();
 }
 // カードの効果で、カードを引いた／捨て札に移した出来事を記録する（効果の解決中だけ）
 function notePileEvent(r, kind, rawIds){
@@ -3333,10 +3869,10 @@ function firePileTriggers(r, done){
       if(ti>=snapshot.length){ nextEvent(); return; }
       const t = snapshot[ti++];
       if(!r.activeTriggers.includes(t)){ nextTrig(); return; }
-      const tagOk = !t.triggerTag || ev.ids.some(id=>{ const cc = cardById(id); return cc && cc.tags && cc.tags.includes(t.triggerTag); });
+      const tagOk = !t.triggerTag || ev.ids.some(id=>{ const cc = cardById(id); return cc && cardHasTag(cc, t.triggerTag); });
       if(tagOk && triggerCountReady(t)){
         pushLog(`${t.cardData.name}: カードを${ev.kind==='drawn' ? '引いた' : '捨て札に移した'}ため発動。`);
-        applyCardEffects(r, t.cardData, nextTrig);
+        withXValue(r, t.xValue, cb=>applyCardEffects(r, t.cardData, cb), nextTrig);
       } else nextTrig();
     })();
   })();
@@ -3345,6 +3881,7 @@ function firePileTriggers(r, done){
 // 複数のカード操作を、並んでいる順に1つずつ解決する（選択画面が出る操作は、選び終わってから次へ）。
 function resolveCardOps(r, ops, done){
   let i = 0;
+  r._captured = null;   // 取得した効果は、このカードの操作の中だけで有効
   (function next(){
     if(i>=ops.length || (r.enemy && r.enemy.hp<=0) || r.player.hp<=0){ done(); return; }
     resolveCardOp(r, ops[i++], next);
@@ -3387,8 +3924,8 @@ function applyCardEffects(r, c, done){
 // reactions (relics, then previously registered card triggers) fire for it.
 function registerCardUse(r, c, done){
   r.cardsPlayedThisTurn = (r.cardsPlayedThisTurn||0) + 1;
-  { const cs = r.combatStats = r.combatStats || {played:0, tagsPlayed:[], drawn:0, discarded:0, hitsTaken:0}; cs.played++; if(c.tags && c.tags.length) cs.tagsPlayed = cs.tagsPlayed.concat(c.tags); }
-  if(c.tags && c.tags.length){ r.tagsPlayedThisTurn = (r.tagsPlayedThisTurn||[]).concat(c.tags); }
+  { const cs = r.combatStats = r.combatStats || {played:0, tagsPlayed:[], drawn:0, discarded:0, hitsTaken:0}; cs.played++; const et = effectiveCardTags(c); if(et.length) cs.tagsPlayed = cs.tagsPlayed.concat(et); }
+  { const et = effectiveCardTags(c); if(et.length) r.tagsPlayedThisTurn = (r.tagsPlayedThisTurn||[]).concat(et); }
   fireRelicTiming(r, 'onTagCardUsed', c);
   fireMatchingTriggers(r, c, done);
 }
@@ -3399,31 +3936,61 @@ function registerCardUse(r, c, done){
 // its effect. A card set to "trigger" timing only registers once; its hits multiply
 // the effect each time the trigger later fires.
 function resolveCardPlayCore(r, c, done){
-  if(c.timing === 'trigger'){
-    registerCardUse(r, c, ()=>{
-      r.activeTriggers.push({
-        triggerTag: c.triggerTag || '',
-        triggerOn: cleanTriggerOn(c.triggerOn),
-        every: triggerEveryOf(c), count: 0,
-        triggerBlocked: !!c.triggerBlocked,
-        duration: triggerTurns(c)>0 ? 'turn' : 'combat',
-        turnsLeft: triggerTurns(c)>0 ? triggerTurns(c) : undefined,
-        cardData: c,
-      });
-      pushLog(`${c.name}: 効果を仕込んだ（今後、${triggerWhenShort(c)}${triggerEveryOf(c)>1 ? `、${triggerEveryOf(c)}回に1回` : ''}発動。${triggerDurText(c)}）。`);
-      done();
+  // 使用するカードに、使用者が持つ「使用カードの効果補正」状態を上乗せする（使うたび減少するものは、使用が終わってから減らす）
+  const mod = applyCardModsTo(c, r.player);
+  c = mod.card;
+  const finishDone = ()=>{ decayCardMods(r.player, mod.used, 'あなた'); done(); };
+  // 予約（仕込み）の登録。発動時の効果は、予約側の発動回数（triggerHits）で繰り返す。コストは消費しない。
+  const registerTrigger = cb=>{
+    const onKind = cleanTriggerOn(c.triggerOn);
+    r.activeTriggers.push({
+      triggerTag: c.triggerTag || '',
+      triggerOn: onKind,
+      every: triggerCountEveryOf(c), count: 0,
+      armedTurn: r.turnNo || 0,
+      triggerBlocked: !!c.triggerBlocked,
+      duration: triggerTurns(c)>0 ? 'turn' : 'combat',
+      turnsLeft: triggerTurns(c)>0 ? triggerTurns(c) : undefined,
+      cardData: triggerCardData(c),
+      xValue: r.xValue || 0,
     });
+    const ev = triggerCountEveryOf(c);
+    pushLog(`${c.name}: 効果を仕込んだ（今後、${triggerWhenShort(c)}${onKind!=='turnStart' && ev>1 ? `、${ev}回に1回` : ''}発動。${triggerDurText(c)}）。`);
+    cb();
+  };
+  if(hasTrigger(c) && !hasImmediate(c)){
+    registerCardUse(r, c, ()=> registerTrigger(finishDone));
     return;
   }
   const uses = Math.max(1, (c.hits||1) + scaleBonus(c,'hits'));
   let use = 0;
+  const finish = ()=>{
+    // 即時＋予約: 即時効果を解決したあとで、同じカードから予約を登録する
+    if(hasTrigger(c) && r.enemy.hp>0 && r.player.hp>0) registerTrigger(finishDone);
+    else finishDone();
+  };
   (function nextUse(){
-    if(use>=uses || r.enemy.hp<=0 || r.player.hp<=0){ done(); return; }
+    if(use>=uses || r.enemy.hp<=0 || r.player.hp<=0){ finish(); return; }
     use++;
     registerCardUse(r, c, ()=>{
-      if(r.enemy.hp<=0 || r.player.hp<=0){ done(); return; }
+      if(r.enemy.hp<=0 || r.player.hp<=0){ finish(); return; }
       applyCardEffectsOnce(r, c, nextUse);
     });
+  })();
+}
+
+// 自分のターンの開始時に発動する予約。登録したターンは数えず、次のターンの開始から数える（Nターンごとなら、N回目の開始で発動）。
+function fireTurnStartTriggers(r, done){
+  const list = (r.activeTriggers||[]).filter(t=>t.triggerOn==='turnStart');
+  let i = 0;
+  (function next(){
+    if(i>=list.length || r.enemy.hp<=0 || r.player.hp<=0){ done(); return; }
+    const t = list[i++];
+    if(!r.activeTriggers.includes(t) || t.armedTurn===(r.turnNo||0)){ next(); return; }
+    if(triggerCountReady(t)){
+      pushLog(`${t.cardData.name}: ターン開始時に発動。`);
+      withXValue(r, t.xValue, cb=>applyCardEffects(r, t.cardData, cb), next);
+    } else next();
   })();
 }
 
@@ -3443,7 +4010,7 @@ function fireDamageTriggers(r, done){
       if(ti>=snapshot.length){ nextEvent(); return; }
       const t = snapshot[ti++];
       const ok = ev.hpLoss>0 || (t.triggerBlocked && ev.total>0);
-      if(ok && triggerCountReady(t)){ pushLog(`${t.cardData.name}: ダメージを受けて発動。`); applyCardEffects(r, t.cardData, nextTrig); }
+      if(ok && triggerCountReady(t)){ pushLog(`${t.cardData.name}: ダメージを受けて発動。`); withXValue(r, t.xValue, cb=>applyCardEffects(r, t.cardData, cb), nextTrig); }
       else nextTrig();
     })();
   })();
@@ -3459,8 +4026,8 @@ function fireMatchingTriggers(r, playedCard, done){
     if(idx>=snapshot.length){ done(); return; }
     const trig = snapshot[idx++];
     if(trig.triggerOn!=='cardUsed'){ next(); return; }
-    const tagOk = !trig.triggerTag || (playedCard.tags && playedCard.tags.includes(trig.triggerTag));
-    if(tagOk && triggerCountReady(trig)) applyCardEffects(r, trig.cardData, next);
+    const tagOk = !trig.triggerTag || cardHasTag(playedCard, trig.triggerTag);
+    if(tagOk && triggerCountReady(trig)) withXValue(r, trig.xValue, cb=>applyCardEffects(r, trig.cardData, cb), next);
     else next();
   })();
 }
@@ -3705,6 +4272,12 @@ function openEnemyModal(enemy, isNew){
       </div>
       <div class="field"><label>基礎HP（階層が進むと設定の割合で増加）</label><input type="number" id="em-hp" value="${en.baseHp}" min="1" max="999"></div>
       <div class="field"><label>出現の重み（同じ種別の中での出やすさ）</label><input type="number" id="em-weight" value="${en.weight||1}" min="1" max="20"></div>
+      <div class="row">
+        <div class="field"><label>出現する最小階層（1で制限なし）</label><input type="number" id="em-minfloor" value="${en.minFloor||1}" min="1" max="99"></div>
+        <div class="field"><label>出現する最小ラウンド（1で制限なし）</label><input type="number" id="em-minround" value="${en.minRound||1}" min="1" max="99"></div>
+      </div>
+      <div class="checkbox-field"><input type="checkbox" id="em-norepeat" ${en.noRepeat?'checked':''}><label for="em-norepeat">1度出現したら、同じラウンドでは出現しない</label></div>
+      <p class="hint">条件に合う敵がいないときは、「同じラウンドでは出ない」→「最小階層・最小ラウンド」の順に条件をゆるめて抽選します（敵が出なくなることはありません）。</p>
       <div class="section-label">所持デッキ</div>
       <p class="hint">プレイヤーと同じように、この敵は自分のターンにデッキから3枚を重み付きで引き、その3枚の中から重み付き確率で1枚を選んで使用します（毎ターン繰り返します）。既存のカードをそのまま使えます。ドロー・エネルギーは敵には効きません。カード操作は視点が反転し、敵自身のデッキに作用します（「敵のデッキに加える」だけはプレイヤーの山札に加わります）。</p>
       ${movePool.length===0 ? `<p class="hint">カードがありません。先にカード編集画面で作成してください。</p>` : ''}
@@ -4011,7 +4584,7 @@ function openEnemyModal(enemy, isNew){
   function modRowHTML(m, i){
     return `<div class="ev-eff" data-idx="${i}">
       <div class="ev-eff-head"><span>属性相性 ${i+1}</span><button type="button" class="ghost em-mod-del">削除</button></div>
-      <div class="ev-eff-grid"><div><label>属性</label><select data-f="element">${(S.elements||[]).map(x=>`<option value="${escapeHtml(x.id)}" ${x.id===m.element?'selected':''}>${escapeHtml((x.emoji||'')+' '+x.name)}</option>`).join('')}</select></div>
+      <div class="ev-eff-grid"><div><label>属性</label><select data-f="element">${(S.elements||[]).map(x=>`<option value="${escapeHtml(x.id)}" ${x.id===m.element?'selected':''}>${escapeHtml((x.emoji||'')+' '+x.name)}</option>`).join('')}${elementTagList().map(t=>`<option value="tag:${escapeHtml(t)}" ${m.element==='tag:'+t?'selected':''}>タグ「${escapeHtml(t)}」の属性すべて</option>`).join('')}</select></div>
         <div><label>被ダメージの増減（％）</label><input type="number" data-f="pct" value="${m.pct}" min="-100" max="500"></div></div>
     </div>`;
   }
@@ -4057,6 +4630,9 @@ function openEnemyModal(enemy, isNew){
       category: qs('#em-category',overlay).value,
       baseHp: clampInt(qs('#em-hp',overlay).value,1,999,30),
       weight: clampInt(qs('#em-weight',overlay).value,1,20,1),
+      minFloor: clampInt(qs('#em-minfloor',overlay).value,1,99,1),
+      minRound: clampInt(qs('#em-minround',overlay).value,1,99,1),
+      noRepeat: qs('#em-norepeat',overlay).checked,
       deck: en.deck.slice(),
       startEffect: {},
     };
@@ -4236,7 +4812,7 @@ function renderElementEditor(){
     </div>
     <p class="hint">攻撃ダメージに付ける「属性」を作ります（カード編集の「攻撃の属性」で選びます）。属性ごとに、エフェクトの色・絵文字と、特殊効果（吸血・貫通・ブロック破壊・ヒット時ブロック獲得・ヒット時の状態付与）を設定できます。敵ごとの弱点・耐性は、敵の編集画面で設定します。</p>
     <div class="section-label">属性一覧（${list.length}種）</div>
-    <div id="el-rows">${list.length ? list.map(el=>`<div class="ev-add" data-id="${escapeHtml(el.id)}" style="margin-bottom:6px;"><span style="flex:1; font-size:15px;">${el.color?`<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${el.color}; margin-right:6px;"></span>`:''}${escapeHtml(el.emoji||'')} ${escapeHtml(el.name)}${ELEMENT_PROP_DEFS.filter(d=> d.has ? d.has((el.props||{})[d.key]) : (el.props||{})[d.key]>0).map(d=>` <span class="hint" style="font-size:12px;">${escapeHtml(d.short((el.props||{})[d.key]))}</span>`).join('')}</span>
+    <div id="el-rows">${list.length ? list.map(el=>`<div class="ev-add" data-id="${escapeHtml(el.id)}" style="margin-bottom:6px;"><span style="flex:1; font-size:15px;">${el.color?`<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${el.color}; margin-right:6px;"></span>`:''}${escapeHtml(el.emoji||'')} ${escapeHtml(el.name)}${(el.tags&&el.tags.length)?` <span class="hint" style="font-size:12px;">[${el.tags.map(escapeHtml).join(', ')}]</span>`:''}${ELEMENT_PROP_DEFS.filter(d=> d.has ? d.has((el.props||{})[d.key]) : (el.props||{})[d.key]>0).map(d=>` <span class="hint" style="font-size:12px;">${escapeHtml(d.short((el.props||{})[d.key]))}</span>`).join('')}</span>
       <button type="button" class="el-edit">編集</button><button type="button" class="el-dup">複製</button><button type="button" class="el-del">削除</button></div>`).join('') : '<p class="hint">属性がありません。</p>'}</div>
     <div style="margin-top:12px;"><button type="button" class="primary" id="el-new">＋ 属性を追加</button></div>
   </div>`;
@@ -4272,6 +4848,7 @@ function openElementModal(el, isNew){
     <div class="field"><label>エフェクトの絵文字（この属性の攻撃を受けたときに光の中に出る。空欄ならなし）</label><input type="text" id="elm-emoji" value="${escapeHtml(e.emoji||'')}" maxlength="4"></div>
     <div class="checkbox-field"><input type="checkbox" id="elm-usecolor" ${e.color?'checked':''}><label for="elm-usecolor">エフェクトの色を指定する（オフなら、通常ダメージの色）</label></div>
     <div class="field"><input type="color" id="elm-color" value="${e.color||'#E04848'}" style="width:100%; height:38px; padding:2px;"></div>
+    <div class="field"><label>タグ（カンマ区切り。状態の「属性を強化／耐性」の対象を、タグでまとめて指定できます）</label><input type="text" id="elm-tags" value="${escapeHtml((e.tags||[]).join(', '))}" placeholder="例: 火属性"></div>
     <div class="section-label">特殊効果</div>
     ${ELEMENT_PROP_DEFS.map(def=> def.type==='list'
       ? `<div class="field"><label>${escapeHtml(def.label)}</label><div id="elm-list-${def.key}"></div><button type="button" class="ghost" id="elm-listadd-${def.key}">＋ 追加</button><p class="hint">${escapeHtml(def.hint)}</p></div>`
@@ -4302,7 +4879,7 @@ function openElementModal(el, isNew){
       const v = clampInt(qs('#elm-prop-'+def.key,overlay).value, def.min, def.max, 0);
       if(v>0) props[def.key] = v; else delete props[def.key];
     });
-    const updated = {...e, name, props, color: qs('#elm-usecolor',overlay).checked ? qs('#elm-color',overlay).value : '', emoji: (qs('#elm-emoji',overlay).value||'').trim().slice(0,4)};
+    const updated = {...e, name, props, tags: parseTags(qs('#elm-tags',overlay).value), color: qs('#elm-usecolor',overlay).checked ? qs('#elm-color',overlay).value : '', emoji: (qs('#elm-emoji',overlay).value||'').trim().slice(0,4)};
     if(isNew) S.elements.push(updated); else S.elements = S.elements.map(x=> x.id===updated.id ? updated : x);
     saveElements(S.elements); overlay.remove(); renderElementEditor();
   };
@@ -4318,6 +4895,7 @@ function newStatusEffect(kind){
   if(ELEMENT_KINDS.includes(kind)) e.element = 'all';
   if(ELEMENT_ATTACH_KINDS.includes(kind)) e.element = ((S.elements||[])[0]||{}).id || '';
   if(kind==='revive'){ e.reviveUnit = 'percent'; e.magnitudeValue = 30; }
+  if(kind==='cardMod'){ e.modField = 'damage'; e.modTag = ''; e.decayOnUse = false; e.decayN = 1; }
   return e;
 }
 function statusEffectLabel(kind){
@@ -4363,7 +4941,7 @@ function statusEffectFormHTML(eff, i){
     body = `<div class="field"><label>${isGrant ? '付与する属性' : '取り除く属性'}</label><select ${at} data-f="element">
       ${isGrant ? '' : `<option value="all" ${eff.element==='all'?'selected':''}>すべての属性</option>`}
       <option value="" ${!eff.element?'selected':''} ${isGrant?'':'hidden'}>（選んでください）</option>
-      ${(S.elements||[]).map(x=>`<option value="${escapeHtml(x.id)}" ${eff.element===x.id?'selected':''}>${escapeHtml(x.name)}</option>`).join('')}</select></div>
+      ${isGrant ? (S.elements||[]).map(x=>`<option value="${escapeHtml(x.id)}" ${eff.element===x.id?'selected':''}>${escapeHtml(x.name)}</option>`).join('') : elementSelectorOptionsHTML(eff.element, false, '')}</select></div>
       <p class="hint">${isGrant
         ? 'この状態を持っている間（スタック1以上）、持ち主が使う攻撃カードに、この属性が加わります。プレイヤーが持てば自分の攻撃、敵が持てば敵の攻撃が対象です。ダメージ計算・行動予告・ログに反映されます。'
         : 'この状態を持っている間（スタック1以上）、持ち主が使う攻撃から、この属性が外れます。「付与」のあとに処理するので、付与した属性も消せます。属性がなくなった攻撃には、属性補正が働きません。'}
@@ -4371,10 +4949,16 @@ function statusEffectFormHTML(eff, i){
   } else if(ELEMENT_KINDS.includes(eff.kind)){
     const isPct = eff.kind==='elDealtPct' || eff.kind==='elTakenPct';
     body = `<div class="field"><label>対象の属性</label><select ${at} data-f="element">
-      <option value="all" ${(!eff.element||eff.element==='all')?'selected':''}>全属性（属性を持つ攻撃すべてに加算）</option>
-      ${(S.elements||[]).map(x=>`<option value="${escapeHtml(x.id)}" ${eff.element===x.id?'selected':''}>${escapeHtml(x.name)}</option>`).join('')}</select></div>
+      ${elementSelectorOptionsHTML(eff.element, true, '全属性（属性を持つ攻撃すべてに加算）')}</select></div>
       ${magHTML(isPct ? '変化率（％。マイナスで軽減、プラスで増加。固定値、または1スタックあたりの係数）' : '加算するダメージ（マイナスで軽減。固定値、または1スタックあたりの係数）')}
       <p class="hint">「全属性」の効果は、攻撃が持つ属性ごとの補正に加算されます（掛け算ではありません）。属性を持たない攻撃には働きません。計算の位置は、与ダメージは強化・弱体と同じ段階、被ダメージは脆弱と同じ段階です。</p>`;
+  } else if(eff.kind==='cardMod'){
+    body = `${magHTML('増減させる量（マイナスで減少。固定値、または1スタックあたりの係数）')}
+      <div class="field"><label>増減させる効果</label><select ${at} data-f="modField">${allEffectFieldDefs().map(def=>`<option value="${escapeHtml(def.key)}" ${eff.modField===def.key?'selected':''}>${escapeHtml(def.label)}</option>`).join('')}</select></div>
+      <div class="field"><label>この効果を出すカードのタグ（指定したタグのカードを使うときだけ働く。空欄なら、すべてのカード）</label><input type="text" ${at} data-f="modTag" value="${escapeHtml(eff.modTag||'')}"></div>
+      <label style="display:block; margin:6px 0;"><input type="checkbox" ${at} data-f="decayOnUse" ${eff.decayOnUse?'checked':''}> カードを使うたびにスタックを減らす（効果が出た使用だけ。タグを指定した場合は、そのタグのカードを使ったときだけ）</label>
+      <div class="ev-eff-grid"><div><label>1回の使用で減らすスタック数</label><input type="number" ${at} data-f="decayN" data-num="1" value="${eff.decayN||1}" min="1" max="99"></div></div>
+      <p class="ev-hint">状態を持っている本人（プレイヤーでも敵でも）が使うカードの、選んだ効果の値に上乗せします（元のカードは変わりません）。手札で表示されるカードの数字には反映されず、使ったときに働きます。使ったカードが予約（仕込み）なら、仕込んだ時点の値が発動のたびに使われます。複数の状態から同時に上乗せされる場合は、それぞれ別々に判定して減らします。「使うたびに減らす」は、タグが合わず効果が出なかった使用では減りません。</p>`;
   } else if(eff.kind!=='cardOp'){
     body = magHTML('効果量（固定値、または1スタックあたりの係数）');
   } else {
@@ -4427,13 +5011,6 @@ function openStatusModal(status, isNew){
       <div class="field"><input type="color" id="sm-color" value="${st.color||'#D4A73E'}" style="width:100%; height:38px; padding:2px;"></div>
       <div class="field"><label>タグ（カンマ区切りで複数入力可）</label><input type="text" id="sm-tags" value="${escapeHtml((st.tags||[]).join(', '))}" placeholder="例: 強化">
         <p class="hint">タグ「強化」を付けると、強化と同類として扱われ、カードの「敵の強化を減少させる」の影響を受けます。カードの「参照増減」では、参照元に「自分／敵の指定タグの状態スタック数（合計）」を選び、参照タグに同じタグを入れると、同じタグを持つ複数の状態の合計に反応させられます（組み込みの強化・器用・弱体・脆弱・毒・再生・麻痺・自動ブロック・棘も、同名のタグとして数えます）。</p></div>
-      <div class="section-label">排他（付与のときの、他の状態との共存ルール）</div>
-      <div class="field"><label>① 付与する前に、これらのタグの状態をすべて取り除く（カンマ区切り）</label><input type="text" id="sm-excl-overwrite" value="${escapeHtml((st.exclOverwrite||[]).join(', '))}" placeholder="例: 属性, 脆弱"></div>
-      <div class="field"><label>② これらのタグの状態が付与されている間は、自分を付与しない（カンマ区切り）</label><input type="text" id="sm-excl-yield" value="${escapeHtml((st.exclYield||[]).join(', '))}" placeholder="例: 強化">
-        <p class="hint">組み込みの強化・器用・弱体・脆弱・毒・再生・麻痺・自動ブロック・棘も、同名のタグとして指定できます（永続の強化・器用などは①の取り除きの対象外）。自分自身のタグは数えないので、全部の状態に同じタグを付けて、自分にも同じタグを指定しても、同じ状態は重ね掛けできます。判定は付与のときだけで、ターンごとの増減では働きません。②は①より先に判定します。</p></div>
-      <div class="field"><label>③ これらのタグの状態が後から付与されたら、自分が消える（カンマ区切り）</label><input type="text" id="sm-excl-replaced" value="${escapeHtml((st.exclReplaced||[]).join(', '))}" placeholder="例: 属性"></div>
-      <div class="field"><label>④ 自分がいる間、これらのタグの状態の付与を無効にする（カンマ区切り）</label><input type="text" id="sm-excl-guard" value="${escapeHtml((st.exclGuard||[]).join(', '))}" placeholder="例: 脆弱">
-        <p class="hint">③④は、組み込みの状態（強化・弱体・脆弱など）が付与されるときにも働きます。例: ④に「脆弱」を入れると、この状態がある間は脆弱を受けません。複数が重なるときの判定の順は、④（守る）→②（先着に負ける）→①（上書きする）→付与→③（後から上書きされる）です。</p></div>
       <div class="field"><label>標準の付与先（カードでは、カードごとに「自分に／相手に」を変更できます。レリック・イベント・敵の戦闘開始時効果は、この設定に従います）</label>
         <select id="sm-target">
           <option value="self" ${st.target==='self'?'selected':''}>自分</option>
@@ -4448,6 +5025,13 @@ function openStatusModal(status, isNew){
       <div id="sm-effects"></div>
       <div class="ev-add"><select id="sm-addkind">${addOptions.map(o=>`<option value="${o.key}">${escapeHtml(o.label)}</option>`).join('')}</select><button type="button" id="sm-addbtn">＋ 効果を追加</button></div>
       <div class="ev-add" style="margin-top:6px;"><button type="button" id="sm-addop" style="flex:1;">＋ カード操作を追加（手札を捨てさせる・カードを生成する など）</button></div>
+      <div class="section-label">排他（付与のときの、他の状態との共存ルール）</div>
+      <div class="field"><label>① 付与する前に、これらのタグの状態をすべて取り除く（カンマ区切り）</label><input type="text" id="sm-excl-overwrite" value="${escapeHtml((st.exclOverwrite||[]).join(', '))}" placeholder="例: 属性, 脆弱"></div>
+      <div class="field"><label>② これらのタグの状態が付与されている間は、自分を付与しない（カンマ区切り）</label><input type="text" id="sm-excl-yield" value="${escapeHtml((st.exclYield||[]).join(', '))}" placeholder="例: 強化">
+        <p class="hint">組み込みの強化・器用・弱体・脆弱・毒・再生・麻痺・自動ブロック・棘も、同名のタグとして指定できます（永続の強化・器用などは①の取り除きの対象外）。自分自身のタグは数えないので、全部の状態に同じタグを付けて、自分にも同じタグを指定しても、同じ状態は重ね掛けできます。判定は付与のときだけで、ターンごとの増減では働きません。②は①より先に判定します。</p></div>
+      <div class="field"><label>③ これらのタグの状態が後から付与されたら、自分が消える（カンマ区切り）</label><input type="text" id="sm-excl-replaced" value="${escapeHtml((st.exclReplaced||[]).join(', '))}" placeholder="例: 属性"></div>
+      <div class="field"><label>④ 自分がいる間、これらのタグの状態の付与を無効にする（カンマ区切り）</label><input type="text" id="sm-excl-guard" value="${escapeHtml((st.exclGuard||[]).join(', '))}" placeholder="例: 脆弱">
+        <p class="hint">③④は、組み込みの状態（強化・弱体・脆弱など）が付与されるときにも働きます。例: ④に「脆弱」を入れると、この状態がある間は脆弱を受けません。複数が重なるときの判定の順は、④（守る）→②（先着に負ける）→①（上書きする）→付与→③（後から上書きされる）です。</p></div>
       <p class="hint">カード操作は、この状態を持っている側のデッキへ、ターン開始時（手札を引いた後）に行われます。敵が持つ場合は視点が反転し、敵自身のデッキへ作用します（「敵のデッキに加える」だけはプレイヤーの山札）。いくつでも追加できます。</p>
       <div class="modal-actions">
         <button class="ghost" id="sm-cancel">キャンセル</button>
@@ -4571,6 +5155,21 @@ function openRelicModal(relic, isNew){
         <div class="field"><label>出現率の上昇（%）</label><input type="number" id="rm-favorpct" value="${rel.favorPct||0}" min="0" max="1000"></div>
       </div>
       <p class="hint">カード報酬・ショップで、このタグのカードが出やすくなります。下の「効果」とは別に、持っている間ずっと働きます（例: 50%で、重みが1.5倍）。</p>
+      <div class="section-label">所持中の効果（マップ・報酬・ショップ。持っている間、働きます）</div>
+      ${RELIC_PASSIVE_FIELDS.map(f=>`<div class="field"><label>${f.label}</label><input type="number" id="rm-eff-${f.key}" value="${rel.effect[f.key]||0}" min="0" max="${f.max}"></div>`).join('')}
+      <div class="section-label">回数制限（このレリックそのもの）</div>
+      <div class="checkbox-field"><input type="checkbox" id="rm-limited" ${rel.useLimit>0?'checked':''}><label for="rm-limited">発動ごとに回数を消費する（チェックなしは、これまでどおり、ずっと働きます）</label></div>
+      <div id="rm-limit-fields" style="${rel.useLimit>0?'':'display:none;'}">
+        <div class="row">
+          <div class="field"><label>回数</label><input type="number" id="rm-uselimit" value="${rel.useLimit||1}" min="1" max="99"></div>
+          <div class="field"><label>回数が戻るタイミング</label><select id="rm-usescope">${Object.keys(RELIC_SCOPE_LABELS).map(k=>`<option value="${k}" ${(rel.useScope||'run')===k?'selected':''}>${RELIC_SCOPE_LABELS[k]}</option>`).join('')}</select></div>
+        </div>
+        <p class="hint">レリックが1回働くごとに、回数を1つ使います。回数がなくなると、そのレリックは働きません（持ったままです）。「1回働く」とは、次のことです。<br>
+        ・戦闘開始時／ターン開始時／戦闘終了時／指定タグのカード使用時の効果: 発動するたびに1回。<br>
+        ・マップ・報酬・ショップの効果: 実際に使ったときに1回（つながっていないマスを選ぶ・？に入る・報酬の候補を作る・店に入る）。1つのレリックの複数の効果は、同時に使えば1回です。<br>
+        ・入手時の効果: もともと1回だけなので、回数は使いません。</p>
+      </div>
+      <div class="field"><label>ショップでの価格（0で、設定の標準価格）</label><input type="number" id="rm-shopprice" value="${rel.shopPrice||0}" min="0" max="9999"></div>
       <div class="section-label" id="rm-effect-label">${timing==='onPickup' ? '効果（入手時に一度だけ適用）' : '効果（このタイミングになるたび発動）'}</div>
       <p class="hint" id="rm-hint" style="margin-bottom:8px;${relicTimingHint(timing)?'':'display:none;'}">${relicTimingHint(timing)}</p>
       <div id="rm-effect-fields">${relicEffectFieldsHTML(timing, rel.effect)}</div>
@@ -4588,6 +5187,7 @@ function openRelicModal(relic, isNew){
   </div>`);
   document.body.appendChild(overlay);
   qs('#rm-cancel',overlay).onclick = ()=> overlay.remove();
+  qs('#rm-limited',overlay).onchange = ()=>{ qs('#rm-limit-fields',overlay).style.display = qs('#rm-limited',overlay).checked ? 'block' : 'none'; };
   let useCardIds = Array.isArray(rel.useCardIds) ? rel.useCardIds.filter(id=>!!cardById(id)) : [];
   const renderUseCards = ()=>{
     qs('#rm-usecards-list',overlay).innerHTML = useCardIds.length
@@ -4618,6 +5218,9 @@ function openRelicModal(relic, isNew){
       favorTag: cleanTag(qs('#rm-favortag',overlay).value),
       favorPct: clampInt(qs('#rm-favorpct',overlay).value,0,1000,0),
       startingCount: clampInt(qs('#rm-startcount',overlay).value,0,9,0),
+      useLimit: qs('#rm-limited',overlay).checked ? clampInt(qs('#rm-uselimit',overlay).value,1,99,1) : 0,
+      useScope: qs('#rm-usescope',overlay).value,
+      shopPrice: clampInt(qs('#rm-shopprice',overlay).value,0,9999,0),
       useCardIds: t==='combatStart' ? useCardIds.slice() : [],
       effect: {},
     };
@@ -4625,6 +5228,7 @@ function openRelicModal(relic, isNew){
       const input = qs(`#rm-eff-${def.key}`,overlay);
       if(input) updated.effect[def.key] = clampInt(input.value,0,def.max||99,0);
     });
+    RELIC_PASSIVE_FIELDS.forEach(f=>{ const input = qs(`#rm-eff-${f.key}`,overlay); if(input) updated.effect[f.key] = clampInt(input.value,0,f.max,0); });
     if(isNew){ S.relics.push(updated); }
     else{ S.relics = S.relics.map(x=> x.id===updated.id? updated : x); }
     saveRelics(S.relics);
@@ -4649,7 +5253,9 @@ function openCardModal(card, isNew){
             <option value="power" ${c.type==='power'?'selected':''}>パワー</option>
           </select>
         </div>
-        <div class="field"><label>コスト</label><input type="number" id="m-cost" value="${c.cost}" min="0" max="6"></div>
+        <div class="field"><label>コスト</label><input type="number" id="m-cost" value="${c.cost}" min="0" max="6" ${c.costMode==='x'?'disabled':''}>
+          <div class="checkbox-field"><input type="checkbox" id="m-costx" ${c.costMode==='x'?'checked':''}><label for="m-costx">Xコスト（使うとエネルギーをすべて消費し、その値Xを効果に使う。エネルギー0では使えない）</label></div>
+          <p class="hint">Xは、効果の「参照増減」の参照元「X」で使います（例: ダメージ＝X×6、ヒット数＝X）。仕込み（予約）のカードも、使用時のXを発動時に引き継ぎます。強化のコスト増減はXカードには働きません。</p></div>
       </div>
       <div class="row">
         <div class="field"><label>レアリティ</label>
@@ -4666,21 +5272,19 @@ function openCardModal(card, isNew){
       </div>
       <div class="field"><label>アップグレード時のコスト変化</label><input type="number" id="m-costdelta" value="${(c.upgrades&&c.upgrades.costDelta)||0}" min="-6" max="6"></div>
       <div class="section-label">発動タイミング（カードの効果全体に適用）</div>
-      <div class="field"><label>発動タイミング</label>
-        <select id="m-timing">
-          <option value="immediate" ${(!c.timing||c.timing==='immediate')?'selected':''}>即時発動</option>
-          <option value="trigger" ${c.timing==='trigger'?'selected':''}>トリガー発動（後で指定タグのカードを使うたび）</option>
-        </select>
-      </div>
-      <div id="timing-trigger-fields" style="${c.timing==='trigger'?'':'display:none;'}">
+      <div class="checkbox-field"><input type="checkbox" id="m-immediate" ${hasImmediate(c)?'checked':''}><label for="m-immediate">即時発動する（使ったときに効果を出す。繰り返す回数は、下の効果欄の「発動回数」）</label></div>
+      <div class="checkbox-field"><input type="checkbox" id="m-trigger-on" ${hasTrigger(c)?'checked':''}><label for="m-trigger-on">予約（仕込み）する（使ったあとも、下の条件で同じ効果が発動する）</label></div>
+      <p class="hint">両方にチェックすると、即時効果を出したあとで予約を仕込みます。予約が発動するときは、コスト（Xコストも）を消費せず、使ったときに支払ったXの値を使います。どちらも外した場合は、即時発動になります。</p>
+      <div id="timing-trigger-fields" style="${hasTrigger(c)?'':'display:none;'}">
         <div class="field"><label>発動のきっかけ</label>
           <select id="m-triggeron">
             <option value="cardUsed" ${cleanTriggerOn(c.triggerOn)==='cardUsed'?'selected':''}>指定タグのカードを使うたび</option>
             <option value="damaged" ${c.triggerOn==='damaged'?'selected':''}>敵の攻撃でダメージを受けるたび</option>
             <option value="drawn" ${c.triggerOn==='drawn'?'selected':''}>カードの効果でカードを引いたとき</option>
             <option value="discarded" ${c.triggerOn==='discarded'?'selected':''}>カードの効果でカードが捨て札に移ったとき</option>
+            <option value="turnStart" ${c.triggerOn==='turnStart'?'selected':''}>自分のターンの開始時（毎ターン／Nターンごと）</option>
           </select></div>
-        <div id="trigger-cardused-fields" style="${c.triggerOn==='damaged'?'display:none;':''}">
+        <div id="trigger-cardused-fields" style="${(c.triggerOn==='damaged'||c.triggerOn==='turnStart')?'display:none;':''}">
           <div class="field"><label id="m-triggertag-label">${triggerTagLabelText(c.triggerOn)}</label><input type="text" id="m-triggertag" value="${c.triggerTag||''}"></div>
           <p class="hint" id="m-trigger-hint">${triggerKindHint(c.triggerOn)}</p>
         </div>
@@ -4688,9 +5292,19 @@ function openCardModal(card, isNew){
           <div class="checkbox-field"><input type="checkbox" id="m-triggerblocked" ${c.triggerBlocked?'checked':''}><label for="m-triggerblocked">ブロックで全部防いだ攻撃でも発動する（OFFなら、HPが減ったときだけ）</label></div>
           <p class="hint">攻撃1回（多段攻撃なら1ヒット）ごとに発動します。毒や棘など、攻撃以外のダメージでは発動しません。敵が使った場合は、「その敵がプレイヤーの攻撃でダメージを受けるたび」に発動します。持続期間「このターンのみ」は、次の自分のターンの開始までです。</p>
         </div>
-        <div class="field"><label>何回ごとに発動するか（1または空欄で、条件を満たすたび毎回）</label>
+        <div id="trigger-turn-fields" style="${c.triggerOn==='turnStart'?'':'display:none;'}">
+          <div class="field"><label>何ターンごとに発動するか（1または空欄で、毎ターン）</label>
+            <input type="number" id="m-turninterval" value="${turnIntervalOf(c)>1?turnIntervalOf(c):''}" min="1" max="99" placeholder="1（毎ターン）">
+          </div>
+          <p class="hint">${triggerKindHint('turnStart')}</p>
+        </div>
+        <div class="field" id="trigger-every-field" style="${c.triggerOn==='turnStart'?'display:none;':''}"><label>何回ごとに発動するか（1または空欄で、条件を満たすたび毎回）</label>
           <input type="number" id="m-triggerevery" value="${triggerEveryOf(c)>1?triggerEveryOf(c):''}" min="1" max="99" placeholder="1（毎回）">
-          <p class="hint">たとえば3なら、上の条件を満たした3回目・6回目・9回目…に発動します。数えるのは条件を満たした出来事だけです（タグが合わないカードや、HPが減らなかった攻撃などは数えません）。仕込んだあとから数え始め、仕込みが切れるか、戦闘が終わると数え直しになります。</p>
+          <p class="hint">たとえば3なら、上の条件を満たした3回目・6回目・9回目…に発動します。数えるのは条件を満たした出来事だけです（タグが合わないカードや、HPが減らなかった攻撃などは数えません）。「引いたとき」「捨て札に移ったとき」では、カード1枚を1回として数えます。仕込んだあとから数え始め、仕込みが切れるか、戦闘が終わると数え直しになります。</p>
+        </div>
+        <div class="field"><label>予約の発動回数（予約が発動するたびに、効果をこの回数分繰り返す）</label>
+          <input type="number" id="m-triggerhits" value="${triggerHitsOf(c)}" min="1" max="99">
+          <p class="hint">即時効果の回数（効果欄の「発動回数」）とは別に設定します。</p>
         </div>
         <div class="field"><label>有効ターン数（0または空欄で、この戦闘中ずっと）</label>
           <input type="number" id="m-durturns" value="${triggerTurns(c)||''}" min="0" max="99" placeholder="0（この戦闘中ずっと）">
@@ -4801,7 +5415,7 @@ function openCardModal(card, isNew){
       <p class="hint" style="margin-bottom:8px;">操作は複数つけられます。並んでいる順に、効果のあとで1つずつ実行します（選択画面が出る操作は、選び終えてから次へ進みます）。対象の山に「そのカード自身」を選ぶと、使用中のこのカードが対象になります（捨て札や消滅に行く前に処理され、「捨て札に移動」以外なら使用後の行き先を上書きします。例: 山札に戻す・手札に戻す・消滅・強化・コスト増減）。仕込みの発動時と、敵が使うときは「そのカード自身」は効果なしです。<br>このカードを敵が使った場合、視点が反転します。「敵のデッキに加える」はプレイヤーの山札に加わり（この戦闘中のみ）、「手札に移動／山札に加える／捨て札に移動／コスト増減」はプレイヤーの山が対象です。そのほかの操作は敵自身のデッキに作用します（対象の山は無視。「消滅」はデッキから取り除く（最後の1枚は残る）／強化・複製・効果付与・生成は敵のデッキの内容を変える）。「プレイヤーが選ぶ」はランダムになります。プレイヤーのターン開始時、手札を引いた後に発動し、予告にも表示されます。</p>
       <div id="op-list"></div>
       <button type="button" id="op-add">＋ カード操作を追加</button>
-      <div class="section-label">状態の操作（タグ指定で取り除く・減らす）</div>
+      <div class="section-label">状態の操作（タグ指定で取り除く・減らす・増やす）</div>
       <div class="checkbox-field"><input type="checkbox" id="m-so-enabled" ${c.statusOp&&c.statusOp.enabled?'checked':''}><label for="m-so-enabled">状態の操作を有効にする</label></div>
       <div id="so-config" style="${c.statusOp&&c.statusOp.enabled?'':'display:none;'} padding:10px; background:var(--bg-void); border:1px solid var(--line); border-radius:4px; margin-bottom:12px;">
         <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">対象</div>
@@ -4816,16 +5430,20 @@ function openCardModal(card, isNew){
         <select id="m-so-mode" style="margin-bottom:8px; width:100%;">
           <option value="removeAll" ${(!c.statusOp||c.statusOp.mode!=='reduce')?'selected':''}>すべて取り除く</option>
           <option value="reduce" ${c.statusOp&&c.statusOp.mode==='reduce'?'selected':''}>N減らす</option>
+          <option value="increase" ${c.statusOp&&c.statusOp.mode==='increase'?'selected':''}>N増やす</option>
         </select>
-        <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">減らす量N（「N減らす」のときだけ使います）</div>
+        <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">量N（「N減らす」「N増やす」のときだけ使います）</div>
         <input type="number" id="m-so-amount" value="${(c.statusOp&&c.statusOp.amount)||1}" min="0" max="99" style="width:100%;">
-        <p class="hint" style="margin-top:6px;">指定したタグを持つ状態が対象です（カスタム状態のタグ、および組み込みの強化・器用・弱体・脆弱・毒・再生・麻痺・自動ブロック・棘は同名のタグとして扱います）。「N減らす」は、該当する状態それぞれからNずつ減らします。永続の強化・器用などは対象外です。敵が使った場合、「自分」は敵自身、「相手」はプレイヤーです。</p>
+        <p class="hint" style="margin-top:6px;">指定したタグを持つ状態が対象です（カスタム状態のタグ、および組み込みの強化・器用・弱体・脆弱・毒・再生・麻痺・自動ブロック・棘は同名のタグとして扱います）。「N減らす」は、該当する状態それぞれからNずつ減らします。永続の強化・器用などは対象外です。「N増やす」は、すでに持っている（1以上の）状態のうち、そのタグを持つものすべてをNずつ増やします（持っていない状態は増えません。カスタム状態は排他ルールが働きます）。敵が使った場合、「自分」は敵自身、「相手」はプレイヤーです。</p>
       </div>
       <div class="section-label">効果の順番（上から順に処理します）</div>
       <p class="hint">設定した効果が並びます。☰をドラッグするか、▲▼で入れ替えられます。連続して発動するカードは、1回ごとにこの順で処理します。例: 「状態の操作」を「ダメージ」の前に置くと、相手の棘や脆弱を消してから攻撃できます。</p>
       <div id="eo-list"></div>
       <div class="section-label">シナジー</div>
-      <div class="field"><label>タグ（カンマ区切りで複数入力可）</label><input type="text" id="m-tags" value="${(c.tags||[]).join(', ')}" placeholder="例: 炎, 連撃"></div>
+      <div class="field"><label>タグ（カンマ区切りで複数入力可）</label><input type="text" id="m-tags" value="${(c.tags||[]).join(', ')}" placeholder="例: 炎, 連撃">
+        <p class="hint">自動タグ: 種類（アタック／スキル／パワー）とコスト（コスト0, コスト1 …）は、タグとして自動で扱われます（フィルター・仕込み・レリック・報酬など共通）。外したいときは下のチェックを入れてください。</p></div>
+      <div class="checkbox-field"><input type="checkbox" id="m-sup-type" ${c.suppressTypeTag?'checked':''}><label for="m-sup-type">種類の自動タグ（アタック／スキル／パワー）を付けない</label></div>
+      <div class="checkbox-field"><input type="checkbox" id="m-sup-cost" ${c.suppressCostTag?'checked':''}><label for="m-sup-cost">コストの自動タグ（コストN）を付けない</label></div>
       <div class="modal-actions">
         <button class="ghost" id="m-cancel">キャンセル</button>
         <button class="primary" id="m-save">保存する</button>
@@ -4889,18 +5507,22 @@ function openCardModal(card, isNew){
     refresh();
   })();
   qs('#m-triggeron',overlay).onchange = ()=>{
-    const v = qs('#m-triggeron',overlay).value, d = v==='damaged';
-    qs('#trigger-cardused-fields',overlay).style.display = d ? 'none' : 'block';
+    const v = qs('#m-triggeron',overlay).value, d = v==='damaged', t = v==='turnStart';
+    qs('#trigger-cardused-fields',overlay).style.display = (d||t) ? 'none' : 'block';
     qs('#trigger-damaged-fields',overlay).style.display = d ? 'block' : 'none';
+    qs('#trigger-turn-fields',overlay).style.display = t ? 'block' : 'none';
+    qs('#trigger-every-field',overlay).style.display = t ? 'none' : 'block';
     qs('#m-triggertag-label',overlay).textContent = triggerTagLabelText(v);
     qs('#m-trigger-hint',overlay).textContent = triggerKindHint(v);
   };
-  qs('#m-timing',overlay).onchange = ()=>{
-    qs('#timing-trigger-fields',overlay).style.display = qs('#m-timing',overlay).value==='trigger' ? 'block' : 'none';
+  qs('#m-costx',overlay).onchange = ()=>{ qs('#m-cost',overlay).disabled = qs('#m-costx',overlay).checked; };
+  qs('#m-trigger-on',overlay).onchange = ()=>{
+    qs('#timing-trigger-fields',overlay).style.display = qs('#m-trigger-on',overlay).checked ? 'block' : 'none';
   };
   qs('#m-so-enabled',overlay).onchange = ()=>{
     qs('#so-config',overlay).style.display = qs('#m-so-enabled',overlay).checked ? 'block' : 'none';
   };
+  let opsState = [];   // カード操作（下で読み込む）。効果の順番の一覧にも出す
   // ----- 効果の順番（並べ替え） -----
   let orderState = Array.isArray(c.effectOrder) ? c.effectOrder.slice() : [];
   const legacyFirst = !!(c.statusOp && c.statusOp.first) && orderState.length===0;
@@ -4911,11 +5533,12 @@ function openCardModal(card, isNew){
       list.push({id:row.dataset.fx, label:(row.dataset.label||row.dataset.fx).split('（')[0]});
     });
     if(qs('#m-so-enabled',overlay).checked) list.push({id:'statusOp', label:'状態の操作'});
+    opsState.forEach((o,i)=>{ if(o && o.id) list.push({id:'op:'+o.id, label:`カード操作${i+1}（${(CARDOP_TYPES.find(t=>t.key===o.type)||{}).label||o.type}）`}); });
     return list;
   };
   const currentOrder = ()=>{
     const present = presentEffects();
-    const ids = orderedEffectIds({effectOrder:orderState, statusOp:{first:legacyFirst && orderState.length===0}}, PLAYER_EFFECT_ORDER);
+    const ids = orderedPlayerSteps({effectOrder:orderState, statusOp:{first:legacyFirst && orderState.length===0}, cardOps:opsState});
     return ids.filter(id=> present.some(x=>x.id===id)).map(id=> present.find(x=>x.id===id));
   };
   const orderListEl = qs('#eo-list', overlay);
@@ -4963,7 +5586,7 @@ function openCardModal(card, isNew){
   const effectOrderForSave = ()=>{
     const ids = currentOrder().map(x=>x.id);
     const present = new Set(ids);
-    const std = defaultEffectOrder({}, PLAYER_EFFECT_ORDER).filter(id=>present.has(id));
+    const std = orderedPlayerSteps({effectOrder:[], cardOps:opsState}).filter(id=>present.has(id));
     return (ids.length===std.length && ids.every((id,i)=>id===std[i])) ? [] : ids;
   };
   renderOrder();
@@ -5000,7 +5623,7 @@ function openCardModal(card, isNew){
   renderReq();
   // ----- カード操作（複数。追加ボタン式） -----
   const OP_NUM = {countFixed:[0,20,1], countMin:[0,20,1], countMax:[0,20,1], buffAmount:[-99,99,0], deckWeight:[1,99,1], costDelta:[-9,9,0]};
-  let opsState = cardOpsOf(c).map(o=>normalizeStatusOp({...o}));
+  opsState = ensureOpIds(cardOpsOf(c).map(o=>normalizeStatusOp({...o})));
   const opBox = qs('#op-list', overlay);
   const opLab = t=>`<div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">${t}</div>`;
   const opSel = (f, list, cur)=>`<select data-opf="${f}" style="margin-bottom:8px; width:100%;">${list.map(o=>`<option value="${escapeHtml(o.key)}" ${o.key===cur?'selected':''}>${escapeHtml(o.label)}</option>`).join('')}</select>`;
@@ -5016,6 +5639,54 @@ function openCardModal(card, isNew){
         ${lab('増減量（参照値1につき。小数は切り捨て）')}<input type="number" data-opscale="${f}" data-opsk="perPoint" value="${x ? (x.perPoint||0) : 0}" step="0.1" min="-10" max="10" style="width:100%;">
       </div></div>`;
   };
+  const THEN_TYPES = CARDOP_TYPES.filter(x=>!GENERATE_TYPES.includes(x.key) && x.key!=='captureEffect');
+  // 新しい操作（消滅の期間・効果の取得／付与の方法・属性）の入力欄。本体の操作と、続けの操作で共通
+  const extraOpHTML = op=>{
+    let h = '';
+    const sel = (f, list, cur)=>`<select data-opf="${f}" style="margin-bottom:6px; width:100%;">${list.map(([k,l])=>`<option value="${escapeHtml(k)}" ${cur===k?'selected':''}>${escapeHtml(l)}</option>`).join('')}</select>`;
+    if(op.type==='moveToExhausted') h += opLab('消滅の期間')+sel('exhaustMode', EXHAUST_MODES.map(m=>[m.key,m.label]), op.exhaustMode||'combat');
+    if(op.type==='grantBuff'){
+      h += opLab('付与する内容')+sel('buffSource', [['fixed','この操作で設定した効果'],['captured','直前の「効果を取得」で取得した効果（取得した項目すべて）']], op.buffSource||'fixed');
+      h += opLab('付与の方法')+sel('buffMode', [['add','加算（いまの値に足す）'],['set','上書き（その値にする）']], op.buffMode||'add');
+      if(op.buffSource==='captured') h += `<div class="hint" style="margin-bottom:6px;">取得した効果の各項目を、対象のカードに付与します（上書きのときは、取得した値そのものにします）。「効果を取得」の操作を、この操作より前に置いてください。下の「付与する効果」「付与量」は使いません。</div>`;
+    }
+    if(op.type==='captureEffect'){
+      const all = (op.captureFields||[CAPTURE_ALL]).includes(CAPTURE_ALL);
+      h += opLab('取得する効果')+`<div style="max-height:150px; overflow:auto; padding:6px; border:1px solid var(--line); border-radius:4px; margin-bottom:6px;">
+        <label style="display:block;"><input type="checkbox" data-opcap="${CAPTURE_ALL}" ${all?'checked':''}> すべて（カードが持つ、効果付与で扱えるすべての効果）</label>
+        ${all ? '' : allEffectFieldDefs().map(d=>`<label style="display:block;"><input type="checkbox" data-opcap="${escapeHtml(d.key)}" ${(op.captureFields||[]).includes(d.key)?'checked':''}> ${escapeHtml(d.label)}</label>`).join('')}</div>
+        <div class="hint" style="margin-bottom:6px;">選ばれたカードのうち最後の1枚から、初期値と違う項目を取得します（強化・付与済みの値を含む）。取得した効果は、このカードの操作の中で、あとの「効果を付与（取得した効果）」が使えます。</div>`;
+    }
+    if(op.type==='elementAdd' || op.type==='elementRemove'){
+      const opts = (op.type==='elementRemove' ? [['all','すべての属性']] : []).concat((S.elements||[]).map(x=>[x.id,x.name])).concat(op.type==='elementRemove' ? elementTagList().map(t=>['tag:'+t,'タグ「'+t+'」の属性すべて']) : []);
+      if(op.type==='elementAdd' && !elementById(op.elementId) && opts.length) op.elementId = opts[0][0];
+      if(op.type==='elementRemove' && !op.elementId) op.elementId = 'all';
+      h += opLab(op.type==='elementAdd' ? '付与する属性' : '取り除く属性')+sel('elementId', opts, op.elementId);
+      h += `<div class="hint" style="margin-bottom:6px;">カードの攻撃の属性が変わります（実効の属性。元のカード定義は変わりません）。永続のチェックで、戦闘後も残すか決めます。</div>`;
+    }
+    return h;
+  };
+  const valueModeHTML = op=> (op.type==='grantBuff' || op.type==='costChange')
+    ? `<div class="checkbox-field" style="margin-top:6px;"><input type="checkbox" data-opf="valueMode" ${op.valueMode==='targetCount'?'checked':''}><label>値を「設定値 × 対象の枚数」にする（絞り込みと選択が終わったあとの、実際の枚数。対象がなければ0）</label></div>` : '';
+  function thenRowHTML(t, j){
+    const defs = allEffectFieldDefs();
+    if(t.type==='grantBuff' && !defs.some(d=>d.key===t.buffField) && defs.length) t.buffField = defs[0].key;
+    return `<div class="then-row" data-ti="${j}" style="margin:6px 0; padding:8px; border:1px solid var(--line); border-radius:4px;">
+      <div style="display:flex; gap:6px; align-items:flex-start;"><div style="flex:1;">${opSel('type', THEN_TYPES, t.type)}</div><button type="button" class="ghost" data-thendel="${j}">削除</button></div>
+      ${extraOpHTML(t)}
+      ${CARDOP_REVERTIBLE_TYPES.includes(t.type) && t.type!=='moveToExhausted' ? `<div class="checkbox-field" style="margin-bottom:4px;"><input type="checkbox" data-opf="permanent" ${t.permanent?'checked':''}><label>永続にする（戦闘後も元に戻さない）</label></div>` : ''}
+      ${t.type==='costChange' ? `${opLab('コストの増減量（マイナスで軽減。0未満にはなりません）')}<input type="number" data-opf="costDelta" data-opnum="1" value="${t.costDelta|0}" min="-9" max="9" style="width:100%;">${opScale(t,'costDelta')}` : ''}
+      ${t.type==='grantBuff' ? `${opLab('付与する効果')}<select data-opf="buffField" style="margin-bottom:8px; width:100%;">${defs.map(d=>`<option value="${escapeHtml(d.key)}" ${t.buffField===d.key?'selected':''}>${escapeHtml(d.label)}</option>`).join('')}</select>
+        ${opLab('付与量（マイナスで減少も可）')}<input type="number" data-opf="buffAmount" data-opnum="1" value="${t.buffAmount|0}" min="-99" max="99" style="width:100%;">${opScale(t,'buffAmount')}
+        ${String(t.buffField||'').startsWith('cs_') ? `${opLab('付与先（付与したカードを使ったとき、この状態をどちらに付与するか）')}<select data-opf="buffTarget" style="width:100%;">${[['default','カード側の設定／状態の標準のまま'],['self','自分に付与'],['opponent','相手に付与']].map(([v,tx])=>`<option value="${v}" ${(t.buffTarget||'default')===v?'selected':''}>${tx}</option>`).join('')}</select>` : ''}` : ''}
+      ${valueModeHTML(t)}
+    </div>`;
+  }
+  const thenSectionHTML = (op, i)=> ['generatePlay','generateToEnemyDeck'].includes(op.type) ? '' : `<div style="margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
+      ${opLab('続けて、同じ対象のカードに行う操作（上の操作で選ばれた／生成されたカードを追跡して、順に行います）')}
+      ${(op.then||[]).map((t,j)=>thenRowHTML(t,j)).join('')}
+      <button type="button" class="ghost" data-thenadd="${i}">＋ 続けて行う操作を追加</button>
+      ${(op.then||[]).length ? '<div class="hint" style="margin-top:4px;">上の操作でカードの山や位置が変わっても、同じカードに行います。もう対象が見つからないときは、残りの操作は行いません。</div>' : ''}</div>`;
   function opBlockHTML(op, i){
     const isGen = GENERATE_TYPES.includes(op.type);
     const isSelf = !isGen && op.fromPile==='self';
@@ -5042,14 +5713,23 @@ function openCardModal(card, isNew){
           <option value="all" ${op.countMode==='all'?'selected':''}>対象すべて</option>
           <option value="choose" ${op.countMode==='choose'?'selected':''}>プレイヤーが任意に選ぶ</option>
         </select>
-        <div style="display:flex; gap:6px; margin-bottom:8px;">${opNum('countFixed',op,'固定数 / 選ぶ枚数')}${opNum('countMin',op,'ランダム最小')}${opNum('countMax',op,'ランダム最大')}</div>
+        ${(op.countMode==='fixed' || op.countMode==='choose') ? `${opLab('枚数の元')}
+        <select data-opf="countSource" style="margin-bottom:6px; width:100%;">
+          <option value="value" ${(op.countSource||'value')==='value'?'selected':''}>設定値（下の固定数）</option>
+          <option value="xLast" ${op.countSource==='xLast'?'selected':''}>X ＝ 直前のカード操作の対象枚数</option>
+          <option value="xTotal" ${op.countSource==='xTotal'?'selected':''}>X ＝ ここまでのカード操作の対象枚数の合計</option>
+        </select>
+        ${(op.countSource==='xLast' || op.countSource==='xTotal') ? `<div class="hint" style="margin-bottom:6px;">枚数 ＝ X × 倍率 ＋ 下の固定数（加算）。このカードの効果の順番で、Xを数える操作より後ろに置いてください（Xが0なら、固定数だけ）。例: 「手札をすべて捨て札へ」の次に、「山札から手札へ（X）」を置くと、捨てた枚数だけ引けます。</div>
+        ${opLab('倍率（X × 倍率。小数は切り捨て）')}<input type="number" step="0.5" min="0" max="20" data-opf="xMult" value="${op.xMult===undefined?1:op.xMult}" style="width:100%; margin-bottom:6px;">` : ''}` : ''}
+        <div style="display:flex; gap:6px; margin-bottom:8px;">${opNum('countFixed',op,(op.countSource==='xLast' || op.countSource==='xTotal') && (op.countMode==='fixed' || op.countMode==='choose') ? '固定数（Xに足す枚数）' : '固定数 / 選ぶ枚数')}${opNum('countMin',op,'ランダム最小')}${opNum('countMax',op,'ランダム最大')}</div>
         ${op.countMode==='random' ? opScale(op,'countMin')+opScale(op,'countMax') : (op.countMode==='all' ? '' : opScale(op,'countFixed'))}
         ${isGen ? '' : `${opLab('対象タグ絞り込み（空欄で絞り込みなし）')}<input type="text" data-opf="filterTag" value="${escapeHtml(op.filterTag||'')}" style="width:100%;">`}
         <div class="checkbox-field" style="margin-top:8px; margin-bottom:4px;"><input type="checkbox" data-opf="sequential" ${op.sequential?'checked':''}><label>1枚ずつ選び直す（1枚処理するたびに次の1枚を選ぶ）</label></div>
         <div class="hint">オフ＝最初に全部まとめて選ぶ。オン＝1枚処理してから次を選ぶので、直前の効果で増減した手札なども対象になります（任意選択なら1枚ずつ選択画面が出ます。「対象すべて」では無効）。</div>`}
-      ${CARDOP_REVERTIBLE_TYPES.includes(op.type) ? `<div style="margin-top:10px;">
+      ${extraOpHTML(op)}
+      ${CARDOP_REVERTIBLE_TYPES.includes(op.type) && op.type!=='moveToExhausted' ? `<div style="margin-top:10px;">
         <div class="checkbox-field" style="margin-bottom:4px;"><input type="checkbox" data-opf="permanent" ${op.permanent?'checked':''}><label>永続にする（戦闘後も元に戻さない）</label></div>
-        <div class="hint">オフ＝この戦闘中のみ（強化・付与・コスト増減・複製・生成は戦闘後に元へ戻る）。消滅は、オンにするとそのカードを探索から完全に取り除きます。</div></div>` : ''}
+        <div class="hint">オフ＝この戦闘中のみ（強化・付与・コスト増減・複製・生成は戦闘後に元へ戻る）。</div></div>` : ''}
       ${op.type==='costChange' ? `<div style="margin-top:10px;">${opLab('コストの増減量（マイナスで軽減。0未満にはなりません）')}<input type="number" data-opf="costDelta" data-opnum="1" value="${op.costDelta|0}" min="-9" max="9" style="width:100%;">${opScale(op,'costDelta')}</div>` : ''}
       ${op.type==='grantBuff' ? `<div style="margin-top:10px;">
         ${opLab('付与する効果')}
@@ -5057,24 +5737,43 @@ function openCardModal(card, isNew){
         ${opLab('付与量（マイナスで減少も可）')}
         <input type="number" data-opf="buffAmount" data-opnum="1" value="${op.buffAmount|0}" min="-99" max="99" style="width:100%;">${opScale(op,'buffAmount')}
         ${String(op.buffField||'').startsWith('cs_') ? `<div style="margin-top:8px;">${opLab('付与先（付与したカードを使ったとき、この状態をどちらに付与するか）')}<select data-opf="buffTarget" style="width:100%;">${[['default','カード側の設定／状態の標準のまま'],['self','自分に付与'],['opponent','相手に付与']].map(([v,t])=>`<option value="${v}" ${(op.buffTarget||'default')===v?'selected':''}>${t}</option>`).join('')}</select></div>` : ''}</div>` : ''}
+      ${valueModeHTML(op)}${thenSectionHTML(op, i)}
     </div>`;
   }
   const renderOps = ()=>{
     opBox.innerHTML = opsState.length ? opsState.map(opBlockHTML).join('') : '<p class="hint">カード操作はありません。</p>';
   };
+  // 入力欄が属する操作（続けの操作の欄なら、その続けの操作）
+  const opOf = t=>{
+    const blk = t.closest && t.closest('.op-block'); if(!blk) return null;
+    const op = opsState[+blk.dataset.i]; if(!op) return null;
+    const row = t.closest('[data-ti]');
+    return row ? (op.then||[])[+row.dataset.ti] : op;
+  };
   const opSync = (t)=>{
     const sf = t.dataset && t.dataset.opscale; const blk0 = t.closest && t.closest('.op-block');
     if(sf && blk0){   // 参照増減の入力
-      const op0 = opsState[+blk0.dataset.i]; if(!op0) return false;
+      const op0 = opOf(t); if(!op0) return false;
       op0.scales = op0.scales || {};
       const x = op0.scales[sf] = op0.scales[sf] || {source:'none', tag:'', perPoint:0};
       const k = t.dataset.opsk;
       if(k==='perPoint') x.perPoint = clampFloat(t.value,-10,10,0); else if(k==='tag') x.tag = cleanTag(t.value); else x.source = t.value;
       return true;
     }
+    if(t.dataset && t.dataset.opcap!==undefined && t.closest && t.closest('.op-block')){
+      const opc = opOf(t); if(!opc) return false;
+      let list = (opc.captureFields||[CAPTURE_ALL]).slice();
+      const k = t.dataset.opcap;
+      if(k===CAPTURE_ALL){ list = t.checked ? [CAPTURE_ALL] : []; if(!t.checked) list = allEffectFieldDefs().map(d=>d.key).slice(0,1); }
+      else { list = list.filter(x=>x!==CAPTURE_ALL && x!==k); if(t.checked) list.push(k); if(!list.length) list = [CAPTURE_ALL]; }
+      opc.captureFields = list;
+      return true;
+    }
     const f = t.dataset && t.dataset.opf; const blk = t.closest && t.closest('.op-block');
     if(!f || !blk) return false;
-    const op = opsState[+blk.dataset.i]; if(!op) return false;
+    const op = opOf(t); if(!op) return false;
+    if(f==='valueMode'){ op.valueMode = t.checked ? 'targetCount' : 'fixed'; return true; }
+    if(f==='xMult'){ op.xMult = clampFloat(t.value,0,20,1); return true; }
     if(t.dataset.opnum){ const m = OP_NUM[f]; op[f] = clampInt(t.value, m[0], m[1], m[2]); }
     else if(t.type==='checkbox') op[f] = t.checked;
     else if(f==='filterTag') op[f] = cleanTag(t.value);
@@ -5084,14 +5783,18 @@ function openCardModal(card, isNew){
   opBox.addEventListener('input', e=>{ opSync(e.target); });
   opBox.addEventListener('change', e=>{
     if(!opSync(e.target)) return;
-    const f = e.target.dataset.opf, op = opsState[+e.target.closest('.op-block').dataset.i];
+    const f = e.target.dataset.opf, op = opOf(e.target);
     if(f==='type' && op.type==='play' && op.fromPile==='self') op.fromPile = 'hand';   // 自分自身を使い直す操作は作れない
-    if(f==='type' || f==='fromPile' || f==='countMode' || f==='buffField') renderOps();
+    if(f==='type' || f==='fromPile' || f==='countMode' || f==='countSource' || f==='buffField' || f==='buffSource' || f==='exhaustMode'){ renderOps(); renderOrder(); }
+    else if(e.target.dataset.opcap!==undefined){ renderOps(); }
   });
   opBox.addEventListener('click', e=>{ const tg = e.target.closest('[data-optoggle]'); if(tg){ const box = tg.parentElement.querySelector('[data-opscalebox]'); const show = box.style.display==='none'; box.style.display = show ? '' : 'none'; return; }
-    const b = e.target.closest('[data-opdel]'); if(b){ opsState.splice(+b.dataset.opdel,1); renderOps(); } });
-  qs('#op-add', overlay).onclick = ()=>{ opsState.push(defaultStatusOp()); renderOps(); };
+    const ta = e.target.closest('[data-thenadd]'); if(ta){ const o = opsState[+ta.dataset.thenadd]; if(o){ (o.then = o.then||[]).push(normalizeStatusOp({type:'upgrade', countMode:'all', fromPile:'hand'})); renderOps(); } return; }
+    const td = e.target.closest('[data-thendel]'); if(td){ const o = opsState[+td.closest('.op-block').dataset.i]; if(o && o.then){ o.then.splice(+td.dataset.thendel,1); renderOps(); } return; }
+    const b = e.target.closest('[data-opdel]'); if(b){ opsState.splice(+b.dataset.opdel,1); renderOps(); renderOrder(); } });
+  qs('#op-add', overlay).onclick = ()=>{ opsState.push(defaultStatusOp()); ensureOpIds(opsState); renderOps(); renderOrder(); };
   renderOps();
+  renderOrder();
   qs('#m-save',overlay).onclick = async ()=>{
     const updated = {
       id: c.id,
@@ -5102,6 +5805,7 @@ function openCardModal(card, isNew){
       icon: (qs('#m-icon',overlay).value||'').trim(),
       type: qs('#m-type',overlay).value,
       cost: clampInt(qs('#m-cost',overlay).value,0,6,1),
+      costMode: qs('#m-costx',overlay).checked ? 'x' : 'fixed',
       rarity: qs('#m-rarity',overlay).value,
       startingCount: clampInt(qs('#m-startcount',overlay).value,0,10,0),
       exhaust: qs('#m-exhaust',overlay).checked,
@@ -5109,9 +5813,15 @@ function openCardModal(card, isNew){
       lifesteal: qs('#m-lifesteal',overlay).checked,
       retain: qs('#m-retain',overlay).checked,
       tags: parseTags(qs('#m-tags',overlay).value),
+      suppressTypeTag: qs('#m-sup-type',overlay).checked,
+      suppressCostTag: qs('#m-sup-cost',overlay).checked,
       scales: {},
       upgrades: { costDelta: clampInt(qs('#m-costdelta',overlay).value,-6,6,0), scalePP: {} },
-      timing: qs('#m-timing',overlay).value,
+      triggerEnabled: qs('#m-trigger-on',overlay).checked,
+      immediateEnabled: qs('#m-immediate',overlay).checked || !qs('#m-trigger-on',overlay).checked,
+      timing: (qs('#m-trigger-on',overlay).checked && !qs('#m-immediate',overlay).checked) ? 'trigger' : 'immediate',
+      triggerHits: clampInt(qs('#m-triggerhits',overlay).value,1,99,1),
+      turnInterval: clampInt(qs('#m-turninterval',overlay).value,1,99,1),
       triggerTag: cleanTag(qs('#m-triggertag',overlay).value),
       triggerOn: cleanTriggerOn(qs('#m-triggeron',overlay).value),
       triggerBlocked: qs('#m-triggerblocked',overlay).checked,
@@ -5158,7 +5868,7 @@ function openCardModal(card, isNew){
         if(t==='both' && xv!==0) updated['dw_csX_'+id] = xv; else delete updated['dw_csX_'+id];
       }
     });
-    updated.cardOps = opsState.map(o=>normalizeStatusOp({...o}));
+    updated.cardOps = ensureOpIds(opsState.map(o=>normalizeStatusOp({...o})));
     updated.statusOp = normalizeCardStatusOp({
       enabled: qs('#m-so-enabled',overlay).checked,
       side: qs('#m-so-side',overlay).value,
@@ -5203,7 +5913,7 @@ function tagBonusPctMap(){
     const per = S.settings.tagAffinityPct||0;
     (r.acquiredCardIds||[]).forEach(id=>{
       const c = S.cards.find(x=>x.id===id);
-      ((c && c.tags) || []).forEach(t=>{ map[t] = (map[t]||0) + per; });
+      effectiveCardTags(c).forEach(t=>{ map[t] = (map[t]||0) + per; });
     });
   }
   ((r.player && r.player.relics) || []).forEach(rid=>{
@@ -5216,17 +5926,17 @@ function noteCardAcquired(r, cardId){
   if(!r.acquiredCardIds) r.acquiredCardIds = [];
   r.acquiredCardIds.push(cardId);
 }
-function weightedPickCard(excludeIds, focusTag, onlyFocus){
+function weightedPickCard(excludeIds, focusTag, onlyFocus, rarePct){
   let pool = S.cards.filter(c=> c.rarity!=='basic' && !isNonRewardCard(c) && !excludeIds.includes(c.id));
   if(focusTag && onlyFocus){
-    const tagged = pool.filter(c=>c.tags && c.tags.includes(focusTag));
+    const tagged = pool.filter(c=>cardHasTag(c, focusTag));
     if(tagged.length) pool = tagged;
   }
   if(pool.length===0) return null;
   const bonus = tagBonusPctMap();
   const weightOf = (c)=>{
-    const pct = (c.tags||[]).reduce((sum,t)=> sum + (bonus[t]||0), 0);
-    return (RARITY_WEIGHT[c.rarity]||10) * ((focusTag && c.tags && c.tags.includes(focusTag)) ? 8 : 1) * (1 + pct/100);
+    const pct = effectiveCardTags(c).reduce((sum,t)=> sum + (bonus[t]||0), 0);
+    return (RARITY_WEIGHT[c.rarity]||10) * (c.rarity==='common' || rarePct===undefined ? 1 : rarePct/100) * ((focusTag && cardHasTag(c, focusTag)) ? 8 : 1) * (1 + pct/100);
   };
   const total = pool.reduce((sum,c)=> sum + weightOf(c), 0);
   let x = Math.random()*total;
@@ -5251,18 +5961,20 @@ function threeRewardCards(){
 // Card-reward choices (ids). With a focus tag the first slot is guaranteed to be a
 // tagged card (if one exists) and the rest are weighted heavily toward it.
 function generateRewardChoices(r, focusTag){
-  const n = 3 + (r.player.extraRewardChoices||0);
+  const bst = r.rewardBoost;
+  const n = 3 + (r.player.extraRewardChoices||0) + (bst ? bst.extra : 0);
   const ids = [], used = [];
+  const upPct = relicUsePassive(r, ['rewardUpgradePct']).rewardUpgradePct;   // レリック: 報酬のカードが強化済みで出る確率
   for(let i=0;i<n;i++){
-    const c = weightedPickCard(used, focusTag, !!focusTag && i===0);
+    const c = weightedPickCard(used, focusTag, !!focusTag && i===0, bst ? bst.rarePct : undefined);
     if(!c) break;
-    ids.push(c.id); used.push(c.id);
+    ids.push(upPct>0 && Math.random()*100 < upPct ? c.id+'+' : c.id); used.push(c.id);
   }
   return ids;
 }
-function generateShopOffers(){
+function generateShopOffers(count){
   const offers = [], used = [];
-  for(let i=0;i<3;i++){
+  for(let i=0;i<(count || S.settings.shopCardCount || 3);i++){
     const c = weightedPickCard(used);
     if(!c) break;
     used.push(c.id);
@@ -5272,7 +5984,7 @@ function generateShopOffers(){
 }
 function rewardableTags(){
   const set = new Set();
-  S.cards.forEach(c=>{ if(c.rarity!=='basic' && !isNonRewardCard(c) && c.tags) c.tags.forEach(t=>set.add(t)); });
+  S.cards.forEach(c=>{ if(c.rarity!=='basic' && !isNonRewardCard(c)) effectiveCardTags(c).forEach(t=>set.add(t)); });
   return [...set].sort();
 }
 // A reroll token is spent first; otherwise the gold price is paid. Returns false if unaffordable.
@@ -5399,7 +6111,25 @@ function enqueueEnemyOp(r, op, label, sep){
 // 敵のカードの「使用後に消滅する」: 使ったカードをこの戦闘のデッキから取り除く（最後の1枚は残す）。
 // entry を渡すと、そのデッキ項目を対象にする。渡さなければ、同じIDの最初の項目。
 // 仕込みの発動のきっかけ: cardUsed=指定タグのカードを使う／damaged=ダメージを受ける／drawn=カードの効果でカードを引く／discarded=カードの効果でカードが捨て札に移る
-function cleanTriggerOn(v){ return ['damaged','drawn','discarded'].includes(v) ? v : 'cardUsed'; }
+function cleanTriggerOn(v){ return ['damaged','drawn','discarded','turnStart'].includes(v) ? v : 'cardUsed'; }
+// 即時効果と予約（仕込み）は独立して有効にできる。旧データ（timing:'trigger'）は予約のみとして扱う。
+function hasTrigger(c){ return !!c && (c.triggerEnabled!==undefined ? !!c.triggerEnabled : c.timing==='trigger'); }
+function hasImmediate(c){
+  if(!c) return true;
+  if(c.immediateEnabled!==undefined) return !!c.immediateEnabled || !hasTrigger(c);
+  return c.timing!=='trigger';
+}
+function isTriggerOnly(c){ return hasTrigger(c) && !hasImmediate(c); }
+// 予約側の発動回数。未移行の旧データ（予約のみ）は、これまでの hits を引き継ぐ。
+function triggerHitsOf(c){
+  if(c && c.triggerHits!==undefined) return Math.max(1, Math.min(99, c.triggerHits|0 || 1));
+  return (c && c.timing==='trigger') ? Math.max(1, c.hits|0 || 1) : 1;
+}
+// ターン開始時の予約: 何ターンごとに発動するか（1＝毎ターン）。それ以外のきっかけでは「何回ごと」（triggerEvery）を使う。
+function turnIntervalOf(c){ return Math.max(1, Math.min(99, (c && c.turnInterval|0) || 1)); }
+function triggerCountEveryOf(c){ return cleanTriggerOn(c && c.triggerOn)==='turnStart' ? turnIntervalOf(c) : triggerEveryOf(c); }
+// 予約に登録するカードのデータ（発動回数は、予約側の triggerHits）
+function triggerCardData(c){ return {...c, hits: triggerHitsOf(c)}; }
 const PILE_TRIGGER_KINDS = ['drawn','discarded'];
 // 仕込みの「何回ごと」。1（または未設定）なら毎回。条件を満たした出来事だけを数え、n回目・2n回目…に発動する。
 function triggerEveryOf(c){ return Math.max(1, Math.min(99, (c && c.triggerEvery|0) || 1)); }
@@ -5416,6 +6146,7 @@ function triggerWhenShort(c){
   const tg = c.triggerTag ? `[${c.triggerTag}]の` : '';
   switch(cleanTriggerOn(c.triggerOn)){
     case 'damaged':   return 'ダメージを受けたとき';
+    case 'turnStart': return `自分のターンの開始時${turnIntervalOf(c)>1 ? `（${turnIntervalOf(c)}ターンごと）` : ''}`;
     case 'drawn':     return `${tg}カードを効果で引いたとき`;
     case 'discarded': return `${tg}カードが効果で捨て札に移ったとき`;
     default:          return `${tg}カードを使ったとき`;
@@ -5424,11 +6155,13 @@ function triggerWhenShort(c){
 // 仕込みの有効ターン数。0＝この戦闘中ずっと。旧設定（duration:'turn'）は1ターン。
 // カード編集画面: 発動のきっかけごとの、タグ欄の見出しと説明
 function triggerTagLabelText(kind){
+  if(kind==='turnStart') return '（ターン開始時には使いません）';
   if(kind==='drawn') return '発動条件（引いたカードに、このタグのカードが含まれるとき。空欄でどのカードでも）';
   if(kind==='discarded') return '発動条件（捨て札に移ったカードに、このタグのカードが含まれるとき。空欄でどのカードでも）';
   return '発動条件（このタグのカードを使うたび。空欄でどのカードでも）';
 }
 function triggerKindHint(kind){
+  if(kind==='turnStart') return '自分のターンの開始時（手札を引き、状態のカード操作を終えたあと、レリックより前）に発動します。仕込んだターンは数えず、次のターンの開始から数えます。「何ターンごと」を2にすれば1ターンおき、3なら2ターンおきに発動します。有効ターン数は、仕込んだターンを1ターン目として数えます（3なら、仕込んだターンと次の2ターン）。敵が使った場合は、敵の行動の直前に発動します（戦闘開始時に構えた場合は、最初の行動から数えます）。';
   if(kind==='drawn') return '「ドロー枚数」や、カード操作「山札から手札へ移動」など、カードの効果でカードを引いたときに発動します。ターン開始時のドローでは発動しません。引いたカード1枚ごとに1回発動します（3枚引けば3回。タグの条件・「何回ごと」も1枚ごとに数えます）。レリックや、敵の行動・状態によるカード操作でも発動します。敵が使った場合は発動しません。';
   if(kind==='discarded') return 'カード操作「捨て札に移動」など、カードの効果でカードが捨て札に移ったときに発動します。カードを使ったあとの捨て札、ターン終了時の手札の捨て札では発動しません。動いたカード1枚ごとに1回発動します。レリックや、敵の行動・状態によるカード操作でも発動します。敵が使った場合は発動しません。';
   return '敵が使った場合は、「その敵がこのタグのカードを使うたび」（次の行動以降）に発動します。';
@@ -5504,22 +6237,34 @@ function rollEnemyMove(e){
   return id;
 }
 
-function makeEnemy(floorIndex){
+function makeEnemy(floorIndex, forcedCategory, scaleIndex){
   const s = S.settings;
   const isElite = (floorIndex % s.eliteEvery === 0);
   const isLast = floorIndex === s.floorCount;
-  const category = isLast ? 'boss' : (isElite ? 'elite' : 'normal');
+  // forcedCategory: マップのマスで決まった種類（boss / elite / normal）。なければ従来どおり階層から決める
+  const category = forcedCategory || (isLast ? 'boss' : (isElite ? 'elite' : 'normal'));
   let pool = S.enemies.filter(e => e.category===category);
   if(pool.length===0) pool = S.enemies.filter(e=>e.category==='normal');
   if(pool.length===0) pool = S.enemies;
+  {  // 出現条件: 最小階層・最小ラウンド・同じラウンドでは1度だけ。合う敵がいなければ、条件をゆるめる
+    const run = S.run, rd = (run && run.round) || 1, seen = (run && run.seenEnemies) || [];
+    const okMin = e=> (e.minRound||1)<=rd && (e.minFloor||1)<=floorIndex;
+    const okSeen = e=> !(e.noRepeat && seen.includes(e.id));
+    let cand = pool.filter(e=>okMin(e) && okSeen(e));
+    if(!cand.length) cand = pool.filter(okMin);
+    if(!cand.length) cand = pool;
+    pool = cand;
+  }
   const totalWeight = pool.reduce((sum,e)=> sum + (e.weight||1), 0);
   let x = Math.random()*totalWeight;
   let t = pool[pool.length-1];
   for(const e of pool){ x -= (e.weight||1); if(x<=0){ t = e; break; } }
-  const scale = 1 + (Math.max(0,floorIndex-1) * (s.enemyHpScalePct/100));
+  if(S.run){ (S.run.seenEnemies = S.run.seenEnemies || []).push(t.id); }
+  // 敵のHP補正は、ラウンドをまたいだ通しの階層数で増える
+  const scale = 1 + (Math.max(0,(scaleIndex||floorIndex)-1) * (s.enemyHpScalePct/100));
   const hp = Math.round(t.baseHp * scale);
   const runtimeEnemy = {
-    name: t.name, emoji: t.emoji, image: t.image||'', elite: t.category==='elite', boss: t.category==='boss',
+    defId: t.id, name: t.name, emoji: t.emoji, image: t.image||'', elite: t.category==='elite', boss: t.category==='boss',
     hp, maxHp: hp, block:0, strength:0, dexterity:0, weak:0, vulnerable:0, poison:0, stun:0, thorns:0,
     // copied, so cards added during the battle never touch the enemy's saved definition
     deck: (t.deck && t.deck.length ? t.deck : [{cardId:'strike', weight:1}]).map(x=>({...x})),
@@ -5569,6 +6314,7 @@ function startRun(){
     battlesSinceSpecial:0,
     activeTriggers:[],
     instanceBuffs:{},
+    permExhaustIids:{},
     tempInstanceBuffs:{},
     tempUpgradeIids:{},
     temporaryCardIids:{},
@@ -6003,7 +6749,7 @@ const EL_KIND_OF = {damageDealtFlat:'elDealtFlat', damageDealtPct:'elDealtPct', 
 function csLabel(entity, kind, elems){
   const names = customEffectsOn(entity, kind).map(x=>x.st.name);
   if(EL_KIND_OF[kind]) elementEffectsOn(entity, EL_KIND_OF[kind], elems).forEach(x=>{
-    const nm = x.st.name + '(' + (x.eff.element==='all' || !x.eff.element ? '全属性' : (elementName(x.eff.element)||'属性')) + ')';
+    const nm = x.st.name + '(' + (x.eff.element==='all' || !x.eff.element ? '全属性' : (String(x.eff.element).startsWith('tag:') ? 'タグ'+String(x.eff.element).slice(4) : (elementName(x.eff.element)||'属性'))) + ')';
     if(!names.includes(nm)) names.push(nm);
   });
   return names.length ? names.join('・') : '状態';
@@ -6062,12 +6808,240 @@ function logEnemyTurnSummary(r){
   pushLog(`被弾合計: ${st.total}ダメージ（<span class="lg-blk">${st.blocked}ブロック</span>・HP-${st.hpLoss}）`, 'sum');
 }
 
+/* ============================= MAP（マップ） =============================
+   探索を、枝分かれ・合流する道のマップとして進める。上から下へ進み、最後の階層がボス。
+   r.map = { rows, width, nodes:{ "行-列": {id,row,col,type,next:[id],visited,revealed} }, current:id|null, freeMoves:n }
+   type: battle / elite / rest / event / shop / unknown(？) / boss
+   拡張の余地:
+   - r.map.freeMoves … 1以上のあいだ、次の階層の「つながっていないマス」も選べる（選ぶと1減る）。
+     イベントやレリックからは grantMapFreeMoves(n) を呼ぶ。
+   - mapSelectable(r) が「いま選べるマス」を返す唯一の窓口。道を封じる・開く効果は、ここに足す。
+   - MAP_CFG の数値は、のちに設定画面に出す。 */
+const MAP_CFG = {
+  width: 5,          // 列の数
+  paths: 4,          // 最初の階層から伸ばす道の数
+  weights: {battle:50, unknown:20, event:12, shop:8, rest:10},   // 通常の階層のマスの出現比率
+  unknownWeights: {battle:45, event:30, shop:10, rest:15},       // ？のマスに入ったときの中身（エリート・ボスにはならない）
+  eliteChance: 60,   // エリートの階層で、各マスがエリートになる確率（％）。少なくとも1つはエリート
+};
+const MAP_ROW_H = 96;
+const MAP_TYPES = ['battle','elite','rest','event','shop','unknown','boss'];
+const MAP_TYPE_CAP = {battle:'Battle', elite:'Elite', rest:'Rest', event:'Event', shop:'Shop', unknown:'Unknown', boss:'Boss'};
+// [設定のキー, 表示名, 初期値]（先頭5つ: 通常の階層／残り4つ: ？の中身）
+const MAP_WEIGHT_FIELDS = [['mapWBattle','戦闘',50],['mapWUnknown','？',20],['mapWEvent','イベント',12],['mapWShop','ショップ',8],['mapWRest','休憩',10],
+  ['mapUBattle','戦闘',45],['mapUEvent','イベント',30],['mapUShop','ショップ',10],['mapURest','休憩',15]];
+// 設定画面の値から、マップの生成に使う設定を作る（MAP_CFG は初期値）
+function mapCfg(){
+  const st = S.settings || {};
+  const g = (k,d)=> Number.isFinite(st[k]) ? st[k] : d;
+  return {
+    width: Math.max(3, Math.min(9, g('mapWidth', MAP_CFG.width))),
+    paths: Math.max(2, Math.min(8, g('mapPaths', MAP_CFG.paths))),
+    weights: {battle:g('mapWBattle',50), unknown:g('mapWUnknown',20), event:g('mapWEvent',12), shop:g('mapWShop',8), rest:g('mapWRest',10)},
+    unknownWeights: {battle:g('mapUBattle',45), event:g('mapUEvent',30), shop:g('mapUShop',10), rest:g('mapURest',15)},
+    eliteChance: Math.max(0, Math.min(100, g('mapEliteChance', MAP_CFG.eliteChance))),
+  };
+}
+// 世界観の設定を反映した、マスの表示（アイコン・名前・色）
+function mapInfo(t){
+  const base = MAP_NODE_INFO[t], w = S.world || DEFAULT_WORLD, c = MAP_TYPE_CAP[t];
+  return {icon: w['mapIcon'+c] || base.icon, label: w['mapLabel'+c] || base.label, desc: base.desc, color: w['colorMap'+c] || '#888'};
+}
+function roundLabel(n){
+  const lines = String((S.world||{}).roundNames||'').split('\n').map(x=>x.trim());
+  return lines[n-1] || `ラウンド${n}`;
+}
+// 次のマスを選ぶ場面の、選択の初期値
+function mapDefaultPickId(r, sel){
+  const ids = [...sel], mode = S.settings.mapDefaultPick;
+  if(!ids.length || mode===0) return null;
+  if(ids.length===1) return ids[0];
+  if(mode===1) return null;
+  const m = r.map, cur = m.current ? m.nodes[m.current] : null, ref = cur ? cur.col : (m.width-1)/2;
+  return ids.map(id=>m.nodes[id]).sort((a,b)=> Math.abs(a.col-ref)-Math.abs(b.col-ref) || a.col-b.col)[0].id;
+}
+let __mapKeyBound = false;
+const MAP_NODE_INFO = {
+  battle:  {icon:'⚔️', label:'戦闘',     desc:'通常の敵と戦います。'},
+  elite:   {icon:'💀', label:'エリート', desc:'強い敵との戦闘です。'},
+  rest:    {icon:'🏕️', label:'休憩',     desc:'休んでHPを回復できます。'},
+  event:   {icon:'📜', label:'イベント', desc:'さまざまな出来事が起こります。'},
+  shop:    {icon:'🛒', label:'ショップ', desc:'ゴールドで買い物ができます。'},
+  unknown: {icon:'❓', label:'？',       desc:'何が起こるか分かりません（戦闘・イベント・ショップ・休憩のどれか）。'},
+  boss:    {icon:'👑', label:'ボス',     desc:'この探索の最後の戦いです。'},
+};
+function mapPickWeighted(w){
+  const keys = Object.keys(w), total = keys.reduce((a,k)=>a+w[k],0);
+  if(!(total>0)) return 'battle';
+  let x = Math.random()*total;
+  for(const k of keys){ x -= w[k]; if(x<=0) return k; }
+  return keys[keys.length-1];
+}
+function generateMap(settings){
+  const cfg = mapCfg();
+  const F = Math.max(1, settings.floorCount|0), W = cfg.width;
+  const eliteEvery = Math.max(1, settings.eliteEvery|0);
+  const nodes = {}, idOf = (row,col)=>`${row}-${col}`;
+  const ensure = (row,col)=>{ const k = idOf(row,col); if(!nodes[k]) nodes[k] = {id:k, row, col, type:'battle', next:[], visited:false}; return nodes[k]; };
+  const bossCol = Math.floor(W/2);
+  if(F===1){ ensure(1,bossCol).type = 'boss'; return {rows:1, width:W, nodes, current:null, freeMoves:0}; }
+  const last = F-1;   // ボスの手前の階層
+  const starts = [];
+  for(let p=0; p<cfg.paths; p++){
+    let col;
+    do{ col = Math.floor(Math.random()*W); }while(p===1 && col===starts[0]);   // 最初の2本は別の列から
+    starts.push(col);
+    let cur = ensure(1, col);
+    for(let row=1; row<last; row++){
+      const cands = [];
+      [-1,0,1].forEach(d=>{
+        const nc = cur.col + d; if(nc<0 || nc>=W) return;
+        // 道が交差しない: 隣のマスが、逆向きに伸びる道を持っていたら避ける
+        if(d!==0){ const nb = nodes[idOf(row, cur.col+d)]; if(nb && nb.next.includes(idOf(row+1, cur.col))) return; }
+        cands.push(nc);
+      });
+      const nx = ensure(row+1, cands[Math.floor(Math.random()*cands.length)]);
+      if(!cur.next.includes(nx.id)) cur.next.push(nx.id);
+      cur = nx;
+    }
+  }
+  const boss = ensure(F, bossCol); boss.type = 'boss';
+  Object.values(nodes).filter(n=>n.row===last).forEach(n=>{ n.next = [boss.id]; });
+  for(let row=1; row<=last; row++){
+    const list = Object.values(nodes).filter(n=>n.row===row);
+    list.forEach(n=>{ n.type = row===1 ? 'battle' : mapPickWeighted(cfg.weights); });
+    if(row===last && last>=2 && !list.some(n=>n.type==='rest')) list[Math.floor(Math.random()*list.length)].type = 'rest';   // ボスの手前に、休憩を最低1つ（ほかは通常どおり）
+    if(row % eliteEvery === 0){                                          // エリートの階層（避けられるよう、通常の戦闘も混ぜる）
+      list.forEach(n=>{ n.type = Math.random()*100 < cfg.eliteChance ? 'elite' : 'battle'; });
+      if(!list.some(n=>n.type==='elite')) list[Math.floor(Math.random()*list.length)].type = 'elite';
+    }
+  }
+  Object.values(nodes).forEach(n=>{ if(n.type==='unknown') n.hidden = mapPickWeighted(cfg.unknownWeights); });   // ？の中身は、生成時に決めておく
+  return {rows:F, width:W, nodes, current:null, freeMoves:0};
+}
+// いま選べるマス。つながっている次の階層のマス。freeMoves があれば、次の階層のすべて
+function mapSelectable(r){
+  const m = r.map; if(!m) return [];
+  const cur = m.current ? m.nodes[m.current] : null;
+  const nextRow = cur ? cur.row+1 : 1;
+  if(nextRow > m.rows) return [];
+  const row = Object.values(m.nodes).filter(n=>n.row===nextRow).map(n=>n.id);
+  if((m.freeMoves||0) > 0 || relicPassive(r, 'mapFree') > 0) return row;
+  return cur ? cur.next.slice() : row;
+}
+function grantMapFreeMoves(n){ const r = S.run; if(r && r.map) r.map.freeMoves = (r.map.freeMoves||0) + (n|0); }
+// display=true のとき、レリックの効果で？の中身が見えるならそれを返す
+function mapNodeType(n, display){
+  if(n.type!=='unknown') return n.type;
+  if(n.revealed) return n.revealed;
+  if(display && n.hidden && S.run && relicPassive(S.run, 'revealUnknown') > 0) return n.hidden;
+  return 'unknown';
+}
+function mapEnterNode(id){
+  const r = S.run, m = r.map, n = m && m.nodes[id];
+  if(!n || !mapSelectable(r).includes(id)) return;
+  const cur = m.current ? m.nodes[m.current] : null;
+  if(cur && !cur.next.includes(id)){   // つながっていないマスを選んだとき: 特別な移動の回数、なければレリックの使える回数を消費
+    if((m.freeMoves||0)>0) m.freeMoves--; else relicUsePassive(r, ['mapFree']);
+  }
+  m.current = id; n.visited = true; r.floor = n.row;
+  let type = n.type;
+  if(type==='unknown'){
+    if(!n.revealed && relicPassive(r, 'revealUnknown') > 0) relicUsePassive(r, ['revealUnknown']);
+    type = n.revealed = n.hidden || mapPickWeighted(mapCfg().unknownWeights);
+  }
+  if(type==='rest'){ r.restState = null; S.screen='rest'; renderRest(); }
+  else if(type==='event'){ S.screen='event'; renderEvent(); }
+  else if(type==='shop'){ S.screen='shop'; renderShop(); }
+  else beginFloorLegacy(type==='boss' ? 'boss' : (type==='elite' ? 'elite' : 'normal'));
+}
+// ラウンドをまたいだ通しの階層数（敵のHP・ゴールドの計算に使う）
+function mapGlobalFloor(r){ return ((r.round||1)-1) * S.settings.floorCount + r.floor; }
 function beginFloor(){
+  const r = S.run;
+  if(!r.round) r.round = 1;
+  if(r.map===undefined) r.map = generateMap(S.settings);
+  if(!r.map){ beginFloorLegacy(); return; }   // マップなし（従来の直線の進行）
+  S.screen = 'map'; renderMap();
+}
+// 戦闘・イベント・休憩・ショップのあと、次へ進む
+function advanceFloor(){
+  const r = S.run;
+  if(r.map){
+    const cur = r.map.current && r.map.nodes[r.map.current];
+    if(cur && cur.row >= r.map.rows){   // ボスを倒した: 次のラウンドのマップへ（HP・永続の状態・デッキはそのまま引き継ぐ）
+      r.round = (r.round||1) + 1; r.seenEnemies = [];
+      relicResetUses(r, 'round');
+      r.map = generateMap(S.settings);
+    }
+    S.screen = 'map'; renderMap(); return;
+  }
+  r.floor++; beginFloorLegacy();
+}
+function renderMap(){
+  const r = S.run, m = r.map, W = m.width, H = m.rows*MAP_ROW_H;
+  const sel = new Set(mapSelectable(r)), cur = m.current ? m.nodes[m.current] : null;
+  const xOf = n=> (n.col+0.5)/W*100, yOf = n=> (n.row-0.5)*MAP_ROW_H;
+  const nodes = Object.values(m.nodes);
+  const lines = nodes.map(n=> n.next.map(t=>{
+    const b = m.nodes[t];
+    const cls = (cur && cur.id===n.id) ? 'hot' : ((n.visited && b.visited) ? 'done' : '');
+    return `<line class="${cls}" x1="${xOf(n)}" y1="${yOf(n)}" x2="${xOf(b)}" y2="${yOf(b)}"/>`;
+  }).join('')).join('');
+  const nodeHTML = nodes.map(n=>{
+    const t = mapNodeType(n, true), info = mapInfo(t), peek = n.type==='unknown' && !n.revealed && t!=='unknown';
+    const free = sel.has(n.id) && cur && !cur.next.includes(n.id);
+    const cls = ['map-node', t, n.visited?'visited':'', (cur&&cur.id===n.id)?'current':'', sel.has(n.id)?'selectable':'', free?'free':'', peek?'peek':''].join(' ');
+    return `<button class="${cls}" data-id="${n.id}" style="left:${xOf(n)}%; top:${yOf(n)}px; --nc:${info.color};"><span class="mi">${info.icon}</span><span class="ml">${peek?'？→':''}${info.label}</span></button>`;
+  }).join('');
+  const rowNos = Array.from({length:m.rows}, (_,i)=>`<span class="map-rowno" style="top:${(i+0.5)*MAP_ROW_H}px;">${i+1}</span>`).join('');
+  const legend = MAP_TYPES.map(k=>{ const i = mapInfo(k); return `<span class="map-chip" style="border-color:${i.color};">${i.icon} ${i.label}</span>`; }).join('');
+  const nextRow = cur ? cur.row+1 : 1;
+  app().innerHTML = `
+  <div class="screen map-screen">
+    <div class="map-head">
+      <p class="eyebrow">MAP</p>
+      <h2>進む道を選べ</h2>
+      <p class="hint" style="margin:6px 0;">${S.settings.roundCount>1 ? `${roundLabel(r.round||1)}（${r.round||1}/${S.settings.roundCount}） ・ ` : ''}階層 ${nextRow} / ${m.rows} ・ HP ${r.player.hp} / ${r.player.maxHp} ・ 💰${r.player.gold}</p>
+      ${(m.freeMoves||0)>0 ? `<p class="hint" style="color:var(--gold);">特別な移動: 次の階層なら、つながっていないマスも選べます（残り${m.freeMoves}回）</p>` : ''}
+      ${((m.freeMoves||0)===0 && relicPassive(r,'mapFree')>0) ? '<p class="hint" style="color:var(--gold);">レリックの効果: 次の階層なら、つながっていないマスも選べます</p>' : ''}
+      ${relicPassive(r,'revealUnknown')>0 ? '<p class="hint" style="color:var(--gold);">レリックの効果: ？のマスの中身が分かります</p>' : ''}
+      <div class="map-legend">${legend}</div>
+    </div>
+    <div class="map-wrap" style="height:${H}px;">
+      <svg class="map-svg" viewBox="0 0 100 ${H}" preserveAspectRatio="none" style="height:${H}px;">${lines}</svg>
+      ${rowNos}${nodeHTML}
+    </div>
+    <div class="map-bar"><span id="map-info">光っているマスを選ぶと、中身が表示されます。</span><button class="primary" id="map-go" style="display:none;">この道へ進む</button></div>
+  </div>`;
+  let picked = null;
+  const pick = (b)=>{
+    const n = m.nodes[b.dataset.id], t = mapNodeType(n, true), info = mapInfo(t);
+    app().querySelectorAll('.map-node.picked').forEach(x=>x.classList.remove('picked'));
+    b.classList.add('picked');
+    qs('#map-info').innerHTML = `<b>${info.icon} ${info.label}</b>（${n.row}階層）: ${info.desc}${(n.type==='unknown' && !n.revealed && t!=='unknown') ? '（？の中身）' : ''}${n.visited ? '（通過済み）' : (sel.has(n.id) ? '' : '（いまは進めません）')}`;
+    picked = sel.has(n.id) ? n.id : null;
+    qs('#map-go').style.display = picked ? '' : 'none';
+  };
+  app().querySelectorAll('.map-node').forEach(b=>{ b.onclick = ()=>pick(b); });
+  qs('#map-go').onclick = ()=>{ if(picked) mapEnterNode(picked); };
+  // 選択の初期値（一本道のときなど、押す手間を減らす）。進むには「この道へ進む」かEnterキー
+  { const def = mapDefaultPickId(r, sel); if(def){ const b = app().querySelector(`.map-node[data-id="${def}"]`); if(b) pick(b); } }
+  if(!__mapKeyBound){
+    __mapKeyBound = true;
+    document.addEventListener('keydown', e=>{
+      if(S.screen!=='map' || e.key!=='Enter') return;
+      const g = document.getElementById('map-go'); if(g && g.style.display!=='none') g.click();
+    });
+  }
+  try{ const t = app().querySelector('.map-node.picked') || app().querySelector('.map-node.selectable') || app().querySelector('.map-node.current'); if(t) t.scrollIntoView({block:'center'}); }catch(e){}
+}
+function beginFloorLegacy(forcedCategory){
   const r = S.run;
   if(r.battlesSinceSpecial===undefined) r.battlesSinceSpecial = 0;
   const isBoss = r.floor === S.settings.floorCount;
   const isElite = r.floor % S.settings.eliteEvery === 0;
-  if(!isBoss && !isElite && r.battlesSinceSpecial>=2){
+  if(!forcedCategory && !isBoss && !isElite && r.battlesSinceSpecial>=2){
     r.battlesSinceSpecial = 0;
     const roll = Math.random();
     if(roll < 0.4){ S.screen='rest'; renderRest(); return; }
@@ -6080,11 +7054,14 @@ function beginFloor(){
   // standard deckbuilder behavior and prevents cards from being lost between floors.
   LOG_GROUPS.length = 0;
   purgeTemporaryCards(r);
-  const fullPool = [...r.draw, ...r.hand, ...r.discard, ...r.exhausted];
-  r.draw = shuffle(fullPool);
+  r.permExhaustIids = r.permExhaustIids || {};
+  const isStay = id=>{ const t = splitInstanceId(id).iid; return !!(t && r.permExhaustIids[t]); };
+  const fullPool = [...r.draw, ...r.hand, ...r.discard, ...r.exhausted.filter(id=>!isStay(id))];
+  const stayExhausted = [...r.draw, ...r.hand, ...r.discard, ...r.exhausted].filter(isStay);
+  r.draw = shuffle(fullPool.filter(id=>!isStay(id)));
   r.hand = [];
   r.discard = [];
-  r.exhausted = [];
+  r.exhausted = stayExhausted;   // 永続の消滅は、次の戦闘でも消滅札に残る
 
   // Temporary strength/dexterity/metallicize/thorns and any lingering statuses are
   // combat-only and reset here; the permanent versions (permStrength/permDexterity/
@@ -6104,10 +7081,11 @@ function beginFloor(){
   }
   r.activeTriggers = [];
   r.pileEvents = []; r._effectDepth = 0; r._pileTrigDepth = 0;
+  relicResetUses(r, 'battle');
   r.combatStats = {played:0, tagsPlayed:[], drawn:0, discarded:0, hitsTaken:0};
   r.pendingTurnStartOps = [];
 
-  r.enemy = makeEnemy(r.floor);
+  r.enemy = makeEnemy(r.floor, forcedCategory, mapGlobalFloor(r));
   applyEnemyStartEffects(r, r.enemy, r.enemy.startEffect);
   r.player.block = 0; r.player.autoGranted = 0;
   r.log = [];
@@ -6232,12 +7210,17 @@ function startPlayerTurn(first){
   runTurnStartCardOps(r, ()=>{
     if(enemyFallen()){ onEnemyDefeated(); return; }
     if(playerFallen()){ onPlayerDefeated(); return; }
-    fireRelicTiming(r, 'turnStart');
-    r.turnPhase='player';
-    // 行動不能でも自動でターンは送らない。カードは使えないので、敵の予告やログを確認してから手動でターン終了する。
-    r.turnSkipped = !!customSkip;
-    if(customSkip) pushLog('行動できない！ カードは使えない。敵の行動を確認して、ターンを終了してください。');
-    if(!sync) renderBattle();
+    // ターン開始時の予約（仕込み）は、手札を引き、状態のカード操作を終えたあとに発動する。そのあとレリックが発動する。
+    fireTurnStartTriggers(r, ()=>{
+      if(enemyFallen()){ onEnemyDefeated(); return; }
+      if(playerFallen()){ onPlayerDefeated(); return; }
+      fireRelicTiming(r, 'turnStart');
+      r.turnPhase='player';
+      // 行動不能でも自動でターンは送らない。カードは使えないので、敵の予告やログを確認してから手動でターン終了する。
+      r.turnSkipped = !!customSkip;
+      if(customSkip) pushLog('行動できない！ カードは使えない。敵の行動を確認して、ターンを終了してください。');
+      if(!sync) renderBattle();
+    });
   });
   sync = false;
 }
@@ -6303,7 +7286,10 @@ function blockModNotes(hit, bm, rb, side){
 function enemyElementMod(e, elems){
   let pct = 0; const names = [];
   (e.elementMods||[]).forEach(m=>{
-    if((elems||[]).includes(m.element)){ pct += m.pct; const el = elementById(m.element); if(el) names.push(el.name); }
+    (elems||[]).forEach(id=>{
+      if(m.element==='all' || !elementMatchesSelector(id, m.element)) return;
+      pct += m.pct; const el = elementById(id); if(el && !names.includes(el.name)) names.push(el.name);
+    });
   });
   return {pct, names};
 }
@@ -6389,10 +7375,11 @@ function playCard(handIdx){
   const r = S.run; if(r.turnPhase!=='player' || r.turnSkipped || r.defeatWait) return;
   const cardId = r.hand[handIdx];
   const c = cardById(cardId);
-  if(!c || c.cost > r.player.energy) return;
+  if(!c || !canAffordCard(c, r.player.energy)) return;
   const reqFail = requirementFailure(r, c);
   if(reqFail){ pushLog(`${c.name}: 使用条件を満たしていないため使えない（${reqFail}）。`); renderBattle(); return; }
-  r.player.energy -= c.cost;
+  const xPaid = isXCost(c) ? r.player.energy : 0;
+  r.player.energy -= getCardPaymentCost(c, r.player.energy);
 
   // The played card leaves the hand BEFORE its effects resolve. Otherwise a hand-targeting
   // card operation (discard / buff / upgrade / duplicate ...) could pick the card that is
@@ -6401,7 +7388,8 @@ function playCard(handIdx){
   r.hand.splice(handIdx,1);
 
   logGroupBegin(`あなた：${cardIcon(c)}${c.name}`);
-  runWithSelfCard(r, cardId, cb=>resolveCardPlayCore(r, c, cb), finalId=>{
+  if(isXCost(c)) pushLog(`${c.name}: X=${xPaid}（エネルギーをすべて消費）。`);
+  runWithSelfCard(r, cardId, cb=>withXValue(r, xPaid, cb2=>resolveCardPlayCore(r, c, cb2), cb), finalId=>{
     logGroupEnd();
     // 「そのカード自身」の操作で行き先が決まっていなければ、いつもどおり捨て札／消滅へ
     if(finalId){
@@ -6463,6 +7451,7 @@ function runEnemyTurn(){
     const move = cardById(e.nextMoveId);
     r.damageEvents = [];
     e.triggers = expireTriggers(e.triggers); // 有効ターンが尽きた構え（「このターンのみ」は次の行動の前）は解ける
+    fireEnemyTurnStartTriggers(r, e);
     r.enemyTurnStat = {hits:0, total:0, blocked:0, hpLoss:0, hpStart:r.player.hp};
     if(move) resolveEnemyMoveEffects(r, e, move);
     logEnemyTurnSummary(r);
@@ -6510,13 +7499,14 @@ function onPlayerDefeated(){
 function onEnemyDefeatedCore(){
   const r = S.run;
   r.rewardChoices = null; r.rewardRerollCount = 0; r.rewardFocusTag = '';
+  r.rewardBoost = r.enemy.elite ? {rarePct: S.settings.eliteRarePct, extra: S.settings.eliteExtraChoices} : null;   // エリートの報酬の強化
   purgeTemporaryCards(r);
   fireRelicTiming(r, 'combatEnd');
-  const gained = goldForFloor(r.floor, r.enemy.elite, r.enemy.boss);
+  const gained = goldForFloor(mapGlobalFloor(r), r.enemy.elite, r.enemy.boss);
   r.player.gold += gained;
   r.lastGoldGained = gained;
   pushLog(`${r.enemy.name}を撃破した！ ゴールド+${gained}。`);
-  if(r.floor >= S.settings.floorCount){
+  if(r.floor >= S.settings.floorCount && (r.round||1) >= (S.settings.roundCount||1)){
     S.screen='victory'; renderVictory(); return;
   }
   // 敵ごとに設定されたドロップカード（必ず入手）
@@ -6528,7 +7518,7 @@ function onEnemyDefeatedCore(){
     const fixed = S.relics.find(rel=>rel.id===r.enemy.dropRelicId);
     if(fixed && !r.player.relics.includes(fixed.id) && rollChance(r.enemy.dropRelicChance)) dropRelic = fixed;
   }
-  if(!dropRelic && (r.enemy.elite || r.enemy.boss)){
+  if(!dropRelic && (r.enemy.elite || r.enemy.boss) && (!r.enemy.elite || rollChance(S.settings.eliteRelicChance))){
     const avail = S.relics.filter(rel=>!r.player.relics.includes(rel.id) && !isNonRewardRelic(rel));
     if(avail.length>0) dropRelic = avail[Math.floor(Math.random()*avail.length)];
   }
@@ -6606,7 +7596,7 @@ const BUILTIN_STATUS_INFO = [
 ];
 function fmtNum(n){ return String(Math.round(n*1000)/1000); }
 function signed(n){ return n>0 ? `+${fmtNum(n)}` : fmtNum(n); }
-function tipElementName(id){ return (!id || id==='all') ? '全属性' : (elementName(id) || '（削除された属性）'); }
+function tipElementName(id){ return (!id || id==='all') ? '全属性' : (typeof id==='string' && id.startsWith('tag:')) ? `タグ「${id.slice(4)}」の属性` : (elementName(id) || '（削除された属性）'); }
 // カスタム状態の効果1つぶんの説明（stacks＝いまのスタック数）
 function customEffectText(eff, stacks){
   const mag = customStatusMagnitude(eff, stacks);
@@ -6623,6 +7613,11 @@ function customEffectText(eff, stacks){
     case 'turnStartHeal':   return `ターン開始時にHPが${fmtNum(Math.max(0,mag))}回復${per}`;
     case 'reflectDamage':   return `攻撃を受けるたびに、相手に${fmtNum(mag)}の反射ダメージ${per}`;
     case 'skipTurn':        return `自分のターンを休む（発動のたびにスタックが1減ります）`;
+    case 'cardMod': {
+      const fd = allEffectFieldDefs().find(d=>d.key===eff.modField);
+      const nm = fd ? fd.label.replace(/（.*$/,'') : eff.modField;
+      return `${eff.modTag ? `[${escapeHtml(eff.modTag)}]の` : ''}カードを使うとき、「${escapeHtml(nm)}」が${signed(mag)}${eff.decayOnUse ? `（使うたびにスタック-${eff.decayN||1}）` : ''}${per}`;
+    }
     case 'revive':          return `HPが0になったとき、HP${fmtNum(mag)}で復活（発動のたびにスタックが1減ります）${per}`;
     case 'elDealtFlat':     return `${el}の攻撃の与ダメージが${signed(mag)}${per}`;
     case 'elDealtPct':      return `${el}の攻撃の与ダメージが${signed(mag)}％${per}`;
@@ -6681,9 +7676,11 @@ function triggerTipHTML(t, isEnemy, e){
     ? `${isEnemy ? '敵が' : ''}ダメージを受けるたびに発動${t.triggerBlocked ? '（ブロックで全部防いだ場合も）' : ''}`
     : PILE_TRIGGER_KINDS.includes(t.triggerOn)
     ? (isEnemy ? '（敵はカードを引いたり捨てたりしないため、発動しません）' : `カードの効果で${tag}カードを${t.triggerOn==='drawn' ? '引く' : '捨て札に移す'}たびに発動`)
+    : t.triggerOn==='turnStart'
+    ? `${isEnemy ? '敵の' : '自分の'}ターン開始時に発動`
     : (isEnemy ? `敵が${tag || 'どの'}カードを使うたびに発動` : `${tag || 'どの'}カードを使うたびに発動`);
   const everyN = Math.max(1, t.every|0 || 1);
-  const everyTxt = everyN>1 ? `（${everyN}回に1回。いま${t.count||0}回）` : '';
+  const everyTxt = everyN>1 ? (t.triggerOn==='turnStart' ? `（${everyN}ターンに1回。いま${t.count||0}ターン）` : `（${everyN}回に1回。いま${t.count||0}回）`) : '';
   const left = t.turnsLeft>0 ? `あと${t.turnsLeft}ターン` : (t.duration==='turn' ? 'このターンのみ' : 'この戦闘中ずっと');
   let effect;
   if(isEnemy){
@@ -6692,7 +7689,7 @@ function triggerTipHTML(t, isEnemy, e){
     if(d>0) parts.unshift(`ダメージ${d}${hits>1 ? `×${hits}` : ''}`);
     effect = parts.length ? parts.join('・') : '―';
   } else {
-    const cc = {...c, timing:'immediate', requirements:[], descPrefix:''};
+    const cc = {...c, timing:'immediate', immediateEnabled:true, triggerEnabled:false, requirements:[], descPrefix:''};
     Object.keys(cc).forEach(k=>{ if(k.indexOf('dw_')===0) delete cc[k]; });
     effect = cardDescription(cc);
   }
@@ -6750,18 +7747,21 @@ function enemyMoveParts(e, c){
   return parts;
 }
 function intentLabel(e){
-  const c = cardById(e.nextMoveId);
+  let c = cardById(e.nextMoveId);
   if(!c) return {cls:'buf', text:'予告: ？'};
+  c = applyCardModsTo(c, e).card;   // 敵の「使用カードの効果補正」状態を反映した予告にする
   // Format: 予告: <icon><skill name> <effect><value>・<effect><value>...
   // 数値は、敵の現在の強化・器用や、参照増減（失ったHPなど）を反映した値を表示する。
   const V = key=> enemyVal(c, key);
   const parts = enemyMoveParts(e, c);
-  const isTrig = c.timing==='trigger';
+  const isTrig = isTriggerOnly(c);
   const cls = isTrig ? 'buf' : (V('damage')>0 ? 'atk' : (V('block')>0 ? 'def' : 'buf'));
   let trigText = '';
-  if(isTrig){
-    const when = PILE_TRIGGER_KINDS.includes(c.triggerOn) ? '発動しない（敵は引く・捨てることがない）' : (c.triggerOn==='damaged' ? 'ダメージを受けたとき' : `${c.triggerTag?`[${c.triggerTag}]の`:''}カードを使ったとき`);
-    trigText = `【構え：${when}${triggerEveryOf(c)>1 ? `・${triggerEveryOf(c)}回に1回` : ''}】`;
+  if(hasTrigger(c)){
+    const onKind = cleanTriggerOn(c.triggerOn);
+    const when = PILE_TRIGGER_KINDS.includes(onKind) ? '発動しない（敵は引く・捨てることがない）' : onKind==='turnStart' ? '自分のターン開始時' : (onKind==='damaged' ? 'ダメージを受けたとき' : `${c.triggerTag?`[${c.triggerTag}]の`:''}カードを使ったとき`);
+    const ev = triggerCountEveryOf(c);
+    trigText = `【${isTrig ? '' : '＋'}構え：${when}${ev>1 ? (onKind==='turnStart' ? `・${ev}ターンに1回` : `・${ev}回に1回`) : ''}】`;
   }
   const pred = isTrig ? null : predictEnemyAttack(e, c);
   // 表記: {カード名}：ダメージ {予測合計}({基礎}×{回数})・その他の効果…（詳細はポップオーバー）
@@ -6784,7 +7784,7 @@ function predictEnemyAttack(e, c){
   const r = S.run, p = r.player;
   const V = key=> enemyVal(c, key);
   const base = V('damage');
-  if(c.timing==='trigger' || base<=0) return null;
+  if(isTriggerOnly(c) || base<=0) return null;
   const hits = Math.max(1, (c.hits||1) + scaleBonus(c,'hits','enemy'));
   const strGain = V('strength') + V('permStrength');   // 同じ行動で強化を得るなら、1発ごとに積み上がる
   const vulnGain = V('vulnerable');                    // 同じ行動で脆弱を付けるなら、2発目以降に効く
@@ -6939,7 +7939,7 @@ function renderBattle(){
   app().innerHTML = `
   <div class="screen battle-screen${logRight?' log-right':''}">
    <div class="battle-main">
-    <div class="floor-progress">階層 ${r.floor} / ${S.settings.floorCount} ${e.boss?'・ボス戦':(e.elite?'・エリート':'')} ・ 💰${p.gold}</div>
+    <div class="floor-progress">${S.settings.roundCount>1 ? `${roundLabel(r.round||1)}（${r.round||1}/${S.settings.roundCount}） ・ ` : ''}階層 ${r.floor} / ${S.settings.floorCount} ${e.boss?'・ボス戦':(e.elite?'・エリート':'')} ・ 💰${p.gold}</div>
     ${p.relics.length? `<div style="text-align:center; font-size:11px; color:var(--gold); margin-bottom:8px;">🏺 ${p.relics.map(id=>{const rel=S.relics.find(x=>x.id===id); return rel?rel.name:id;}).join(' ・ ')}</div>` : ''}
     <div class="battlefield">
       <div class="combatant player">
@@ -6972,7 +7972,7 @@ function renderBattle(){
         ${r.hand.map((cid,idx)=>{
           const c = cardById(cid);
           const reason = requirementFailure(r, c);
-          const unplayable = (c.cost>p.energy || r.turnPhase!=='player' || !!r.turnSkipped || !!reason);
+          const unplayable = (!canAffordCard(c, p.energy) || r.turnPhase!=='player' || !!r.turnSkipped || !!reason);
           return `<div data-idx="${idx}">${renderCardHTML(c,{unplayable, reason})}</div>`;
         }).join('')}
       </div>
@@ -7000,26 +8000,48 @@ function renderBattle(){
 /* ============================= REST SCREEN ============================= */
 
 function renderRest(){
-  const r = S.run;
-  const healAmt = Math.round(r.player.maxHp * (S.settings.restHealPct/100));
+  const r = S.run, st = S.settings;
+  if(!r.restState) r.restState = {left: Math.max(1, st.restActions||1), healed:false, upgraded:false, removed:false, mode:null};
+  const rs = r.restState;
+  const healAmt = Math.round(r.player.maxHp * (st.restHealPct/100));
+  const finish = ()=>{ r.restState = null; advanceFloor(); };
+  const acted = ()=>{ rs.left--; rs.mode = null; if(rs.left<=0) finish(); else renderRest(); };
+  const upgradeEligible = ownedCardInstances(r).filter(inst=>!isUpgradedInstanceId(inst.cid));
+  const owned = ownedCardInstances(r);
+  const head = (sub)=>`<p class="eyebrow">SANCTUARY</p><h2>静かな休憩所</h2>
+    <p style="color:var(--parchment-dim); margin-top:10px;">HP ${r.player.hp} / ${r.player.maxHp}${st.restActions>1 ? ` ・ 残り行動 ${rs.left}回` : ''}</p>${sub||''}`;
+  if(rs.mode==='upgrade' || rs.mode==='remove'){
+    const list = rs.mode==='upgrade' ? upgradeEligible : owned;
+    app().innerHTML = `<div class="screen center-screen">${head(`<p style="color:var(--parchment-dim); margin-top:10px;">${rs.mode==='upgrade' ? '強化するカードを選んでください' : '除去するカードを選んでください'}</p>`)}
+      <div class="reward-row" id="rest-row">${list.map((inst,i)=>`<div data-idx="${i}">${renderCardHTML(cardById(inst.cid),{mini:true})}</div>`).join('')}</div>
+      <button class="ghost" id="btn-rest-cancel">やめる</button></div>`;
+    qsa('#rest-row > div').forEach(wrap=>{
+      wrap.querySelector('.card').onclick = ()=>{
+        const inst = list[parseInt(wrap.dataset.idx,10)];
+        if(rs.mode==='upgrade'){ r[inst.pile][inst.i] = upgradeRawId(inst.cid); rs.upgraded = true; }
+        else { r[inst.pile].splice(inst.i,1); rs.removed = true; }
+        acted();
+      };
+    });
+    qs('#btn-rest-cancel').onclick = ()=>{ rs.mode = null; renderRest(); };
+    return;
+  }
+  const canUp = st.restUpgrade!==0 && !rs.upgraded && upgradeEligible.length>0;
+  const canRm = st.restRemove===1 && !rs.removed && owned.length>0;
   app().innerHTML = `
   <div class="screen center-screen">
-    <p class="eyebrow">SANCTUARY</p>
-    <h2>静かな休憩所</h2>
-    <p style="color:var(--parchment-dim); margin-top:10px;">HP ${r.player.hp} / ${r.player.maxHp}</p>
-    <div style="margin-top:26px;">
-      <button class="primary" id="btn-rest-heal">火を囲んで休む（HP +${healAmt}）</button>
+    ${head()}
+    <div style="margin-top:26px; display:flex; flex-direction:column; gap:12px; align-items:center;">
+      <button class="primary" id="btn-rest-heal" ${rs.healed?'disabled':''}>${rs.healed?'休んだ':`火を囲んで休む（HP +${healAmt}）`}</button>
+      ${st.restUpgrade!==0 ? `<button id="btn-rest-upgrade" ${canUp?'':'disabled'}>${rs.upgraded?'カードを強化した':'カードを強化する'}</button>` : ''}
+      ${st.restRemove===1 ? `<button id="btn-rest-remove" ${canRm?'':'disabled'}>${rs.removed?'カードを除去した':'カードを除去する'}</button>` : ''}
     </div>
-    <div style="margin-top:12px;">
-      <button class="ghost" id="btn-rest-skip">そのまま先へ進む</button>
-    </div>
+    <div style="margin-top:18px;"><button class="ghost" id="btn-rest-skip">${rs.left < Math.max(1, st.restActions||1) ? '休憩を終えて先へ進む' : 'そのまま先へ進む'}</button></div>
   </div>`;
-  const advance = ()=>{ r.floor++; beginFloor(); };
-  qs('#btn-rest-heal').onclick = ()=>{
-    r.player.hp = Math.min(r.player.maxHp, r.player.hp + healAmt);
-    advance();
-  };
-  qs('#btn-rest-skip').onclick = advance;
+  qs('#btn-rest-heal').onclick = ()=>{ r.player.hp = Math.min(r.player.maxHp, r.player.hp + healAmt); rs.healed = true; acted(); };
+  if(qs('#btn-rest-upgrade')) qs('#btn-rest-upgrade').onclick = ()=>{ if(canUp){ rs.mode = 'upgrade'; renderRest(); } };
+  if(qs('#btn-rest-remove')) qs('#btn-rest-remove').onclick = ()=>{ if(canRm){ rs.mode = 'remove'; renderRest(); } };
+  qs('#btn-rest-skip').onclick = finish;
 }
 
 /* ============================= EVENT / SHOP ============================= */
@@ -7098,6 +8120,52 @@ function relicTimingHint(t){
   return '永続の強化・最大HPなどは、発動のたびに加算されます（ターン開始時などに設定すると急速に大きくなります）。エネルギー・ドローの永続増加は、発動した戦闘中にもすぐ反映されます。';
 }
 
+/* ============================= レリックの使える回数・所持中の効果 ============================= */
+const RELIC_SCOPE_LABELS = {run:'戻らない（探索全体で合計）', round:'ラウンドの開始時に戻る', battle:'戦闘の開始時に戻る'};
+// 所持している間ずっと働く効果（発動のタイミングは関係ない）。数値が0より大きいと有効
+const RELIC_PASSIVE_FIELDS = [
+  {key:'mapFree', label:'マップ: つながっていないマスも選べる（1で有効）', max:1, desc:()=>'マップで、つながっていないマスも選べる'},
+  {key:'revealUnknown', label:'マップ: ？のマスの中身が分かる（1で有効）', max:1, desc:()=>'マップの「？」の中身が分かる'},
+  {key:'rewardUpgradePct', label:'カード報酬: 強化済みで出る確率(%)', max:100, desc:v=>`カード報酬が、${v}%の確率で強化済みになる`},
+  {key:'shopDiscountPct', label:'ショップ: カード・レリックの割引(%)', max:100, desc:v=>`ショップのカード・レリックが${v}%引き`},
+  {key:'shopServiceDiscountPct', label:'ショップ: 入れ替え・除去・強化の割引(%)', max:100, desc:v=>`ショップの入れ替え・除去・強化が${v}%引き`},
+  {key:'shopExtraCards', label:'ショップ: カードの品揃え+', max:12, desc:v=>`ショップのカードの品揃え+${v}`},
+  {key:'shopExtraRelics', label:'ショップ: レリックの品揃え+', max:6, desc:v=>`ショップのレリックの品揃え+${v}`},
+];
+function relicUseState(r, rel){ return ((r.relicUses||{})[rel.id]) || {run:0, round:0, battle:0}; }
+function relicUsable(r, rel){ return !(rel.useLimit>0) || relicUseState(r, rel)[rel.useScope||'run'] < rel.useLimit; }
+function relicConsume(r, rel){
+  const u = r.relicUses = r.relicUses || {};
+  const o = u[rel.id] = u[rel.id] || {run:0, round:0, battle:0};
+  o.run++; o.round++; o.battle++;
+}
+function relicResetUses(r, scope){ Object.values(r.relicUses||{}).forEach(o=>{ o[scope] = 0; }); }
+function ownedRelicsWith(r, keys){
+  return ((r.player && r.player.relics) || []).map(id=>S.relics.find(x=>x.id===id))
+    .filter(rel=> rel && relicUsable(r, rel) && keys.some(k=> (Number((rel.effect||{})[k])||0) > 0));
+}
+// 使える回数が残っているレリックの、効果の合計（確認だけ。回数は消費しない）
+function relicPassive(r, key){ return ownedRelicsWith(r, [key]).reduce((a,rel)=> a + (Number(rel.effect[key])||0), 0); }
+// 効果を使う: 該当するレリックの使える回数を1ずつ消費して、効果の合計を返す
+function relicUsePassive(r, keys){
+  const sums = {}; keys.forEach(k=>{ sums[k] = 0; });
+  ownedRelicsWith(r, keys).forEach(rel=>{ keys.forEach(k=>{ sums[k] += Number(rel.effect[k])||0; }); relicConsume(r, rel); });
+  return sums;
+}
+function relicPassiveText(relic){
+  const e = relic.effect || {};
+  const parts = RELIC_PASSIVE_FIELDS.filter(f=> (Number(e[f.key])||0) > 0).map(f=> f.desc(Number(e[f.key])));
+  return parts.length ? `所持中: ${parts.join('。')}。` : '';
+}
+function relicLimitText(relic){
+  if(!(relic.useLimit>0)) return '';
+  const r = S.run, sc = relic.useScope||'run';
+  const owned = !!(r && r.player && (r.player.relics||[]).includes(relic.id));
+  const left = owned ? Math.max(0, relic.useLimit - relicUseState(r, relic)[sc]) : null;
+  const back = sc==='round' ? '、ラウンドの開始時に戻る' : (sc==='battle' ? '、戦闘の開始時に戻る' : '');
+  return `（発動ごとに回数を消費: ${relic.useLimit}回${back}${owned ? (left>0 ? `・残り${left}回` : '・使い切り') : ''}）`;
+}
+
 function relicDescription(relic){
   const timing = relic.timing || 'onPickup';
   const e = relic.effect || {};
@@ -7113,10 +8181,11 @@ function relicDescription(relic){
   const favor = (relic.favorTag && relic.favorPct>0) ? `[${relic.favorTag}]のカードの出現率+${relic.favorPct}%（所持中ずっと）。` : '';
   const useNames = (timing==='combatStart' ? (relic.useCardIds||[]) : []).map(id=>{ const cc = cardById(id); return cc ? `「${cc.name}」` : ''; }).filter(Boolean);
   const useText = useNames.length ? `カード${useNames.join('')}をコストなしで使用。` : '';
-  if(!main && !favor && !useText) return '効果なし';
-  if(timing==='onPickup' || (!main && !useText)) return main + favor;
+  const pText = relicPassiveText(relic), lim = relicLimitText(relic);
+  if(!main && !favor && !useText && !pText) return '効果なし';
+  if(timing==='onPickup' || (!main && !useText)) return main + pText + favor + lim;
   const tagPart = timing==='onTagCardUsed' ? (relic.triggerTag ? `[${relic.triggerTag}]の` : 'どの') : '';
-  return `【${timingLabel}】${tagPart}${main}${useText}${favor}`;
+  return `【${timingLabel}】${tagPart}${main}${useText}${pText}${favor}${lim}`;
 }
 
 const DEFAULT_RELICS = [
@@ -7142,10 +8211,12 @@ function fireRelicTiming(r, timing, playedCard){
   r.player.relics.forEach(relicId=>{
     const relic = S.relics.find(x=>x.id===relicId);
     if(!relic || (relic.timing||'onPickup')!==timing) return;
+    if(!relicUsable(r, relic)) return;   // 使える回数の上限に達している
     if(timing==='onTagCardUsed'){
-      const tagOk = !relic.triggerTag || (playedCard && playedCard.tags && playedCard.tags.includes(relic.triggerTag));
+      const tagOk = !relic.triggerTag || cardHasTag(playedCard, relic.triggerTag);
       if(!tagOk) return;
     }
+    relicConsume(r, relic);
     const e = relic.effect || {};
     if(timing==='combatEnd'){ applyCombatEndRelic(r, relic, e); return; }
     applyRelicMeta(r, relic, e, 'battle');
@@ -7182,7 +8253,7 @@ function queueNextCombat(r, side, key, amt){
 function queueRelicStartCards(r){
   (r.player.relics||[]).forEach(id=>{
     const relic = S.relics.find(x=>x.id===id);
-    if(!relic || (relic.timing||'onPickup')!=='combatStart') return;
+    if(!relic || (relic.timing||'onPickup')!=='combatStart' || !relicUsable(r, relic)) return;
     (relic.useCardIds||[]).forEach(cid=>{
       if(cardById(cid)) queueTurnStartOp(r, {enabled:true, type:'useCardById', cardId:cid}, relic.name);
     });
@@ -7474,7 +8545,7 @@ function eventDeckCandidates(r, eff){
     const c = cardById(x.cid);
     if(!c) return false;
     if(!evRarityOk(c.rarity, eff.rarity, false)) return false;
-    if(eff.tag && !(c.tags && c.tags.includes(eff.tag))) return false;
+    if(eff.tag && !cardHasTag(c, eff.tag)) return false;
     if(eff.kind==='upgradeCard' && isUpgradedInstanceId(x.cid)) return false;
     return true;
   });
@@ -7538,7 +8609,7 @@ function applyEventEffect(r, eff){
     const cnt = (eff.count|0) || 1;
     let pool;
     if(eff.source==='specific'){ const c = S.cards.find(x=>x.id===eff.cardId); pool = c ? [c] : []; }
-    else pool = S.cards.filter(c=> evRarityOk(c.rarity, eff.rarity, true) && (!eff.tag || (c.tags||[]).includes(eff.tag)));
+    else pool = S.cards.filter(c=> evRarityOk(c.rarity, eff.rarity, true) && (!eff.tag || cardHasTag(c, eff.tag)));
     if(!pool.length){ L('入手できるカードが見当たらなかった。'); return; }
     const got = [];
     for(let i=0;i<cnt;i++){ const c = pool[Math.floor(Math.random()*pool.length)]; r.discard.push(c.id); noteCardAcquired(r, c.id); got.push(c.name); }
@@ -7688,7 +8759,7 @@ function renderEvent(){
   } else {
     qs('#btn-event-continue').onclick = ()=>{
       r.currentEvent = null; r.eventResult = null; r.eventChoice = null; r.eventLog = []; r.eventQueue = [];
-      r.floor++; beginFloor();
+      advanceFloor();
     };
   }
 }
@@ -7953,26 +9024,55 @@ function shopPrice(rarity){
   const c = S.settings;
   return rarity==='rare' ? c.shopPriceRare : (rarity==='uncommon' ? c.shopPriceUncommon : c.shopPriceCommon);
 }
-function shopRerollCost(r){ return S.settings.rerollShopBase + S.settings.rerollShopStep*r.shopRerollCount; }
+// ショップのレリックの効果（店に入るとき1回だけ使う）
+function shopRelicMods(r){
+  const m = relicUsePassive(r, ['shopDiscountPct','shopServiceDiscountPct','shopExtraCards','shopExtraRelics']);
+  return {disc:Math.min(100,m.shopDiscountPct), svc:Math.min(100,m.shopServiceDiscountPct), cards:m.shopExtraCards, relics:m.shopExtraRelics};
+}
+function shopPriceText(r, base){ const f = shopDiscounted(r, base); return f<base ? `<s style="opacity:.6;">${base}</s> ${f}G` : f+'G'; }
+function shopDiscounted(r, price){ const d = (r.shopMods||{}).disc||0; return Math.max(0, Math.round(price*(1-d/100))); }
+// 入れ替え・除去・強化の料金: (基本 + 値上がり × 使った回数) からレリックの割引を引く
+function shopServiceCost(r, kind){
+  const st = S.settings;
+  const base = {reroll:st.rerollShopBase, remove:st.shopRemoveCost, upgrade:st.shopUpgradeCost}[kind];
+  const step = {reroll:st.rerollShopStep, remove:st.shopRemoveStep||0, upgrade:st.shopUpgradeStep||0}[kind];
+  const cnt = ((st.shopStepScope===1 ? r.shopCountsRun : r.shopCountsVisit)||{})[kind] || 0;
+  const d = (r.shopMods||{}).svc || 0;
+  return Math.max(0, Math.round((base + step*cnt) * (1 - d/100)));
+}
+function shopCountUse(r, kind){
+  r.shopCountsRun = r.shopCountsRun || {}; r.shopCountsVisit = r.shopCountsVisit || {};
+  r.shopCountsRun[kind] = (r.shopCountsRun[kind]||0) + 1; r.shopCountsVisit[kind] = (r.shopCountsVisit[kind]||0) + 1;
+}
+function shopModsNote(r){
+  const m = r.shopMods || {}, p = [];
+  if(m.disc) p.push(`商品${m.disc}%引き`); if(m.svc) p.push(`入れ替え・除去・強化${m.svc}%引き`);
+  if(m.cards) p.push(`カード+${m.cards}`); if(m.relics) p.push(`レリック+${m.relics}`);
+  return p.length ? `<p class="hint" style="color:var(--gold);">レリックの効果: ${p.join('・')}</p>` : '';
+}
 
 function renderShop(){
   const r = S.run;
   if(!r.shopOffers){
-    r.shopOffers = generateShopOffers();
+    r.shopMods = shopRelicMods(r); r.shopCountsVisit = {};
+    r.shopOffers = generateShopOffers((S.settings.shopCardCount||3) + r.shopMods.cards);
     r.shopRerollCount = 0;
     r.shopRemoveMode = false;
     r.shopUpgradeMode = false;
     const availRelics = S.relics.filter(rel=>!r.player.relics.includes(rel.id) && !isNonRewardRelic(rel));
-    r.shopRelic = availRelics.length ? {...availRelics[Math.floor(Math.random()*availRelics.length)], price:S.settings.shopRelicPrice, sold:false} : null;
+    r.shopRelics = shuffle(availRelics).slice(0, Math.max(0, (S.settings.shopRelicCount||0) + r.shopMods.relics))
+      .map(rel=>({...rel, price: rel.shopPrice>0 ? rel.shopPrice : S.settings.shopRelicPrice, sold:false}));
   }
   const totalOwned = ownedCardInstances(r).length;
   const upgradeEligible = ownedCardInstances(r).filter(x=>!isUpgradedInstanceId(x.cid));
   const mode = r.shopRemoveMode ? 'remove' : (r.shopUpgradeMode ? 'upgrade' : 'main');
+  const rerollCost = shopServiceCost(r,'reroll'), removeCost = shopServiceCost(r,'remove'), upgradeCost = shopServiceCost(r,'upgrade');
 
   app().innerHTML = `
   <div class="screen center-screen">
     <p class="eyebrow">MERCHANT</p>
     <h2>行商の露店</h2>
+    ${shopModsNote(r)}
     <p style="font-size:13px; color:var(--gold); margin-top:6px;">所持ゴールド: ${r.player.gold}${S.settings.shopRerollEnabled?` ・ リロールトークン: ${r.player.rerollTokens||0}`:''}</p>
     ${mode==='main' ? `
       <div class="reward-row" id="shop-row">
@@ -7980,32 +9080,33 @@ function renderShop(){
           const c = cardById(o.cardId);
           if(!c) return '';
           return `<div data-idx="${i}" style="text-align:center;">
-            ${renderCardHTML(c,{unplayable:o.sold||r.player.gold<o.price})}
-            <div style="margin-top:6px; font-size:13px; color:var(--gold);">${o.sold?'売り切れ':o.price+'G'}</div>
+            ${renderCardHTML(c,{unplayable:o.sold||r.player.gold<shopDiscounted(r,o.price)})}
+            <div style="margin-top:6px; font-size:13px; color:var(--gold);">${o.sold?'売り切れ':shopPriceText(r,o.price)}</div>
           </div>`;
         }).join('')}
       </div>
-      ${r.shopRelic ? `
-        <div style="margin-top:18px; max-width:220px; margin-left:auto; margin-right:auto; border:2px solid var(--gold); border-radius:8px; padding:12px; text-align:center; background:var(--bg-panel-raised);">
-          <div style="font-family:var(--font-display); font-size:14px; color:var(--gold);">${r.shopRelic.name}</div>
-          <div style="font-size:11px; color:var(--parchment-dim); margin:6px 0;">${relicDescription(r.shopRelic)}</div>
-          <button id="btn-buy-relic" ${(r.shopRelic.sold||r.player.gold<r.shopRelic.price)?'disabled':''}>${r.shopRelic.sold?'売り切れ':r.shopRelic.price+'G で購入'}</button>
-        </div>
-      ` : ''}
+      <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:18px;">
+        ${(r.shopRelics||[]).map((rl,i)=>`
+        <div style="width:210px; border:2px solid var(--gold); border-radius:8px; padding:12px; text-align:center; background:var(--bg-panel-raised);">
+          <div style="font-family:var(--font-display); font-size:14px; color:var(--gold);">${rl.name}</div>
+          <div style="font-size:11px; color:var(--parchment-dim); margin:6px 0;">${relicDescription(rl)}</div>
+          <button data-buy-relic="${i}" ${(rl.sold||r.player.gold<shopDiscounted(r,rl.price))?'disabled':''}>${rl.sold?'売り切れ':shopDiscounted(r,rl.price)+'G で購入'}</button>
+        </div>`).join('')}
+      </div>
       <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-        ${S.settings.shopRerollEnabled ? `<button id="btn-shop-reroll" ${(((r.player.rerollTokens||0)>0)||r.player.gold>=shopRerollCost(r))?'':'disabled'}>商品を入れ替える（${(r.player.rerollTokens||0)>0?'トークン1消費':shopRerollCost(r)+'G'}）</button>` : ''}
-        <button id="btn-shop-remove" ${(r.player.gold<S.settings.shopRemoveCost || totalOwned<=5)?'disabled':''}>カードを1枚除去する（${S.settings.shopRemoveCost}G）</button>
-        <button id="btn-shop-upgrade" ${(r.player.gold<S.settings.shopUpgradeCost || upgradeEligible.length===0)?'disabled':''}>カードを1枚強化する（${S.settings.shopUpgradeCost}G）</button>
+        ${S.settings.shopRerollEnabled ? `<button id="btn-shop-reroll" ${(((r.player.rerollTokens||0)>0)||r.player.gold>=rerollCost)?'':'disabled'}>商品を入れ替える（${(r.player.rerollTokens||0)>0?'トークン1消費':rerollCost+'G'}）</button>` : ''}
+        <button id="btn-shop-remove" ${(r.player.gold<removeCost || totalOwned<=5)?'disabled':''}>カードを1枚除去する（${removeCost}G）</button>
+        <button id="btn-shop-upgrade" ${(r.player.gold<upgradeCost || upgradeEligible.length===0)?'disabled':''}>カードを1枚強化する（${upgradeCost}G）</button>
         <button class="primary" id="btn-shop-leave">店を出る</button>
       </div>
     ` : mode==='remove' ? `
-      <p style="color:var(--parchment-dim); margin-top:10px;">除去するカードを選んでください（${S.settings.shopRemoveCost}G）</p>
+      <p style="color:var(--parchment-dim); margin-top:10px;">除去するカードを選んでください（${removeCost}G）</p>
       <div class="reward-row" id="remove-row">
         ${ownedCardInstances(r).map((inst,i)=>`<div data-idx="${i}">${renderCardHTML(cardById(inst.cid),{mini:true})}</div>`).join('')}
       </div>
       <button class="ghost" id="btn-remove-cancel">やめる</button>
     ` : `
-      <p style="color:var(--parchment-dim); margin-top:10px;">強化するカードを選んでください（${S.settings.shopUpgradeCost}G）</p>
+      <p style="color:var(--parchment-dim); margin-top:10px;">強化するカードを選んでください（${upgradeCost}G）</p>
       <div class="reward-row" id="upgrade-row">
         ${upgradeEligible.map((inst,i)=>`<div data-idx="${i}">${renderCardHTML(cardById(inst.cid),{mini:true})}</div>`).join('')}
       </div>
@@ -8020,39 +9121,41 @@ function renderShop(){
       cardEl.onclick = ()=>{
         const idx = parseInt(wrap.dataset.idx,10);
         const offer = r.shopOffers[idx];
-        if(offer.sold || r.player.gold<offer.price) return;
-        r.player.gold -= offer.price;
+        if(offer.sold || r.player.gold<shopDiscounted(r,offer.price)) return;
+        r.player.gold -= shopDiscounted(r,offer.price);
         offer.sold = true;
         r.discard.push(offer.cardId);
         noteCardAcquired(r, offer.cardId);
         renderShop();
       };
     });
-    if(r.shopRelic && qs('#btn-buy-relic')){
-      qs('#btn-buy-relic').onclick = ()=>{
-        if(r.shopRelic.sold || r.player.gold<r.shopRelic.price) return;
-        r.player.gold -= r.shopRelic.price;
-        applyRelicEffect(r, r.shopRelic);
-        r.shopRelic.sold = true;
+    qsa('[data-buy-relic]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const rl = r.shopRelics[parseInt(btn.dataset.buyRelic,10)];
+        const price = shopDiscounted(r, rl.price);
+        if(!rl || rl.sold || r.player.gold<price) return;
+        r.player.gold -= price;
+        applyRelicEffect(r, rl);
+        rl.sold = true;
         renderShop();
       };
-    }
+    });
     if(qs('#btn-shop-reroll')) qs('#btn-shop-reroll').onclick = ()=>{
-      if(!payReroll(r, shopRerollCost(r))) return;
-      r.shopRerollCount++;
-      r.shopOffers = generateShopOffers();
+      if(!payReroll(r, rerollCost)) return;
+      shopCountUse(r,'reroll');
+      r.shopOffers = generateShopOffers((S.settings.shopCardCount||3) + ((r.shopMods||{}).cards||0));
       renderShop();
     };
     qs('#btn-shop-remove').onclick = ()=>{ r.shopRemoveMode = true; renderShop(); };
     qs('#btn-shop-upgrade').onclick = ()=>{ r.shopUpgradeMode = true; renderShop(); };
-    qs('#btn-shop-leave').onclick = ()=>{ r.shopOffers=null; r.shopRelic=null; r.floor++; beginFloor(); };
+    qs('#btn-shop-leave').onclick = ()=>{ r.shopOffers=null; r.shopRelics=null; r.shopMods=null; advanceFloor(); };
   } else if(mode==='remove'){
     qsa('#remove-row > div').forEach(wrap=>{
       wrap.querySelector('.card').onclick = ()=>{
         const idx = parseInt(wrap.dataset.idx,10);
         const inst = ownedCardInstances(r)[idx];
         r[inst.pile].splice(inst.i,1);
-        r.player.gold -= S.settings.shopRemoveCost;
+        r.player.gold -= removeCost; shopCountUse(r,'remove');
         r.shopRemoveMode = false;
         renderShop();
       };
@@ -8064,7 +9167,7 @@ function renderShop(){
         const idx = parseInt(wrap.dataset.idx,10);
         const inst = upgradeEligible[idx];
         r[inst.pile][inst.i] = upgradeRawId(inst.cid);
-        r.player.gold -= S.settings.shopUpgradeCost;
+        r.player.gold -= upgradeCost; shopCountUse(r,'upgrade');
         r.shopUpgradeMode = false;
         renderShop();
       };
@@ -8109,7 +9212,7 @@ function renderReward(){
     <button class="ghost" id="btn-skip" style="margin-top:10px;">受け取らずに進む${(cfg.rewardRerollEnabled&&cfg.skipTokenEnabled)?'（リロールトークン+1）':''}</button>
     ${battleLogDetails(r, false)}
   </div>`;
-  const finish = ()=>{ r.rewardChoices=null; r.rewardRerollCount=0; r.rewardFocusTag=''; r.floor++; beginFloor(); };
+  const finish = ()=>{ r.rewardChoices=null; r.rewardRerollCount=0; r.rewardFocusTag=''; advanceFloor(); };
   qsa('#reward-row > div').forEach(wrap=>{
     wrap.querySelector('.card').onclick = ()=>{
       const idx = parseInt(wrap.dataset.idx,10);
@@ -8283,6 +9386,77 @@ const NAV_ITEMS = [
     const on = NAV_ITEMS.some(it=>it.key===S.screen);
     document.body.classList.toggle('has-burger', on);
     if(!on) close();
+  };
+  new MutationObserver(update).observe(app(), {childList:true});
+  update();
+})();
+
+// ===== デッキ・レリックの閲覧（探索中のどの画面からでも） =====
+(function(){
+  const RUN_SCREENS = ['map','battle','rest','event','shop','reward','relicReward','startPick','startRelicPick','dropCards'];
+  const wrap = document.createElement('div');
+  wrap.id = 'run-viewer-btn';
+  wrap.innerHTML = '<button type="button" data-rv="deck">🎴 デッキ</button><button type="button" data-rv="relic">🏺 レリック</button>';
+  document.body.appendChild(wrap);
+  let overlay = null, tab = 'deck', filter = 'all';
+  const PILES = [['draw','山札'],['hand','手札'],['discard','捨て札'],['exhausted','消滅札']];
+  const closeViewer = ()=>{ if(overlay){ overlay.remove(); overlay = null; } };
+  const entries = (r)=>{
+    const out = [];
+    PILES.forEach(([pn,label])=> (r[pn]||[]).forEach(raw=>{
+      const c = cardById(raw); if(!c) return;
+      const {iid} = splitInstanceId(raw);
+      const temp = !!(iid && r.temporaryCardIids && r.temporaryCardIids[iid]) || c.rarity==='generated';
+      const enemy = c.rarity==='enemy';
+      const stay = !!(pn==='exhausted' && iid && r.permExhaustIids && r.permExhaustIids[iid]);
+      out.push({raw, c, pile:pn, label, temp, enemy, stay, iid});
+    }));
+    return out;
+  };
+  const render = ()=>{
+    const r = S.run; if(!r){ closeViewer(); return; }
+    const inBattle = S.screen==='battle';
+    const all = entries(r);
+    const counts = {all: all.length}; PILES.forEach(([pn])=> counts[pn] = all.filter(x=>x.pile===pn).length);
+    let body = '';
+    if(tab==='deck'){
+      const shown = all.filter(x=> filter==='all' || x.pile===filter)
+        .sort((a,b)=> (a.pile===b.pile ? 0 : PILES.findIndex(p=>p[0]===a.pile) - PILES.findIndex(p=>p[0]===b.pile)) || String(a.c.name).localeCompare(String(b.c.name),'ja'));
+      body = `<div class="rv-legend">${inBattle ? '山札は並び順が分からないよう、名前順で表示しています。' : ''}<span class="b">青く光る</span>＝この戦闘中だけ入っているカード（生成カードを含む）／<span class="p">紫に光る</span>＝敵専用カード。同名のカードも1枚ずつ表示します。</div>
+        <div class="rv-grid">${shown.length ? shown.map(x=>`<div class="rv-cell ${x.enemy?'rv-enemy':(x.temp?'rv-temp':'')}"><span class="rv-pile">${x.label}</span>${x.stay?'<span class="rv-stay">復活しない</span>':''}${renderCardHTML(x.c,{mini:true})}</div>`).join('') : '<p class="hint">カードがありません。</p>'}</div>`;
+    } else {
+      const ids = (r.player && r.player.relics) || [];
+      body = ids.length ? ids.map(id=>{
+        const rel = (S.relics||[]).find(x=>x.id===id);
+        if(!rel) return `<div class="rv-relic"><div><div class="rn">${escapeHtml(id)}</div><div class="rd">（定義が見つかりません）</div></div></div>`;
+        let desc = ''; try{ desc = relicDescription(rel); }catch(e){}
+        return `<div class="rv-relic"><div style="font-size:24px;">${escapeHtml(rel.icon||'🏺')}</div><div><div class="rn">${escapeHtml(rel.name)} <span style="font-size:11px; color:var(--parchment-dim);">${escapeHtml(RARITY_LABEL[rel.rarity]||'')}</span></div><div class="rd">${escapeHtml(desc || rel.description || '')}</div></div></div>`;
+      }).join('') : '<p class="hint">まだレリックを持っていません。</p>';
+    }
+    overlay.innerHTML = `<div class="rv-box">
+      <div class="rv-head"><span class="rv-title">${tab==='deck' ? `デッキ（${counts.all}枚）` : `レリック（${((r.player&&r.player.relics)||[]).length}個）`}</span>
+        <span class="rv-tabs"><button type="button" data-tab="deck" class="${tab==='deck'?'sel':''}">デッキ</button> <button type="button" data-tab="relic" class="${tab==='relic'?'sel':''}">レリック</button></span>
+        <button type="button" class="ghost" data-close="1">閉じる</button></div>
+      ${tab==='deck' ? `<div class="rv-filters">${[['all','すべて'],...PILES].map(([k,l])=>`<button type="button" data-filter="${k}" class="${filter===k?'sel':''}">${l} ${counts[k]}</button>`).join('')}</div>` : ''}
+      <div class="rv-body">${body}</div></div>`;
+  };
+  const open = (t)=>{
+    if(!S.run) return;
+    tab = t; if(!overlay){ overlay = document.createElement('div'); overlay.className = 'rv-overlay'; document.body.appendChild(overlay);
+      overlay.addEventListener('click', e=>{
+        if(e.target===overlay || e.target.closest('[data-close]')){ closeViewer(); return; }
+        const tb = e.target.closest('[data-tab]'); if(tb){ tab = tb.dataset.tab; render(); return; }
+        const fb = e.target.closest('[data-filter]'); if(fb){ filter = fb.dataset.filter; render(); }
+      });
+    }
+    render();
+  };
+  wrap.addEventListener('click', e=>{ const b = e.target.closest('[data-rv]'); if(b) open(b.dataset.rv); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeViewer(); });
+  const update = ()=>{
+    const on = !!S.run && RUN_SCREENS.includes(S.screen) && !(S.run.pendingChoice);
+    wrap.classList.toggle('on', on);
+    if(!S.run || !RUN_SCREENS.includes(S.screen)) closeViewer();
   };
   new MutationObserver(update).observe(app(), {childList:true});
   update();
