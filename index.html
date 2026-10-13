@@ -1504,6 +1504,8 @@ function normalizeRelic(r){
   r.favorTag = cleanTag(r.favorTag);
   r.triggerTag = cleanTag(r.triggerTag);
   r.favorPct = clampInt(r.favorPct,0,1000,0);
+  r.turnCond = ['eq','gte','every'].includes(r.turnCond) ? r.turnCond : 'always';   // ターン開始時の発動条件（always=毎ターン／eq=N回目だけ／gte=N回目以降／every=Nターンごと）
+  r.turnN = clampInt(r.turnN,1,99,1);
   r.useLimit = clampInt(r.useLimit,0,99,0);                                  // 使える回数の上限（0で無制限）
   r.useScope = ['run','round','battle'].includes(r.useScope) ? r.useScope : 'run';   // 回数を数える範囲
   r.shopPrice = clampInt(r.shopPrice,0,9999,0);                              // ショップでの価格（0で標準）
@@ -5157,6 +5159,13 @@ function openRelicModal(relic, isNew){
           ${RELIC_TIMINGS.map(t=>`<option value="${t.key}" ${timing===t.key?'selected':''}>${t.label}</option>`).join('')}
         </select>
       </div>
+      <div id="rm-turn-field" style="${timing==='turnStart'?'':'display:none;'}">
+        <div class="row">
+          <div class="field"><label>発動するターン</label><select id="rm-turncond">${RELIC_TURN_CONDS.map(c=>`<option value="${c.key}" ${(rel.turnCond||'always')===c.key?'selected':''}>${escapeHtml(c.label)}</option>`).join('')}</select></div>
+          <div class="field"><label>N（ターン数）</label><input type="number" id="rm-turnn" value="${rel.turnN||1}" min="1" max="99"></div>
+        </div>
+        <p class="hint">ターン数は、その戦闘の中で数えます（戦闘の最初のターンが1ターン目。戦闘ごとに数え直します）。「毎ターン」のときは、Nは使いません。条件に合わないターンは、効果もカードの使用も行わず、回数も消費しません。</p>
+      </div>
       <div id="rm-tag-field" style="${timing==='onTagCardUsed'?'':'display:none;'}">
         <div class="field"><label>発動条件（このタグのカードを使うたび。空欄でどのカードでも）</label><input type="text" id="rm-triggertag" value="${rel.triggerTag||''}"></div>
       </div>
@@ -5184,9 +5193,9 @@ function openRelicModal(relic, isNew){
       <div class="section-label" id="rm-effect-label">${timing==='onPickup' ? '効果（入手時に一度だけ適用）' : '効果（このタイミングになるたび発動）'}</div>
       <p class="hint" id="rm-hint" style="margin-bottom:8px;${relicTimingHint(timing)?'':'display:none;'}">${relicTimingHint(timing)}</p>
       <div id="rm-effect-fields">${relicEffectFieldsHTML(timing, rel.effect)}</div>
-      <div id="rm-usecards" style="${timing==='combatStart'?'':'display:none;'}">
-        <div class="section-label">戦闘開始時に使用するカード</div>
-        <p class="hint">戦闘開始時、最初の手札を引いたあとに、ここに並べた順に、コストなしで使用します（デッキ・手札には入りません）。仕込み（トリガー）のカードも使えます。上の効果とは別に発動します。</p>
+      <div id="rm-usecards" style="${(timing==='combatStart'||timing==='turnStart')?'':'display:none;'}">
+        <div class="section-label" id="rm-usecards-label">${timing==='turnStart' ? 'ターン開始時に使用するカード' : '戦闘開始時に使用するカード'}</div>
+        <p class="hint">戦闘開始時は最初の手札を引いたあとに、ターン開始時は手札を引いて状態のカード操作を行うのと同じ時点（条件に合うターンだけ）に、ここに並べた順に、コストなしで使用します（デッキ・手札には入りません）。仕込み（トリガー）のカードも使えます。上の効果とは別に発動します。</p>
         <div id="rm-usecards-list"></div>
         <div class="ev-add"><select id="rm-usecards-pick">${S.cards.map(cc=>`<option value="${escapeHtml(cc.id)}">${escapeHtml(cc.name)}</option>`).join('')}</select><button type="button" id="rm-usecards-add">＋ 追加</button></div>
       </div>
@@ -5210,7 +5219,9 @@ function openRelicModal(relic, isNew){
   renderUseCards();
   qs('#rm-timing',overlay).onchange = ()=>{
     const t = qs('#rm-timing',overlay).value;
-    qs('#rm-usecards',overlay).style.display = t==='combatStart' ? 'block' : 'none';
+    qs('#rm-usecards',overlay).style.display = (t==='combatStart'||t==='turnStart') ? 'block' : 'none';
+    qs('#rm-usecards-label',overlay).textContent = t==='turnStart' ? 'ターン開始時に使用するカード' : '戦闘開始時に使用するカード';
+    qs('#rm-turn-field',overlay).style.display = t==='turnStart' ? 'block' : 'none';
     qs('#rm-tag-field',overlay).style.display = t==='onTagCardUsed' ? 'block' : 'none';
     qs('#rm-effect-label',overlay).textContent = t==='onPickup' ? '効果（入手時に一度だけ適用）' : '効果（このタイミングになるたび発動）';
     qs('#rm-effect-fields',overlay).innerHTML = relicEffectFieldsHTML(t, rel.effect);
@@ -5232,7 +5243,9 @@ function openRelicModal(relic, isNew){
       useLimit: qs('#rm-limited',overlay).checked ? clampInt(qs('#rm-uselimit',overlay).value,1,99,1) : 0,
       useScope: qs('#rm-usescope',overlay).value,
       shopPrice: clampInt(qs('#rm-shopprice',overlay).value,0,9999,0),
-      useCardIds: t==='combatStart' ? useCardIds.slice() : [],
+      useCardIds: (t==='combatStart'||t==='turnStart') ? useCardIds.slice() : [],
+      turnCond: t==='turnStart' ? qs('#rm-turncond',overlay).value : 'always',
+      turnN: clampInt(qs('#rm-turnn',overlay).value,1,99,1),
       effect: {},
     };
     relicFieldDefsFor(t).forEach(def=>{
@@ -7218,6 +7231,7 @@ function startPlayerTurn(first){
   // A "choose" operation pauses here until the player picks; the rest of the turn start
   // then continues from the callback (and re-renders, since the caller already has).
   let sync = true;
+  queueRelicTurnCards(r);
   runTurnStartCardOps(r, ()=>{
     if(enemyFallen()){ onEnemyDefeated(); return; }
     if(playerFallen()){ onPlayerDefeated(); return; }
@@ -8190,12 +8204,12 @@ function relicDescription(relic){
   const main = parts.length ? parts.join('。')+'。' : '';
   // Favoured-tag bonus works for as long as the relic is owned, whatever its timing.
   const favor = (relic.favorTag && relic.favorPct>0) ? `[${relic.favorTag}]のカードの出現率+${relic.favorPct}%（所持中ずっと）。` : '';
-  const useNames = (timing==='combatStart' ? (relic.useCardIds||[]) : []).map(id=>{ const cc = cardById(id); return cc ? `「${cc.name}」` : ''; }).filter(Boolean);
+  const useNames = ((timing==='combatStart'||timing==='turnStart') ? (relic.useCardIds||[]) : []).map(id=>{ const cc = cardById(id); return cc ? `「${cc.name}」` : ''; }).filter(Boolean);
   const useText = useNames.length ? `カード${useNames.join('')}をコストなしで使用。` : '';
   const pText = relicPassiveText(relic), lim = relicLimitText(relic);
   if(!main && !favor && !useText && !pText) return '効果なし';
   if(timing==='onPickup' || (!main && !useText)) return main + pText + favor + lim;
-  const tagPart = timing==='onTagCardUsed' ? (relic.triggerTag ? `[${relic.triggerTag}]の` : 'どの') : '';
+  const tagPart = timing==='onTagCardUsed' ? (relic.triggerTag ? `[${relic.triggerTag}]の` : 'どの') : (timing==='turnStart' ? relicTurnText(relic) : '');
   return `【${timingLabel}】${tagPart}${main}${useText}${pText}${favor}${lim}`;
 }
 
@@ -8223,6 +8237,7 @@ function fireRelicTiming(r, timing, playedCard){
     const relic = S.relics.find(x=>x.id===relicId);
     if(!relic || (relic.timing||'onPickup')!==timing) return;
     if(!relicUsable(r, relic)) return;   // 使える回数の上限に達している
+    if(timing==='turnStart' && !relicTurnOk(relic, r.turnNo||0)) return;
     if(timing==='onTagCardUsed'){
       const tagOk = !relic.triggerTag || cardHasTag(playedCard, relic.triggerTag);
       if(!tagOk) return;
@@ -8260,6 +8275,41 @@ function applyRelicMeta(r, relic, e, mode){
 function queueNextCombat(r, side, key, amt){
   const nc = r.nextCombat = r.nextCombat || {p:{}, e:{}, cp:{}, ce:{}};
   nc[side][key] = (nc[side][key]||0) + amt;
+}
+const RELIC_TURN_CONDS = [
+  {key:'always', label:'毎ターン'},
+  {key:'eq', label:'N回目のターンだけ（例: 3なら、3ターン目の開始時だけ）'},
+  {key:'gte', label:'N回目のターン以降は毎ターン'},
+  {key:'every', label:'Nターンごと（N回目、2N回目、3N回目…。Nが1なら毎ターン）'},
+];
+// そのターン（戦闘内のターン数 turnNo）に、ターン開始時のレリックが発動するか
+function relicTurnOk(relic, turnNo){
+  const n = Math.max(1, relic.turnN|0 || 1);
+  switch(relic.turnCond){
+    case 'eq': return turnNo===n;
+    case 'gte': return turnNo>=n;
+    case 'every': return turnNo>0 && turnNo%n===0;
+    default: return true;
+  }
+}
+function relicTurnText(relic){
+  const n = Math.max(1, relic.turnN|0 || 1);
+  switch(relic.turnCond){
+    case 'eq': return `${n}ターン目の`;
+    case 'gte': return `${n}ターン目以降の毎`;
+    case 'every': return n===1 ? '毎' : `${n}ターンごとの`;
+    default: return '';
+  }
+}
+// ターン開始時のレリックが使うカード。そのターンの条件に合うときだけ、状態のカード操作と同じ時点で使用する
+function queueRelicTurnCards(r){
+  (r.player.relics||[]).forEach(id=>{
+    const relic = S.relics.find(x=>x.id===id);
+    if(!relic || (relic.timing||'onPickup')!=='turnStart' || !relicUsable(r, relic) || !relicTurnOk(relic, r.turnNo||0)) return;
+    (relic.useCardIds||[]).forEach(cid=>{
+      if(cardById(cid)) queueTurnStartOp(r, {enabled:true, type:'useCardById', cardId:cid}, relic.name);
+    });
+  });
 }
 function queueRelicStartCards(r){
   (r.player.relics||[]).forEach(id=>{
