@@ -2560,11 +2560,11 @@ function grantCustomStatus(entity, statusId, delta){
 // 'fixed': the configured value applies as-is, regardless of stack count (stacks just
 // count down as a duration, like weak/vulnerable). 'perStack': the configured value is
 // a per-stack coefficient, so the total scales with the current stack count (like poison).
-const DECIMAL_MAG_KINDS = ['damageDealtFlat','damageTakenFlat','elDealtFlat','elTakenFlat'];
+const DECIMAL_MAG_KINDS = ['damageDealtFlat','damageTakenFlat','elDealtFlat','elTakenFlat','damageDealtPct','damageTakenPct','blockGainFlat','autoBlock','turnStartDamage','turnStartHeal','reflectDamage','elDealtPct','elTakenPct','cardMod'];
 function customStatusMagnitude(status, stacks){
   const v = status.magnitudeMode==='perStack' ? status.magnitudeValue*stacks : status.magnitudeValue;
-  // ダメージ固定値加算は、係数に小数を使える。計算結果は切り捨て（浮動小数の誤差を丸めてから）
-  return DECIMAL_MAG_KINDS.includes(status.kind) ? Math.floor(Math.round(v*1e6)/1e6) : v;
+  // 数値で働く効果は、係数に小数を使える。計算結果は切り捨て（浮動小数の誤差を丸めてから）
+  return DECIMAL_MAG_KINDS.includes(status.kind) ? Math.trunc(Math.round(v*1e6)/1e6) : v;
 }
 // Every effect of the given kind, across all custom statuses the entity currently holds.
 function customEffectsOn(entity, kind){
@@ -4917,7 +4917,7 @@ function statusEffectFormHTML(eff, i){
       <option value="fixed" ${eff.magnitudeMode==='fixed'?'selected':''}>固定値</option>
       <option value="perStack" ${eff.magnitudeMode==='perStack'?'selected':''}>スタック数×係数</option></select></div>
     <div><label>${title}</label><input type="number" ${at} data-f="magnitudeValue" data-num="${DECIMAL_MAG_KINDS.includes(eff.kind)?'float':'1'}" ${DECIMAL_MAG_KINDS.includes(eff.kind)?'step="0.1"':''} value="${eff.magnitudeValue}" min="-999" max="999"></div>
-    ${DECIMAL_MAG_KINDS.includes(eff.kind) ? `<p class="hint">スタック数×係数のときは、係数に小数（例: 0.5）も使えます。計算結果は切り捨てになります（例: 0.5×3スタック＝1）。</p>` : ''}
+    ${DECIMAL_MAG_KINDS.includes(eff.kind) ? `<p class="hint">スタック数×係数のときは、係数に小数（例: 0.5）も使えます。計算結果は小数部分が切り捨てになります（例: 0.5×3スタック＝1、−0.5×3スタック＝−1）。</p>` : ''}
   </div>`;
   let body = '';
   if(eff.kind==='skipTurn'){
@@ -4969,7 +4969,7 @@ function statusEffectFormHTML(eff, i){
     body = `
       ${magHTML('操作を行う回数（固定値、または1スタックあたりの係数）')}
       <p class="ev-hint">プレイヤーがこの状態を持っている間（スタック1以上）、自分のターン開始時（手札を引いた後）に発動します。敵が持っている間は視点が反転し、敵のターン開始時に、敵自身のデッキに作用します（「手札に移動／山札に加える／捨て札に移動」はプレイヤーの山が対象で、プレイヤーの次のターン開始時（手札を引いた後）に処理されます。「敵のデッキに加える」は、プレイヤーの山札に今すぐ加わります）。設定項目はカード効果のカード操作と同じです。</p>
-      <div class="field"><label>操作内容</label>${sel('type', STATUS_CARDOP_TYPES, op.type)}</div>
+      <div class="field"><label>操作内容</label>${sel('type', STATUS_CARDOP_TYPES.filter(x=>x.key!=='captureEffect'||op.type==='captureEffect'), op.type)}</div>
       ${isGen
         ? `<div class="field"><label>生成元プール</label>${sel('genPool', genPoolOptionsFor(op.type), op.genPool)}</div>
            ${op.type==='generateToEnemyDeck' ? `<div class="ev-eff-grid"><div><label>敵のデッキでの重み（大きいほど選ばれやすい）</label><input type="number" ${opAt} data-f="deckWeight" data-num="1" value="${op.deckWeight||1}" min="1" max="99"></div></div>
@@ -4984,7 +4984,17 @@ function statusEffectFormHTML(eff, i){
       <div class="ev-eff-grid">${num('countFixed','固定数',op.countFixed)}${num('countMin','ランダム最小',op.countMin)}${num('countMax','ランダム最大',op.countMax)}</div>
       <div class="field"><label>対象タグ絞り込み（空欄で絞り込みなし）</label><input type="text" ${opAt} data-f="filterTag" value="${escapeHtml(op.filterTag||'')}"></div>
       <label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="sequential" ${op.sequential?'checked':''}> 1枚ずつ選び直す（1枚処理するごとに、そのあとの山の状態から次を選ぶ）</label>
-      ${CARDOP_REVERTIBLE_TYPES.includes(op.type) ? `<label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="permanent" ${op.permanent?'checked':''}> 永続（戦闘が終わっても元に戻さない。チェックなしはこの戦闘中のみ）</label>` : ''}
+      ${CARDOP_REVERTIBLE_TYPES.includes(op.type) && op.type!=='moveToExhausted' ? `<label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="permanent" ${op.permanent?'checked':''}> 永続（戦闘が終わっても元に戻さない。チェックなしはこの戦闘中のみ）</label>` : ''}
+      ${op.type==='moveToExhausted' ? `<div class="field"><label>消滅の期間</label><select ${opAt} data-f="exhaustMode">${EXHAUST_MODES.map(m=>`<option value="${m.key}" ${(op.exhaustMode||'combat')===m.key?'selected':''}>${escapeHtml(m.label)}</option>`).join('')}</select></div>` : ''}
+      ${(op.type==='elementAdd'||op.type==='elementRemove') ? (()=>{
+        const isAdd = op.type==='elementAdd';
+        const opts = (isAdd ? [] : [['all','すべての属性']]).concat((S.elements||[]).map(x=>[x.id,x.name])).concat(isAdd ? [] : elementTagList().map(t=>['tag:'+t,'タグ「'+t+'」の属性すべて']));
+        const cur = op.elementId || (opts[0]||[''])[0];
+        if(!op.elementId) op.elementId = cur;
+        return `<div class="field"><label>${isAdd?'付与する属性':'取り除く属性'}</label><select ${opAt} data-f="elementId">${opts.map(([k,l])=>`<option value="${escapeHtml(k)}" ${cur===k?'selected':''}>${escapeHtml(l)}</option>`).join('')}</select></div>
+        <p class="hint">選ばれたカードの攻撃の属性が変わります（実効の属性。元のカード定義は変わりません）。「永続」で、戦闘後も残すか決めます。敵が持っている状態では、この操作は効果がありません。</p>`; })() : ''}
+      ${op.type==='grantBuff' ? `<div class="field"><label>付与の方法</label><select ${opAt} data-f="buffMode"><option value="add" ${op.buffMode!=='set'?'selected':''}>加算（いまの値に足す）</option><option value="set" ${op.buffMode==='set'?'selected':''}>上書き（その値にする）</option></select></div>` : ''}
+      ${(op.type==='grantBuff'||op.type==='costChange') ? `<label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="valueMode" data-valuemode="1" ${op.valueMode==='targetCount'?'checked':''}> 値を「設定値 × 対象の枚数」にする（絞り込みと選択が終わったあとの実際の枚数）</label>` : ''}
       ${op.type==='costChange' ? `<div class="field"><label>コストの増減量（マイナスで軽減。0未満にはならない）</label><input type="number" ${opAt} data-f="costDelta" data-num="1" value="${op.costDelta|0}" min="-9" max="9"></div>` : ''}
       ${op.type==='grantBuff' ? `
         <div class="field"><label>付与する効果</label><select ${opAt} data-f="buffField" data-rerender="1">
@@ -5053,6 +5063,7 @@ function openStatusModal(status, isNew){
     if(!eff) return;
     const obj = t.dataset.op ? eff.op : eff;
     if(t.dataset.num){ const v = t.dataset.num==='float' ? parseFloat(t.value) : parseInt(t.value,10); obj[f] = isNaN(v) ? 0 : v; }
+    else if(t.dataset.valuemode) obj[f] = t.checked ? 'targetCount' : 'fixed';
     else if(t.type==='checkbox') obj[f] = t.checked;
     else obj[f] = t.value;
   }
