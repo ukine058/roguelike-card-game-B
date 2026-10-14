@@ -25,6 +25,10 @@
     --gold: #D4A73E;
     --hp-red: #A63A3A;
     --poison-green: #6C8A3E;
+    --card-face: #EDE3D0; --card-face-hi: #f2e9d8;   /* カード・説明ポップアップの地の色 */
+    --glow1: #2a2015; --glow2: #1a1410;               /* 背景の光 */
+    --hp-red-dim: #7a2020;
+    --primary: #c1502e; --primary-dim: #93381e; --primary-border: #7a3620;   /* 強調ボタン */
     --font-display: 'Shippori Mincho', serif;
     --font-en: 'Cormorant Garamond', serif;
     --font-ui: 'Zen Kaku Gothic New', sans-serif;
@@ -33,8 +37,8 @@
   html,body{margin:0;padding:0;}
   body{
     background:
-      radial-gradient(ellipse at 20% -10%, #2a2015 0%, transparent 55%),
-      radial-gradient(ellipse at 90% 110%, #1a1410 0%, transparent 55%),
+      radial-gradient(ellipse at 20% -10%, var(--glow1) 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 110%, var(--glow2) 0%, transparent 55%),
       var(--bg-void);
     color:var(--parchment);
     font-family:var(--font-ui);
@@ -59,7 +63,7 @@
   }
   button:hover:not(:disabled){ border-color:var(--gold); color:var(--gold); }
   button:disabled{ opacity:.35; cursor:not-allowed; }
-  button.primary{ background:linear-gradient(180deg,#c1502e,#93381e); border-color:#7a3620; color:#f5e9d8; font-weight:600;}
+  button.primary{ background:linear-gradient(180deg,var(--primary),var(--primary-dim)); border-color:var(--primary-border); color:#f5e9d8; font-weight:600;}
   button.primary:hover:not(:disabled){ color:#fff; border-color:var(--gold); }
   button.ghost{ background:transparent; }
   input[type=text],input[type=number],select,textarea{
@@ -91,7 +95,7 @@
   /* ---------- Card visual ---------- */
   .card{
     width:150px; min-width:150px; height:210px; border-radius:8px;
-    background:linear-gradient(180deg,#f2e9d8,var(--parchment));
+    background:linear-gradient(180deg,var(--card-face-hi),var(--card-face));
     color:var(--ink); position:relative; display:flex; flex-direction:column;
     border:2px solid #8a7752; box-shadow:0 4px 10px rgba(0,0,0,.4);
     overflow:hidden; cursor:pointer; transition:transform .12s ease, box-shadow .12s ease;
@@ -114,7 +118,7 @@
   .card.type-attack .art{ background:repeating-linear-gradient(135deg,#e7cdb8,#e7cdb8 8px,#dcb99a 8px,#dcb99a 16px);}
   .card.type-skill .art{ background:repeating-linear-gradient(135deg,#cfe0e3,#cfe0e3 8px,#c0d4d8 8px,#c0d4d8 16px);}
   .card.type-power .art{ background:repeating-linear-gradient(135deg,#ded3ea,#ded3ea 8px,#d0c0e0 8px,#d0c0e0 16px);}
-  .card .desc{ font-size:11px; line-height:1.35; padding:7px 8px; background:var(--parchment); min-height:56px;
+  .card .desc{ font-size:11px; line-height:1.35; padding:7px 8px; background:var(--card-face); min-height:56px;
     display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:5; overflow:hidden; }
   .card .desc .desc-prefix{ font-style:italic; color:var(--ink-soft); }
   /* ---------- サイドメニュー（ハンバーガー） ---------- */
@@ -159,7 +163,7 @@
   /* しっぽは敵の側（右）を向く */
   .dlg-bubble::after{ content:''; position:absolute; right:-9px; top:22px; border:8px solid transparent; border-right:0; border-left:9px solid var(--gold); }
   .lg-say{ color:var(--gold); font-style:italic; }
-  #desc-pop, #tip-pop{ position:fixed; z-index:3000; max-width:260px; padding:8px 10px; border-radius:6px; background:var(--parchment); color:var(--ink);
+  #desc-pop, #tip-pop{ position:fixed; z-index:3000; max-width:260px; padding:8px 10px; border-radius:6px; background:var(--card-face); color:var(--ink);
     border:1px solid #8a7752; box-shadow:0 6px 18px rgba(0,0,0,.55); font-size:12px; line-height:1.45; pointer-events:none; display:none; }
   #desc-pop .desc-prefix{ font-style:italic; color:var(--ink-soft); }
   #tip-pop{ max-width:280px; }
@@ -218,7 +222,7 @@
   .combatant.player .portrait{ border-color:var(--steel-dim); }
   .combatant .cname{ font-family:var(--font-display); font-size:15px; margin-bottom:4px;}
   .hpbar-wrap{ background:#000; border:1px solid var(--line); border-radius:10px; height:20px; overflow:hidden; position:relative; }
-  .hpbar-fill{ height:100%; background:linear-gradient(90deg,#7a2020,var(--hp-red)); transition:width .3s ease; position:relative; }
+  .hpbar-fill{ height:100%; background:linear-gradient(90deg,var(--hp-red-dim),var(--hp-red)); transition:width .3s ease; position:relative; }
   .hpbar-ghost{ position:absolute; left:0; top:0; height:100%; background:linear-gradient(90deg,#b8863a,#e9c46a); opacity:.9; transition:width .6s ease; }
   .hpbar-text{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:13px; font-family:var(--font-en); font-weight:700; text-shadow:0 1px 2px #000;}
   .statuses{ display:flex; gap:5px; justify-content:center; margin-top:6px; flex-wrap:wrap;}
@@ -379,6 +383,10 @@
   .ev-result-lines{ margin:14px auto 0; max-width:420px; font-size:12.5px; color:var(--gold); }
   .ev-result-lines div{ margin-bottom:3px; }
   .ev-hint{ font-size:12px; color:var(--parchment-dim); margin:4px 0 12px; }
+  /* 編集画面のガイド（仕様の説明）を隠す設定。ホーム・編集画面と、編集のダイアログの中だけ。探索中の画面には影響しない */
+  body.no-guides.has-burger .hint, body.no-guides.has-burger .ev-hint,
+  body.no-guides .modal-overlay .hint, body.no-guides .modal-overlay .ev-hint{ display:none; }
+  body.no-guides .keep-hint{ display:block !important; }
   .ev-form .ev-card{ max-width:none; margin-bottom:8px; }
   .ev-choice{ background:var(--bg-panel); border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:14px; }
   .ev-choice-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; color:var(--gold); }
@@ -566,6 +574,17 @@ const SETTING_COSTS = [
   {key:'shopRemoveStep', label:'ショップのカード除去料金の1回ごとの値上がり', def:0, max:999},
   {key:'shopUpgradeStep', label:'ショップのカード強化料金の1回ごとの値上がり', def:0, max:999},
 ];
+// 編集画面のガイド（仕様の説明）の表示。この端末のブラウザに覚えさせる（ゲームのデータには含めない）
+function guidesOn(){ try{ return localStorage.getItem('showGuides')!=='0'; }catch(e){ return true; } }
+function setGuides(on){
+  try{ localStorage.setItem('showGuides', on ? '1' : '0'); }catch(e){}
+  document.body.classList.toggle('no-guides', !on);
+  const b = document.querySelector('#nav-drawer [data-guides-toggle]');
+  if(b) b.textContent = on ? '📖 編集画面のガイド: 表示中' : '📖 編集画面のガイド: 非表示';
+  const cb = document.getElementById('s-showguides'); if(cb) cb.checked = !!on;
+}
+window.setGuides = setGuides; window.guidesOn = guidesOn;
+document.body.classList.toggle('no-guides', !guidesOn());
 const DEFAULT_SETTINGS = {
   startingHp: 70,
   energyPerTurn: 3,
@@ -763,6 +782,12 @@ const DEFAULT_WORLD = {
   title:'灰燼の書庫', subtitle:'Ashbound Codex', eyebrow:'ROGUELIKE DECKBUILDER',
   accent:'#D4A73E', bg:'#14110F', panel:'#1D1812',
   colorAttack:'#C1502E', colorSkill:'#4C7A8C', colorPower:'#7A5FA0',
+  // 詳細な色（初期値は、これまでの見た目と同じ）
+  colorText:'#EDE3D0', colorTextDim:'#C9BC9F', colorLine:'#3A3025',        // 文字・補助の文字・枠線
+  colorCard:'#EDE3D0', colorInk:'#211C16', colorInkDim:'#4A4030',          // カードの地、カードの文字、カードの補助の文字
+  colorHp:'#A63A3A', colorPrimary:'#C1502E',                               // HPバー、強調ボタン
+  colorGlow1:'#2A2015', colorGlow2:'#1A1410',                              // 背景の光（左上・右下）
+  colorLogBase:'#F4ECD8', colorLogScale:'#E58FB5', colorLogPlus:'#F0675A', colorLogMinus:'#6FA8F0',   // ダメージ計算（ログ・予告）の数字: 基礎値／参照増減／固定値のプラス／マイナス
   // 戦闘エフェクトの色（通常ダメージ・ブロック・回復・毒などの継続ダメージ・良い状態・悪い状態）
   colorDamage:'#E04848', colorBlock:'#5B9BD5', colorHeal:'#4CAF6A', colorPoison:'#9B59B6', colorBuff:'#D4A73E', colorDebuff:'#C0392B',
   // ブロック（呼び名・アイコン・HPバーやログに使う色）。戦闘エフェクトの数字の色は colorBlock
@@ -817,6 +842,16 @@ function applyWorldTheme(){
   st.setProperty('--ember', w.colorAttack); st.setProperty('--ember-dim', shade(w.colorAttack,.6));
   st.setProperty('--steel', w.colorSkill);  st.setProperty('--steel-dim', shade(w.colorSkill,.6));
   st.setProperty('--violet', w.colorPower); st.setProperty('--violet-dim', shade(w.colorPower,.6));
+  const D = DEFAULT_WORLD, hexAdd = (hex,r,g,b)=>{ const n = parseInt(hex.slice(1),16); const c = (sh,d)=> Math.max(0,Math.min(255,((n>>sh)&255)+d)).toString(16).padStart(2,'0'); return '#'+c(16,r)+c(8,g)+c(0,b); };
+  st.setProperty('--parchment', w.colorText); st.setProperty('--parchment-dim', w.colorTextDim); st.setProperty('--line', w.colorLine);
+  st.setProperty('--card-face', w.colorCard); st.setProperty('--card-face-hi', hexAdd(w.colorCard,5,6,8));
+  st.setProperty('--ink', w.colorInk); st.setProperty('--ink-soft', w.colorInkDim);
+  st.setProperty('--hp-red', w.colorHp); st.setProperty('--hp-red-dim', w.colorHp.toUpperCase()===D.colorHp ? '#7a2020' : shade(w.colorHp,.7));
+  st.setProperty('--primary', w.colorPrimary);
+  st.setProperty('--primary-dim', w.colorPrimary.toUpperCase()===D.colorPrimary ? '#93381e' : shade(w.colorPrimary,.78));
+  st.setProperty('--primary-border', w.colorPrimary.toUpperCase()===D.colorPrimary ? '#7a3620' : shade(w.colorPrimary,.64));
+  st.setProperty('--glow1', w.colorGlow1); st.setProperty('--glow2', w.colorGlow2);
+  st.setProperty('--lg-n', w.colorLogBase); st.setProperty('--lg-sc', w.colorLogScale); st.setProperty('--lg-fp', w.colorLogPlus); st.setProperty('--lg-fm', w.colorLogMinus);
   st.setProperty('--blk', w.colorBlockUi);
   st.setProperty('--blk-rgb', [16,8,0].map(i=>(parseInt(w.colorBlockUi.slice(1),16)>>i)&255).join(','));
   document.title = (w.title||'') + (w.subtitle ? ` -${w.subtitle}-` : '');
@@ -1427,6 +1462,13 @@ function cardDescription(c){
     if(show) drawParts.push(def.desc(v, c));
   });
   if(drawParts.length) desc += `【ドロー時】${drawParts.join('。')}。`;
+  const exParts = [];
+  exhaustEffectFieldDefs().forEach(def=>{
+    const v = c[def.key]||0;
+    const show = def._statusId ? (v!==0 || (c['ex_csT_'+def._statusId]==='both' && ((c['ex_csX_'+def._statusId])|0)!==0)) : v>0;
+    if(show) exParts.push(def.desc(v, c));
+  });
+  if(exParts.length) desc += `【消滅時】${exParts.join('。')}。`;
   const reqTexts = (Array.isArray(c.requirements) ? c.requirements : []).map(requirementText).filter(Boolean);
   if(reqTexts.length) desc = `【使用条件】${reqTexts.join('、')}。` + desc;
   // 冒頭の自由テキスト（カード編集の「説明文の冒頭」）
@@ -1985,7 +2027,7 @@ function renderDataScreen(){
         const detail = sec.kind==='list' ? `${pending.sections[sec.key].length}件・今のデータと同じID: ${pending.dups[sec.key]}件` : 'あり';
         return `<div class="checkbox-field"><input type="checkbox" id="im-${sec.key}" checked><label for="im-${sec.key}">${sec.label}（${detail}）</label></div>`;
       }).join('')}
-      ${pending.skipped ? `<p class="hint">形式が不正なため除外: ${pending.skipped}件</p>` : ''}
+      ${pending.skipped ? `<p class="hint keep-hint">形式が不正なため除外: ${pending.skipped}件</p>` : ''}
       <div class="field" style="margin-top:8px;"><label>読み込み方</label>
         <select id="im-mode">
           <option value="overwrite">追加＋同じIDは上書き（マージ）</option>
@@ -2125,6 +2167,12 @@ function renderWorldSettings(){
       <div class="section-label">テーマカラー</div>
       <div class="row">${col('accent','アクセント色（枠・ボタンの強調）')}${col('bg','背景色')}${col('panel','パネルの色')}</div>
       <div class="row">${col('colorAttack','アタックカードの色')}${col('colorSkill','スキルカードの色')}${col('colorPower','パワーカードの色')}</div>
+      <div class="section-label">詳細な色</div>
+      <p class="hint">画面全体の文字・枠線・カードの地の色などを変えられます。初期値は、これまでの見た目と同じです。背景色・パネルの色と合わせて、文字が読める組み合わせにしてください。</p>
+      <div class="row">${col('colorText','文字の色')}${col('colorTextDim','補助の文字の色')}${col('colorLine','枠線の色')}</div>
+      <div class="row">${col('colorCard','カードの地の色（説明ポップアップも）')}${col('colorInk','カードの文字の色')}${col('colorInkDim','カードの補助の文字の色')}</div>
+      <div class="row">${col('colorHp','HPバーの色')}${col('colorPrimary','強調ボタンの色')}${col('colorGlow1','背景の光（左上）')}${col('colorGlow2','背景の光（右下）')}</div>
+      <div class="row">${col('colorLogBase','ダメージ計算の数字：基礎値')}${col('colorLogScale','参照増減による加算')}${col('colorLogPlus','固定値の加算（プラス）')}${col('colorLogMinus','固定値の加算（マイナス）')}</div>
       <div class="section-label">ブロック</div>
       <p class="hint">ブロックの呼び名とアイコンを変えられます（例：障壁・シールド・加護）。カードの説明、戦闘ログ、編集画面など、画面に出る「ブロック」の文字がすべて置き換わります（「自動ブロック」は「自動＋呼び名」になります）。入力欄に入れた文字そのものは置き換わりません。色は、HPバー・戦闘ログ・メニューの強調に使います。</p>
       <div class="row">${txt('blockName','ブロックの呼び名（12文字まで）')}${txt('blockIcon','アイコン（絵文字など3文字まで）')}${col('colorBlockUi','ブロックの色（HPバー・ログ）')}</div>
@@ -2170,6 +2218,10 @@ function renderSettings(){
     <div class="topbar">
       <div><p class="eyebrow">RULES</p><h2>探索ルールの設定</h2></div>
       <button class="ghost" id="btn-back">← ホームへ</button>
+    </div>
+    <div class="settings-card">
+      <div class="checkbox-field"><input type="checkbox" id="s-showguides" ${guidesOn()?'checked':''}><label for="s-showguides">編集画面のガイド（仕様の説明）を表示する</label></div>
+      <p style="font-size:11.5px; color:var(--ink-soft); margin-top:2px;">オフにすると、編集画面・編集のダイアログにある説明文を隠します（探索中の画面は変わりません）。この端末だけの設定で、保存データには含まれません。左上のメニュー（☰）からも切り替えられます。</p>
     </div>
     <div class="settings-card">
       <div class="row">
@@ -2250,6 +2302,7 @@ function renderSettings(){
       </div>
     </div>
   </div>`;
+  qs('#s-showguides').onchange = e=> setGuides(e.target.checked);
   qs('#btn-back').onclick = ()=>{ S.screen='home'; renderHome(); };
   qs('#btn-reset-settings').onclick = async ()=>{
     S.settings = {...DEFAULT_SETTINGS};
@@ -3560,7 +3613,7 @@ function resolveCardOp(r, op, done){
         r._autoPlayDepth = (r._autoPlayDepth||0) + 1;
         runWithSelfCard(r, rawId, cb=>withXValue(r, 0, cb2=>resolveCardPlayCore(r, cc, cb2), cb), fin=>{
           r._autoPlayDepth -= 1;
-          if(fin){ if(cc.exhaust) r.exhausted.push(fin); else r.discard.push(fin); }
+          if(fin){ if(cc.exhaust){ r.exhausted.push(fin); noteExhausted(r, [fin]); } else r.discard.push(fin); }
           nextGen();
         });
       })();
@@ -3713,7 +3766,7 @@ function resolveCardOp(r, op, done){
         r._autoPlayDepth = (r._autoPlayDepth||0) + 1;
         runWithSelfCard(r, e.rawId, cb=>withXValue(r, 0, cb2=>resolveCardPlayCore(r, cc, cb2), cb), fin=>{
           r._autoPlayDepth -= 1;
-          if(fin){ if(cc.exhaust) r.exhausted.push(fin); else r.discard.push(fin); }
+          if(fin){ if(cc.exhaust){ r.exhausted.push(fin); noteExhausted(r, [fin]); } else r.discard.push(fin); }
           nextPlay();
         });
       })();
@@ -3733,11 +3786,13 @@ function resolveCardOp(r, op, done){
         r.exhausted.push(withInstanceSuffix(cid, useIid));
       });
       pushLog(`${selected.length}枚のカードを消滅させた（永続：戦闘後も復活しない）。`);
+      noteExhausted(r, selected.map(e=>e.rawId));
       done(); return;
     }
     if(op.type==='moveToExhausted' && op.exhaustMode==='destroy'){
       // Permanent exhaust: the card is destroyed for the rest of the run.
       removeEntries(r, selected);
+      noteExhausted(r, selected.map(e=>e.rawId));   // 消滅時の効果（補正を消す前に）
       selected.forEach(e=>{
         const {iid} = splitInstanceId(e.rawId);
         if(iid){ delete r.instanceBuffs[iid]; delete r.tempInstanceBuffs[iid]; delete r.tempUpgradeIids[iid]; }
@@ -3749,6 +3804,7 @@ function resolveCardOp(r, op, done){
     const movedIds = selected.map(e=>e.rawId);
     if(dest==='draw'){ r.draw = shuffle([...r.draw, ...movedIds]); }
     else{ r[dest].push(...movedIds); }
+    if(dest==='exhausted') noteExhausted(r, movedIds);
     if(dest==='hand'){
       // 山札から手札に来たカードは、通常のドローと同じく「引いたとき」の効果が発動する
       selected.forEach(e=>{ if(e.pile==='draw') applyCardDrawEffect(r, cardById(e.rawId)); });
@@ -4870,7 +4926,7 @@ function renderRelicEditor(){
 function customStatusUsage(statusId){
   const key = 'cs_'+statusId;
   const cardIds = S.cards.filter(c=>
-    (c[key]) || (c['csX_'+statusId]) || (c['dw_'+key]) || (c['dw_csX_'+statusId]) || (c.scales && c.scales[key]) || (c.upgrades && (c.upgrades[key] || (c.upgrades.scalePP && c.upgrades.scalePP[key])))
+    (c[key]) || (c['csX_'+statusId]) || (c['dw_'+key]) || (c['dw_csX_'+statusId]) || (c['ex_'+key]) || (c['ex_csX_'+statusId]) || (c.scales && c.scales[key]) || (c.upgrades && (c.upgrades[key] || (c.upgrades.scalePP && c.upgrades.scalePP[key])))
     || cardOpsOf(c).some(o=>o.type==='grantBuff' && o.buffField===key)
     || Object.values(c.scales||{}).some(sc=> sc && (sc.source==='csSelf:'+statusId || sc.source==='csEnemy:'+statusId))
   ).map(c=>c.id);
@@ -4882,6 +4938,7 @@ function stripCustomStatusRefs(statusId){
   S.cards.forEach(c=>{
     delete c[key]; delete c['csT_'+statusId]; delete c['csX_'+statusId];
     delete c['dw_'+key]; delete c['dw_csT_'+statusId]; delete c['dw_csX_'+statusId];
+    delete c['ex_'+key]; delete c['ex_csT_'+statusId]; delete c['ex_csX_'+statusId];
     if(c.scales){
       delete c.scales[key];
       Object.keys(c.scales).forEach(f=>{ const sc = c.scales[f]; if(sc && (sc.source==='csSelf:'+statusId || sc.source==='csEnemy:'+statusId)) delete c.scales[f]; });
@@ -5424,6 +5481,43 @@ function openRelicModal(relic, isNew){
   };
 }
 
+// 山札から引いたとき（dw）／消滅したとき（ex）の効果の編集欄。本体の効果とは別の、同じ種類の数値効果の組
+const PILE_EFFECT_KINDS = {
+  dw:{title:'ドロー時効果（本体の効果とは別に、山札から引いた瞬間に発動）', name:'ドロー時効果', hint:'使わなくても、手札に引いた時点で発動します。カスタム状態の付与も選べます（付与先も指定可）。参照増減・カード操作・発動回数は使えません。', defs:()=>drawEffectFieldDefs()},
+  ex:{title:'消滅時効果（本体の効果とは別に、このカードが消滅した瞬間に発動）', name:'消滅時効果', hint:'このカードが消滅した時点で発動します（使用後の消滅・カード操作による消滅のどちらでも。「デッキから完全に取り除く」場合も発動します）。カスタム状態の付与も選べます（付与先も指定可）。参照増減・カード操作・発動回数は使えません。', defs:()=>exhaustEffectFieldDefs()},
+};
+function pileEffectSectionHTML(c, kind){
+  const P = PILE_EFFECT_KINDS[kind], pre = kind+'_';
+  return `<div class="section-label">${P.title}</div>
+      <p class="hint">${P.hint}</p>
+      ${fxPickerHTML(kind,P.name)}
+      ${P.defs().map(def=>{
+        const id = def._statusId;
+        const dwT = id && ['self','opponent','both'].includes(c[pre+'csT_'+id]) ? c[pre+'csT_'+id] : 'default';
+        const dwX = id ? ((c[pre+'csX_'+id])|0) : 0;
+        const on = (c[def.key]||0)!==0 || (id && (dwT!=='default' || dwX!==0));
+        const st = id ? (S.customStatuses||[]).find(x=>x.id===id) : null;
+        const std = st && st.target==='opponent' ? '相手' : '自分';
+        const csExtra = id ? `
+        <div style="margin-bottom:4px;"><span style="font-size:10px; color:var(--parchment-dim);">付与先：</span>
+          <select id="m-${kind}cst-${id}" style="width:auto; display:inline-block;">
+            <option value="default" ${dwT==='default'?'selected':''}>状態の標準（${std}）</option>
+            <option value="self" ${dwT==='self'?'selected':''}>自分に付与</option>
+            <option value="opponent" ${dwT==='opponent'?'selected':''}>相手に付与</option>
+            <option value="both" ${dwT==='both'?'selected':''}>自分と相手の両方に付与（量を別々に設定）</option>
+          </select>
+          <span class="dw-both-note" style="font-size:10px; color:var(--parchment-dim); ${dwT==='both'?'':'display:none;'}">下の値＝自分への量</span></div>
+        <div class="dw-both-box" style="margin-bottom:6px; ${dwT==='both'?'':'display:none;'}">
+          <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">相手への量</div>
+          <input type="number" id="m-${kind}csx-${id}" value="${dwX}" min="-99" max="99">
+        </div>` : '';
+        return `
+      <div class="field fx-row" data-group="${kind}" data-fx="${escapeHtml(def.key)}" data-label="${escapeHtml(def.label)}" style="${on?'':'display:none;'}">
+        <div style="display:flex; justify-content:space-between; align-items:center;"><label>${escapeHtml(def.label)}</label><button type="button" class="ghost fx-del">削除</button></div>${csExtra}
+        <input type="number" id="m-${def.key}" value="${c[def.key]||0}" min="${def.min!==undefined?def.min:0}" max="${def.max}">
+      </div>`;}).join('')}`;
+}
+
 function openCardModal(card, isNew){
   const c = {...card};
   const overlay = el(`<div class="modal-overlay">
@@ -5565,34 +5659,8 @@ function openCardModal(card, isNew){
         </div>
       </div>`;
       }).join('')).join('')}
-      <div class="section-label">ドロー時効果（本体の効果とは別に、山札から引いた瞬間に発動）</div>
-      <p class="hint">使わなくても、手札に引いた時点で発動します。カスタム状態の付与も選べます（付与先も指定可）。参照増減・カード操作・発動回数は使えません。</p>
-      ${fxPickerHTML('dw','ドロー時効果')}
-      ${drawEffectFieldDefs().map(def=>{
-        const id = def._statusId;
-        const dwT = id && ['self','opponent','both'].includes(c['dw_csT_'+id]) ? c['dw_csT_'+id] : 'default';
-        const dwX = id ? ((c['dw_csX_'+id])|0) : 0;
-        const on = (c[def.key]||0)!==0 || (id && (dwT!=='default' || dwX!==0));
-        const st = id ? (S.customStatuses||[]).find(x=>x.id===id) : null;
-        const std = st && st.target==='opponent' ? '相手' : '自分';
-        const csExtra = id ? `
-        <div style="margin-bottom:4px;"><span style="font-size:10px; color:var(--parchment-dim);">付与先：</span>
-          <select id="m-dwcst-${id}" style="width:auto; display:inline-block;">
-            <option value="default" ${dwT==='default'?'selected':''}>状態の標準（${std}）</option>
-            <option value="self" ${dwT==='self'?'selected':''}>自分に付与</option>
-            <option value="opponent" ${dwT==='opponent'?'selected':''}>相手に付与</option>
-            <option value="both" ${dwT==='both'?'selected':''}>自分と相手の両方に付与（量を別々に設定）</option>
-          </select>
-          <span class="dw-both-note" style="font-size:10px; color:var(--parchment-dim); ${dwT==='both'?'':'display:none;'}">下の値＝自分への量</span></div>
-        <div class="dw-both-box" style="margin-bottom:6px; ${dwT==='both'?'':'display:none;'}">
-          <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">相手への量</div>
-          <input type="number" id="m-dwcsx-${id}" value="${dwX}" min="-99" max="99">
-        </div>` : '';
-        return `
-      <div class="field fx-row" data-group="dw" data-fx="${escapeHtml(def.key)}" data-label="${escapeHtml(def.label)}" style="${on?'':'display:none;'}">
-        <div style="display:flex; justify-content:space-between; align-items:center;"><label>${escapeHtml(def.label)}</label><button type="button" class="ghost fx-del">削除</button></div>${csExtra}
-        <input type="number" id="m-${def.key}" value="${c[def.key]||0}" min="${def.min!==undefined?def.min:0}" max="${def.max}">
-      </div>`;}).join('')}
+      ${pileEffectSectionHTML(c,'dw')}
+      ${pileEffectSectionHTML(c,'ex')}
       <div class="checkbox-field"><input type="checkbox" id="m-exhaust" ${c.exhaust?'checked':''}><label for="m-exhaust">使用後に消滅する（エグゾースト）</label></div>
       <div class="checkbox-field"><input type="checkbox" id="m-pierce" ${c.pierce?'checked':''}><label for="m-pierce">ブロックを無視する（貫通）</label></div>
       <div class="checkbox-field"><input type="checkbox" id="m-lifesteal" ${c.lifesteal?'checked':''}><label for="m-lifesteal">与えたダメージ分HPを回復する（吸血。ブロックで防がれた分は回復しない）</label></div>
@@ -5652,7 +5720,7 @@ function openCardModal(card, isNew){
       qsa(`.cs-both-box[data-st="${id}"], .cs-both-note[data-st="${id}"]`,overlay).forEach(el=> el.style.display = both ? '' : 'none');
     };
   });
-  qsa('select[id^="m-dwcst-"]',overlay).forEach(sel=>{
+  qsa('select[id^="m-dwcst-"], select[id^="m-excst-"]',overlay).forEach(sel=>{
     sel.onchange = ()=>{
       const row = sel.closest('.fx-row'), both = sel.value==='both';
       qsa('.dw-both-box, .dw-both-note',row).forEach(x=> x.style.display = both ? '' : 'none');
@@ -5682,7 +5750,7 @@ function openCardModal(card, isNew){
         qsa('input[type="number"]',row).forEach(i=>{ i.value = i.dataset.dflt!==undefined ? i.dataset.dflt : 0; });
         qsa('input[type="text"]',row).forEach(i=>{ i.value = ''; });
         qsa('select[id^="m-scalesrc-"]',row).forEach(x=>{ x.value = 'none'; });
-        qsa('select[id^="m-cst-"], select[id^="m-dwcst-"]',row).forEach(x=>{ x.value = 'default'; if(x.onchange) x.onchange(); });
+        qsa('select[id^="m-cst-"], select[id^="m-dwcst-"], select[id^="m-excst-"]',row).forEach(x=>{ x.value = 'default'; if(x.onchange) x.onchange(); });
         qsa('.scale-config',row).forEach(x=>{ x.style.display = 'none'; });
         qsa('.scale-toggle-btn',row).forEach(x=>{ x.textContent = '+参照増減'; });
         row.style.display = 'none';
@@ -6049,17 +6117,17 @@ function openCardModal(card, isNew){
         };
       }
     });
-    drawEffectFieldDefs().forEach(def=>{
+    ['dw','ex'].forEach(kind=>{ PILE_EFFECT_KINDS[kind].defs().forEach(def=>{
       const min = def.min!==undefined ? def.min : 0;
       updated[def.key] = clampInt(qs(`#m-${def.key}`,overlay).value,min,def.max,0);
       if(def._statusId){
-        const id = def._statusId, tv = qs(`#m-dwcst-${id}`,overlay);
+        const id = def._statusId, tv = qs(`#m-${kind}cst-${id}`,overlay);
         const t = tv ? tv.value : 'default';
-        if(['self','opponent','both'].includes(t)) updated['dw_csT_'+id] = t; else delete updated['dw_csT_'+id];
-        const xv = clampInt(qs(`#m-dwcsx-${id}`,overlay).value,-99,99,0);
-        if(t==='both' && xv!==0) updated['dw_csX_'+id] = xv; else delete updated['dw_csX_'+id];
+        if(['self','opponent','both'].includes(t)) updated[kind+'_csT_'+id] = t; else delete updated[kind+'_csT_'+id];
+        const xv = clampInt(qs(`#m-${kind}csx-${id}`,overlay).value,-99,99,0);
+        if(t==='both' && xv!==0) updated[kind+'_csX_'+id] = xv; else delete updated[kind+'_csX_'+id];
       }
-    });
+    }); });
     updated.cardOps = ensureOpIds(opsState.map(o=>normalizeStatusOp({...o})));
     updated.statusOp = normalizeCardStatusOp({
       enabled: qs('#m-so-enabled',overlay).checked,
@@ -7337,28 +7405,30 @@ function drawCards(n){
 // draw — whether or not it's ever played. cardOp, hits (repeat count)
 // and per-field scaling are not supported here, to keep a passive, always-on trigger safe.
 // カスタム状態の付与も使える（キーは dw_cs_<状態ID>。付与先は dw_csT_<状態ID>、「両方」のときの相手への量は dw_csX_<状態ID>）。
-function drawEffectFieldDefs(){
-  const num = EFFECT_FIELD_DEFS.filter(d=>d.key!=='hits').map(def=>({...def, key:'dw_'+def.key, _base:def.key}));
-  const cs = customStatusFieldDefs().map(def=>({...def, key:'dw_'+def.key, _base:def.key,
+function pileEffectFieldDefs(pre){
+  const num = EFFECT_FIELD_DEFS.filter(d=>d.key!=='hits').map(def=>({...def, key:pre+def.key, _base:def.key}));
+  const cs = customStatusFieldDefs().map(def=>({...def, key:pre+def.key, _base:def.key,
     desc:(v,obj)=>{
       const view = {};
-      if(obj){ view['csT_'+def._statusId] = obj['dw_csT_'+def._statusId]; view['csX_'+def._statusId] = obj['dw_csX_'+def._statusId]; }
+      if(obj){ view['csT_'+def._statusId] = obj[pre+'csT_'+def._statusId]; view['csX_'+def._statusId] = obj[pre+'csX_'+def._statusId]; }
       return def.desc(v, view);
     }}));
   return num.concat(cs);
 }
+function drawEffectFieldDefs(){ return pileEffectFieldDefs('dw_'); }
+// 消滅したときの効果（ex_ の接頭辞。ドロー時効果と同じ仕組み）
+function exhaustEffectFieldDefs(){ return pileEffectFieldDefs('ex_'); }
 function fxPickerHTML(group, title){
   return `<div class="ev-add fx-picker" data-group="${group}" style="margin:8px 0;"><select class="fx-pick" aria-label="${title}"></select><button type="button" class="fx-add">＋ ${title}を追加</button></div>`;
 }
-function applyCardDrawEffect(r, c){
+function applyCardPileEffect(r, c, defs, pre){
   if(!c) return;
-  const defs = drawEffectFieldDefs();
   const temp = {name: c.name};
   let hasAny = false;
   defs.forEach(def=>{
     const v = c[def.key]||0;
     if(def._statusId){
-      const id = def._statusId, t = c['dw_csT_'+id], x = (c['dw_csX_'+id])|0;
+      const id = def._statusId, t = c[pre+'csT_'+id], x = (c[pre+'csX_'+id])|0;
       if(v!==0 || (t==='both' && x!==0)) hasAny = true;
       if(t==='self' || t==='opponent' || t==='both') temp['csT_'+id] = t;
       if(x!==0) temp['csX_'+id] = x;
@@ -7367,6 +7437,10 @@ function applyCardDrawEffect(r, c){
   });
   if(hasAny) applyEffectValues(r, temp);
 }
+function applyCardDrawEffect(r, c){ applyCardPileEffect(r, c, drawEffectFieldDefs(), 'dw_'); }
+// カードが消滅したときの効果。ids は消滅したカード（インスタンスID付きでよい）
+function applyCardExhaustEffect(r, c){ applyCardPileEffect(r, c, exhaustEffectFieldDefs(), 'ex_'); }
+function noteExhausted(r, ids){ (ids||[]).forEach(id=>{ if(id) applyCardExhaustEffect(r, cardById(id)); }); }
 
 function startPlayerTurn(first){
   const r = S.run;
@@ -7601,7 +7675,7 @@ function playCard(handIdx){
     logGroupEnd();
     // 「そのカード自身」の操作で行き先が決まっていなければ、いつもどおり捨て札／消滅へ
     if(finalId){
-      if(c.exhaust){ r.exhausted.push(finalId); }
+      if(c.exhaust){ r.exhausted.push(finalId); noteExhausted(r, [finalId]); }
       else{ r.discard.push(finalId); }
     }
 
@@ -7898,7 +7972,7 @@ function triggerTipHTML(t, isEnemy, e){
     effect = parts.length ? parts.join('・') : '―';
   } else {
     const cc = {...c, timing:'immediate', immediateEnabled:true, triggerEnabled:false, requirements:[], descPrefix:''};
-    Object.keys(cc).forEach(k=>{ if(k.indexOf('dw_')===0) delete cc[k]; });
+    Object.keys(cc).forEach(k=>{ if(k.indexOf('dw_')===0 || k.indexOf('ex_')===0) delete cc[k]; });
     effect = cardDescription(cc);
   }
   return tipHTML(`⚡ ${escapeHtml(cardIcon(c))} ${escapeHtml(c.name)}（仕込み）`, [
@@ -9617,11 +9691,14 @@ const NAV_ITEMS = [
   document.body.append(burger, backdrop, drawer);
   const close = ()=> document.body.classList.remove('nav-open');
   const renderDrawer = ()=>{
-    drawer.innerHTML = '<div class="nav-title">メニュー</div>' + NAV_ITEMS.map(it=>`<button type="button" class="nav-item ${it.key===S.screen?'current':''}" data-nav="${it.key}">${it.label}</button>`).join('');
+    drawer.innerHTML = '<div class="nav-title">メニュー</div>' + NAV_ITEMS.map(it=>`<button type="button" class="nav-item ${it.key===S.screen?'current':''}" data-nav="${it.key}">${it.label}</button>`).join('')
+      + `<div style="border-top:1px solid var(--line); margin:8px 0;"></div><button type="button" class="nav-item" data-guides-toggle="1">${guidesOn() ? '📖 編集画面のガイド: 表示中' : '📖 編集画面のガイド: 非表示'}</button>`;
   };
   burger.onclick = ()=>{ renderDrawer(); document.body.classList.add('nav-open'); };
   backdrop.onclick = close;
   drawer.addEventListener('click', e=>{
+    const gt = e.target.closest('[data-guides-toggle]');
+    if(gt){ setGuides(!guidesOn()); return; }   // メニューは閉じない（切り替えた結果をそのまま見られる）
     const b = e.target.closest('[data-nav]'); if(!b) return;
     const it = NAV_ITEMS.find(x=>x.key===b.dataset.nav); close();
     if(it && it.key!==S.screen) it.go();
