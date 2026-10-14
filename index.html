@@ -1388,12 +1388,19 @@ function cardOpDescPartsBase(op){
     } else {
       parts.push(`${rangeLabel}の${tagText}カードを${countText}${typeLabel}`);
     }
+    { const pk = opPickText(op); if(pk && parts.length) parts[parts.length-1] += pk; }
   }
   if(CARDOP_REVERTIBLE_TYPES.includes(op.type) && op.type!=='moveToExhausted'){
     parts.push(op.permanent ? '（永続：戦闘後も残る）' : '（この戦闘中のみ）');
   }
   { const sn = opScaleNote(op); if(sn) parts.push(sn); }
   return parts;
+}
+// 「さらに選ぶ」の説明（操作の説明の末尾に付ける）
+function opPickText(op){
+  if(!op || (op.pickMode!=='random' && op.pickMode!=='choose') || op.countMode==='choose' || op.sequential) return '';
+  const k = Math.max(1, op.pickCount|0 || 1);
+  return `（そのうち${k}枚を${op.pickMode==='choose' ? 'あなたが選ぶ' : 'ランダムに選ぶ'}。選ばれなかったカードには何も起きない${op.pickMode==='choose' && op.pickOptional ? '。選ばなくてもよい' : ''}）`;
 }
 function opScaleNote(op){
   if(!op || !op.scales) return '';
@@ -1644,7 +1651,7 @@ function cleanOpScales(sc){
 }
 function defaultStatusOp(){
   return {enabled:true, type:'moveToDiscard', fromPile:'hand', genPool:'normal', countMode:'fixed',
-    countFixed:1, countMin:1, countMax:1, filterTag:'', filterTagMode:'any', buffField:'', buffAmount:0, costDelta:1, deckWeight:1, drawNext:false, sequential:false, permanent:false};
+    countFixed:1, countMin:1, countMax:1, filterTag:'', filterTagMode:'any', buffField:'', buffAmount:0, costDelta:1, deckWeight:1, drawNext:false, sequential:false, pickMode:'none', pickCount:1, pickOptional:false, permanent:false};
 }
 // 空のIDに、カード内で一意なID（op1, op2…）を振る。すでにあるIDは変えない。
 function ensureOpIds(list){
@@ -1680,6 +1687,11 @@ function normalizeStatusOp(o){
     deckWeight: clampInt(o.deckWeight,1,99,1),
     drawNext: !!o.drawNext,
     sequential: !!o.sequential,
+    // 「さらに選ぶ」: 対象が決まったあと、操作を行う前に、その中から pickCount 枚をランダム／プレイヤーが選ぶ。選ばれなかったカードには何も起きない（生成は作られない）。
+    // 枚数の決め方が「プレイヤーが任意に選ぶ」のとき、「1枚ずつ選び直す」のときは使えない。pickOptional＝選ばなくてもよい（プレイヤーが選ぶときだけ）
+    pickMode: (['random','choose'].includes(o.pickMode) && o.countMode!=='choose' && !o.sequential) ? o.pickMode : 'none',
+    pickCount: clampInt(o.pickCount,1,20,1),
+    pickOptional: o.pickMode==='choose' && !!o.pickOptional,
     permanent: !!o.permanent,
     exhaustMode: EXHAUST_MODES.some(m=>m.key===o.exhaustMode) ? o.exhaustMode : (o.permanent ? 'destroy' : 'combat'),
     buffSource: o.buffSource==='captured' ? 'captured' : 'fixed',   // fixed=設定した効果／captured=直前に取得した効果
@@ -1692,7 +1704,7 @@ function normalizeStatusOp(o){
     valueMode: o.valueMode==='targetCount' ? 'targetCount' : 'fixed',
     // 続けて、同じ対象のカードに行う操作（カードを追跡して順に行う。生成・敵のデッキへの追加は入れられない）
     ...(Array.isArray(o.then) && o.then.length ? {then: o.then.filter(t=>t && typeof t==='object' && !['generateToHand','generateToDraw','generatePlay','generateToEnemyDeck','useCardById','captureEffect'].includes(t.type)).slice(0,6)
-      .map(t=>normalizeStatusOp({...t, then:[], countMode:'all', fromPile:'hand', sequential:false, filterTag:''}))} : {}),
+      .map(t=>normalizeStatusOp({...t, then:[], countMode:'all', fromPile:'hand', sequential:false, filterTag:'', pickMode:'none'}))} : {}),
   };
 }
 function normalizeStatusEffect(x){
@@ -2924,6 +2936,13 @@ function opChooseVerb(op){
 }
 // 敵が使うカード操作の説明（視点反転後の内容）。効果のない操作は空文字を返す。
 function enemyOpText(op){
+  const t = enemyOpTextBase(op);
+  if(!t || (op.pickMode!=='random' && op.pickMode!=='choose') || op.countMode==='choose' || op.sequential) return t;
+  const k = Math.max(1, op.pickCount|0 || 1);
+  const byPlayer = op.pickMode==='choose' && ENEMY_ON_PLAYER_OPS.includes(op.type);   // プレイヤーの山に作用する3つの操作は、プレイヤーが選ぶ
+  return t + `（そのうち${k}枚を${byPlayer ? 'あなたが選ぶ' : 'ランダムに選ぶ'}）`;
+}
+function enemyOpTextBase(op){
   if(op.fromPile==='self' && !GENERATE_TYPES.includes(op.type)) return '';   // 「そのカード自身」は敵が使うときは効果なし
   const lo = Math.min(op.countMin!==undefined?op.countMin:1, op.countMax!==undefined?op.countMax:1);
   const hi = Math.max(op.countMin!==undefined?op.countMin:1, op.countMax!==undefined?op.countMax:1);
@@ -3331,12 +3350,16 @@ function resolveEnemyCardOp(r, op, done){
     return op.countFixed!==undefined ? op.countFixed : 1;
   };
   const nameOf = rawId=>{ const c = cardById(rawId); return c ? c.name : rawId; };
+  // 「さらに選ぶ」: 敵は選択画面を出せないので、ランダムに絞る
+  const pickK = ((op.pickMode==='random' || op.pickMode==='choose') && op.countMode!=='choose' && !op.sequential) ? Math.max(1, op.pickCount|0 || 1) : 0;
+  const narrowList = list=> (pickK && list.length>pickK) ? shuffle(list.slice()).slice(0, pickK) : list;
 
   if(GENERATE_TYPES.includes(op.type)){
     const pool = collectGeneratePool(op);
     if(pool.length===0){ done(); return; }
     const count = Math.max(0, rollCount(pool.length));
-    const picked = pickWithReplacement(pool, count);
+    let picked = (pickK && count<=pool.length) ? shuffle(pool.slice()).slice(0, count) : pickWithReplacement(pool, count);
+    picked = narrowList(picked);
     if(picked.length===0){ done(); return; }
     const names = picked.map(x=>nameOf(x.rawId)).join('」「');
     if(op.type==='generateToEnemyDeck'){
@@ -3367,7 +3390,7 @@ function resolveEnemyCardOp(r, op, done){
   let count = Math.min(entries.length, Math.max(0, rollCount(entries.length)));
   if(op.type==='moveToDiscard' || op.type==='moveToExhausted') count = Math.min(count, e.deck.length-1);
   if(count<=0){ done(); return; }
-  const sel = shuffle(entries).slice(0, count);
+  const sel = narrowList(shuffle(entries).slice(0, count));
   const names = sel.map(x=>nameOf(x.d.cardId)).join('」「');
 
   if(op.type==='moveToDiscard' || op.type==='moveToExhausted'){
@@ -3512,7 +3535,7 @@ function resolveCardOp(r, op, done){
       const hi = Math.max(op.countMin!==undefined?op.countMin:1, op.countMax!==undefined?op.countMax:1);
       n = lo + Math.floor(Math.random()*(hi-lo+1));
     } else n = op.countFixed!==undefined ? op.countFixed : 1;
-    const single = {...op, sequential:false, countMode: op.countMode==='choose' ? 'choose' : 'fixed', countFixed:1};
+    const single = {...op, sequential:false, pickMode:'none', countMode: op.countMode==='choose' ? 'choose' : 'fixed', countFixed:1};
     let i = 0;
     (function nextPick(){
       if(i>=n || r.enemy.hp<=0 || r.player.hp<=0){ done(); return; }
@@ -3549,7 +3572,33 @@ function resolveCardOp(r, op, done){
   }
   if(entries.length===0){ done(); return; }
 
+  // 「さらに選ぶ」: 対象が決まったあと、操作を行う前に、その中からさらに絞る。選ばれなかったカードには、この操作は何も起きない（生成は、そもそも作られない）。
+  // 続けの操作（_pre）では使わない。候補が選ぶ枚数以下なら、選択画面は出さず、そのまま行う。
   function finish(selected){
+    const pm = op.pickMode;
+    if((pm!=='random' && pm!=='choose') || op.countMode==='choose' || op.sequential || op._pre || selected.length===0){ finishCore(selected); return; }
+    const k = Math.max(1, op.pickCount|0 || 1);
+    if(selected.length<=k){ finishCore(selected); return; }
+    if(pm==='random' || op.type==='generateToEnemyDeck'){   // 敵のデッキに加えるカードを、プレイヤーが選ぶことはない
+      const chosen = shuffle(selected.slice()).slice(0, k);
+      pushLog(`候補${selected.length}枚から、ランダムに${k}枚が選ばれた。`);
+      finishCore(chosen); return;
+    }
+    r.pendingChoice = {
+      candidates: selected,
+      need: k,
+      selectedIdx: [],
+      optional: !!op.pickOptional,
+      prompt: op.prompt || `${selected.length}枚から${k}枚を選んでください${op.pickOptional ? '（選ばなくてもよい）' : ''}`,
+      onConfirm: (chosen)=>{
+        if(chosen.length===0) pushLog('何も選ばなかったため、この操作は行われなかった。');
+        else pushLog(`候補${selected.length}枚から${chosen.length}枚を選んだ。`);
+        finishCore(chosen);
+      },
+    };
+    renderBattle();
+  }
+  function finishCore(selected){
     if(selected.length===0){ done(); return; }
     // 対象の枚数を記録する（このカードの効果の中で、あとの効果が参照増減の参照元「カード操作の対象枚数」として使える）
     if(op._tally){ op._tally.n += selected.length; if(r._opX) r._opX.last = op._tally.n; }
@@ -3839,8 +3888,10 @@ function resolveCardOp(r, op, done){
     count = lo + Math.floor(Math.random()*(hi-lo+1));
   } else count = op.countFixed!==undefined ? op.countFixed : 1;
 
+  // 「さらに選ぶ」を使う生成は、候補が重複しないように選ぶ（プールが足りないときだけ重複を許す）
+  const pickOn = op.pickMode==='random' || op.pickMode==='choose';
   const selected = isGenerate
-    ? pickWithReplacement(entries, Math.max(0,count))
+    ? ((pickOn && count<=entries.length) ? shuffle(entries.slice()).slice(0, Math.max(0,count)) : pickWithReplacement(entries, Math.max(0,count)))
     : shuffle(entries.slice()).slice(0, Math.max(0,count));
   finish(selected);
 }
@@ -5193,14 +5244,20 @@ function statusEffectFormHTML(eff, i){
            <label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="drawNext" ${op.drawNext?'checked':''}> 敵が持っているとき: 加えたカードを次のターンに必ず引く（山札の一番上に置く）</label>
            <p class="ev-hint">プレイヤーが持っているときは、敵のデッキ一覧に、この戦闘の間だけ追加されます。今の予告は変わらず、次の次の行動から反映されます。敵が持っているときは逆にプレイヤーの山札に加わり、次のターンの最初のドローより前に処理されます（チェックなしなら山札に混ざり、引くことがあります）。</p>` : ''}`
         : `<div class="field"><label>対象の山</label>${sel('fromPile', PILE_OPTIONS.filter(p=>p.key!=='self'), op.fromPile)}</div>`}
-      <div class="field"><label>枚数の決め方</label><select ${opAt} data-f="countMode">
+      <div class="field"><label>枚数の決め方</label><select ${opAt} data-f="countMode" data-rerender="1">
         <option value="fixed" ${op.countMode==='fixed'?'selected':''}>固定数</option>
         <option value="random" ${op.countMode==='random'?'selected':''}>ランダムな範囲</option>
         <option value="all" ${op.countMode==='all'?'selected':''}>対象すべて</option>
         <option value="choose" ${op.countMode==='choose'?'selected':''}>プレイヤーが任意に選ぶ（固定数ぶん、操作のたびに選択画面が出ます）</option></select></div>
       <div class="ev-eff-grid">${num('countFixed','固定数',op.countFixed)}${num('countMin','ランダム最小',op.countMin)}${num('countMax','ランダム最大',op.countMax)}</div>
       ${tagPairHTML('field', '<label>対象タグ絞り込み（複数指定可・, 、 区切り。空欄で絞り込みなし）</label>', opAt+' data-f="filterTag"', op.filterTag, opAt+' data-f="filterTagMode"', op.filterTagMode)}
-      <label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="sequential" ${op.sequential?'checked':''}> 1枚ずつ選び直す（1枚処理するごとに、そのあとの山の状態から次を選ぶ）</label>
+      <label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="sequential" data-rerender="1" ${op.sequential?'checked':''}> 1枚ずつ選び直す（1枚処理するごとに、そのあとの山の状態から次を選ぶ）</label>
+      ${(op.countMode==='choose' || op.sequential) ? '' : `<div class="field"><label>さらに選ぶ（対象になったカードから、さらに絞る。選ばれなかったカードには、この操作は何も起きません）</label><select ${opAt} data-f="pickMode" data-rerender="1">
+        <option value="none" ${(op.pickMode!=='random' && op.pickMode!=='choose')?'selected':''}>さらに選ばない</option>
+        <option value="random" ${op.pickMode==='random'?'selected':''}>ランダムに選ぶ</option>
+        <option value="choose" ${op.pickMode==='choose'?'selected':''}>プレイヤーが選ぶ（選択画面が出ます）</option></select></div>
+      ${(op.pickMode==='random' || op.pickMode==='choose') ? `<div class="ev-eff-grid"><div><label>選ぶ枚数</label><input type="number" ${opAt} data-f="pickCount" data-num="1" value="${op.pickCount||1}" min="1" max="20"></div></div>
+      ${op.pickMode==='choose' ? `<label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="pickOptional" ${op.pickOptional?'checked':''}> 選ばなくてもよい（選ばないと、この操作は何も起きません）</label>` : ''}` : ''}`}
       ${CARDOP_REVERTIBLE_TYPES.includes(op.type) && op.type!=='moveToExhausted' ? `<label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="permanent" ${op.permanent?'checked':''}> 永続（戦闘が終わっても元に戻さない。チェックなしはこの戦闘中のみ）</label>` : ''}
       ${op.type==='moveToExhausted' ? `<div class="field"><label>消滅の期間</label><select ${opAt} data-f="exhaustMode">${EXHAUST_MODES.map(m=>`<option value="${m.key}" ${(op.exhaustMode||'combat')===m.key?'selected':''}>${escapeHtml(m.label)}</option>`).join('')}</select></div>` : ''}
       ${(op.type==='elementAdd'||op.type==='elementRemove') ? (()=>{
@@ -5877,11 +5934,23 @@ function openCardModal(card, isNew){
   qs('#req-add', overlay).onclick = ()=>{ const o = reqStatOptions(); reqState.push({subject:'self', stat:(o[0]||{}).key||'強化', op:'ge', value:1}); renderReq(); };
   renderReq();
   // ----- カード操作（複数。追加ボタン式） -----
-  const OP_NUM = {countFixed:[0,20,1], countMin:[0,20,1], countMax:[0,20,1], buffAmount:[-99,99,0], deckWeight:[1,99,1], costDelta:[-9,9,0]};
+  const OP_NUM = {countFixed:[0,20,1], countMin:[0,20,1], countMax:[0,20,1], pickCount:[1,20,1], buffAmount:[-99,99,0], deckWeight:[1,99,1], costDelta:[-9,9,0]};
   opsState = ensureOpIds(cardOpsOf(c).map(o=>normalizeStatusOp({...o})));
   const opBox = qs('#op-list', overlay);
   const opLab = t=>`<div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">${t}</div>`;
   const opSel = (f, list, cur)=>`<select data-opf="${f}" style="margin-bottom:8px; width:100%;">${list.map(o=>`<option value="${escapeHtml(o.key)}" ${o.key===cur?'selected':''}>${escapeHtml(o.label)}</option>`).join('')}</select>`;
+  const pickFieldsHTML = op=>{
+    if(op.countMode==='choose' || op.sequential) return '';
+    const pm = (op.pickMode==='random' || op.pickMode==='choose') ? op.pickMode : 'none';
+    return `<div style="margin-top:10px;">${opLab('さらに選ぶ（対象になったカードから、さらに絞る。選ばれなかったカードには、この操作は何も起きません。生成なら、そもそも作られません）')}
+      <select data-opf="pickMode" style="margin-bottom:6px; width:100%;">
+        <option value="none" ${pm==='none'?'selected':''}>さらに選ばない</option>
+        <option value="random" ${pm==='random'?'selected':''}>ランダムに選ぶ</option>
+        <option value="choose" ${pm==='choose'?'selected':''}>プレイヤーが選ぶ（選択画面が出ます）</option></select>
+      ${pm==='none' ? '' : `<div style="display:flex; gap:6px; margin-bottom:6px;">${opNum('pickCount',op,'選ぶ枚数')}</div>
+      ${pm==='choose' ? `<div class="checkbox-field" style="margin-bottom:4px;"><input type="checkbox" data-opf="pickOptional" ${op.pickOptional?'checked':''}><label>選ばなくてもよい（選ばないと、この操作は何も起きません）</label></div>` : ''}
+      <div class="hint">例: 「カードを生成し、コストを消費せず使用する」で枚数を3、さらに選ぶを「プレイヤーが選ぶ」1枚にすると、生成候補3枚から1枚を選んで使えます（生成の候補は、重複しないように選ばれます）。候補が選ぶ枚数以下なら、選択画面は出ずにそのまま実行されます。</div>`}</div>`;
+  };
   const opNum = (f, op, label)=>`<div style="flex:1;">${opLab(label)}<input type="number" data-opf="${f}" data-opnum="1" value="${op[f]|0}" min="${OP_NUM[f][0]}" max="${OP_NUM[f][1]}" style="width:100%;"></div>`;
   // 各数値の下に付ける参照増減（効果欄の「+参照増減」と同じ操作）
   const opScale = (op, f)=>{
@@ -5981,7 +6050,8 @@ function openCardModal(card, isNew){
         ${op.countMode==='random' ? opScale(op,'countMin')+opScale(op,'countMax') : (op.countMode==='all' ? '' : opScale(op,'countFixed'))}
         ${isGen ? '' : tagPairHTML('', opLab('対象タグ絞り込み（複数指定可・, 、 区切り。空欄で絞り込みなし）'), 'data-opf="filterTag"', op.filterTag, 'data-opf="filterTagMode"', op.filterTagMode, 'width:100%;')}
         <div class="checkbox-field" style="margin-top:8px; margin-bottom:4px;"><input type="checkbox" data-opf="sequential" ${op.sequential?'checked':''}><label>1枚ずつ選び直す（1枚処理するたびに次の1枚を選ぶ）</label></div>
-        <div class="hint">オフ＝最初に全部まとめて選ぶ。オン＝1枚処理してから次を選ぶので、直前の効果で増減した手札なども対象になります（任意選択なら1枚ずつ選択画面が出ます。「対象すべて」では無効）。</div>`}
+        <div class="hint">オフ＝最初に全部まとめて選ぶ。オン＝1枚処理してから次を選ぶので、直前の効果で増減した手札なども対象になります（任意選択なら1枚ずつ選択画面が出ます。「対象すべて」では無効）。</div>
+        ${pickFieldsHTML(op)}`}
       ${extraOpHTML(op)}
       ${CARDOP_REVERTIBLE_TYPES.includes(op.type) && op.type!=='moveToExhausted' ? `<div style="margin-top:10px;">
         <div class="checkbox-field" style="margin-bottom:4px;"><input type="checkbox" data-opf="permanent" ${op.permanent?'checked':''}><label>永続にする（戦闘後も元に戻さない）</label></div>
@@ -6042,7 +6112,7 @@ function openCardModal(card, isNew){
     if(!opSync(e.target)) return;
     const f = e.target.dataset.opf, op = opOf(e.target);
     if(f==='type' && op.type==='play' && op.fromPile==='self') op.fromPile = 'hand';   // 自分自身を使い直す操作は作れない
-    if(f==='type' || f==='fromPile' || f==='countMode' || f==='countSource' || f==='buffField' || f==='buffSource' || f==='exhaustMode'){ renderOps(); renderOrder(); }
+    if(f==='type' || f==='fromPile' || f==='countMode' || f==='countSource' || f==='buffField' || f==='buffSource' || f==='exhaustMode' || f==='sequential' || f==='pickMode'){ renderOps(); renderOrder(); }
     else if(e.target.dataset.opcap!==undefined){ renderOps(); }
   });
   opBox.addEventListener('click', e=>{ const tg = e.target.closest('[data-optoggle]'); if(tg){ const box = tg.parentElement.querySelector('[data-opscalebox]'); const show = box.style.display==='none'; box.style.display = show ? '' : 'none'; return; }
@@ -8164,7 +8234,7 @@ function renderCardChoiceOverlay(r){
       }).join('')}
     </div>
     <div style="margin-top:18px;">
-      <button class="primary" id="btn-choice-confirm" ${selected.length!==pc.need?'disabled':''}>決定</button>
+      <button class="primary" id="btn-choice-confirm" ${(selected.length!==pc.need && !(pc.optional && selected.length===0))?'disabled':''}>${(pc.optional && selected.length===0) ? '選ばない' : '決定'}</button>
     </div>
   </div>`;
   qsa('#choice-row > div').forEach(wrap=>{
@@ -8177,7 +8247,7 @@ function renderCardChoiceOverlay(r){
     };
   });
   qs('#btn-choice-confirm').onclick = ()=>{
-    if(selected.length!==pc.need) return;
+    if(selected.length!==pc.need && !(pc.optional && selected.length===0)) return;
     const chosen = selected.map(i=>pc.candidates[i]);
     r.pendingChoice = null;
     pc.onConfirm(chosen);
