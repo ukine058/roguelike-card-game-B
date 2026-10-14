@@ -643,6 +643,68 @@ function parseTags(v){
   String(v||'').split(/[,、，]/).forEach(x=>{ const t = cleanTag(x); if(t && !out.includes(t)) out.push(t); });
   return out;
 }
+// ===== 複数タグ指定（フェーズ7a: 共通部品） =====
+// 指定欄の保存値は、正規化したカンマ区切りの文字列（例 '血,炎'）。1個だけの旧データもそのまま読める。
+// 一致モード: 'any'＝指定したどれか1つを持てば対象 ／ 'all'＝指定したすべてを持つものだけ対象。未設定は 'any'。
+function tagListOf(v){ return Array.isArray(v) ? parseTags(v.join(',')) : parseTags(v); }
+function cleanTagList(v){ return tagListOf(v).join(','); }
+function cleanTagMode(v){ return v==='all' ? 'all' : 'any'; }
+// tagSet（持っているタグの配列）が、wanted（指定タグの配列／文字列）に、mode で一致するか。指定が空なら常に真（絞り込みなし）。
+function tagsMatch(tagSet, wanted, mode){
+  const w = tagListOf(wanted);
+  if(!w.length) return true;
+  const have = Array.isArray(tagSet) ? tagSet : [];
+  return cleanTagMode(mode)==='all' ? w.every(t=>have.includes(t)) : w.some(t=>have.includes(t));
+}
+function cardMatchesTags(c, wanted, mode){ if(!tagListOf(wanted).length) return true; return !!c && tagsMatch(effectiveCardTags(c), wanted, mode); }
+// 説明文用: タグ指定を「[A]の」「[A・B]のいずれかの」「[A・B]すべてを持つ」の形にする（指定が空なら ''）
+function tagCondText(wanted, mode){
+  const w = tagListOf(wanted);
+  if(!w.length) return '';
+  if(w.length===1) return `[${w[0]}]の`;
+  return cleanTagMode(mode)==='all' ? `[${w.join('・')}]すべてを持つ` : `[${w.join('・')}]のいずれかの`;
+}
+// 参照増減の説明用: 1個は「[A]」、2個以上は「[A・B]のいずれか」「[A・B]すべて持つ」（指定が空なら ''）
+// 「タグの種類数」の参照元。数えるのは、対象のカードが持つタグ（種類・コストの自動タグを含む）の種類の数。指定したタグは数えない（除外）
+const TAG_KINDS_SOURCES = ['tagKindsHand','tagKindsPlayedThisTurn','tagKindsDrawDiscard'];
+function distinctTagKinds(tagLists, excluded){
+  const ex = tagListOf(excluded), seen = new Set();
+  tagLists.forEach(list=> (list||[]).forEach(t=>{ if(!ex.includes(t)) seen.add(t); }));
+  return seen.size;
+}
+// 参照増減の説明に付けるタグの表記。種類数の参照では「除外」の意味になる
+function scaleSourceTagText(source, wanted, mode){
+  if(TAG_KINDS_SOURCES.includes(source)){ const w = tagListOf(wanted); return w.length ? `（除外: ${w.join('・')}）` : ''; }
+  return scaleTagText(wanted, mode);
+}
+function scaleTagText(wanted, mode){
+  const w = tagListOf(wanted);
+  if(!w.length) return '';
+  if(w.length===1) return `[${w[0]}]`;
+  return `[${w.join('・')}]` + (cleanTagMode(mode)==='all' ? 'すべて持つ' : 'のいずれか');
+}
+// 編集画面用: 一致モードの選択欄。attrs はセレクトに付ける属性（例 'data-f="filterTagMode"'）。タグが2個以上のときだけ表示する。
+function tagModeFieldHTML(attrs, mode, wanted){
+  const m = cleanTagMode(mode);
+  return `<div class="field tagmode-field" style="${tagListOf(wanted).length>1 ? '' : 'display:none;'}"><label>複数タグのとき</label><select ${attrs}>`
+    + `<option value="any" ${m==='any'?'selected':''}>どれか1つを持つものが対象</option>`
+    + `<option value="all" ${m==='all'?'selected':''}>すべて持つものだけが対象</option></select></div>`;
+}
+// タグ入力欄＋モード選択欄の組。cls は外側の class、labelHTML は見出し（HTML）、inputStyle は入力欄の style（省略可）。
+function tagPairHTML(cls, labelHTML, inputAttrs, value, modeAttrs, mode, inputStyle){
+  return `<div class="${cls} tagpair">${labelHTML}<input type="text" ${inputAttrs} value="${escapeHtml(value||'')}"${inputStyle ? ` style="${inputStyle}"` : ''}>${tagModeFieldHTML(modeAttrs, mode, value)}</div>`;
+}
+// 編集画面の .tagpair で、入力のたびにタグが2個以上かを見て、モード選択欄の表示／非表示を切り替える（画面全体に1回だけ付ける）。
+function bindTagPairs(root){
+  if(!root) return;
+  const sync = e=>{
+    const t = e.target;
+    if(!t || t.tagName!=='INPUT' || t.type!=='text') return;
+    const pair = t.closest && t.closest('.tagpair'); if(!pair) return;
+    const mf = pair.querySelector('.tagmode-field'); if(mf) mf.style.display = tagListOf(t.value).length>1 ? '' : 'none';
+  };
+  root.addEventListener('input', sync); root.addEventListener('change', sync);
+}
 // 敵専用・生成専用のカード（通常の報酬・ショップ・初期デッキには出ない）
 // 通常入手不可のレリック。ランダムな報酬・ショップ・開始時の選択肢・イベントのランダム入手には出ず、
 // 敵のドロップ指定・イベントのレリック指定・初期所持でだけ手に入る。
@@ -651,8 +713,8 @@ function isNonRewardCard(c){ return !!c && (c.rarity==='generated' || c.rarity==
 function migrateCard(c){
   if(c){
     if(Array.isArray(c.tags)){ const seen = []; c.tags.forEach(x=>{ const t = cleanTag(x); if(t && !seen.includes(t)) seen.push(t); }); c.tags = seen; }
-    if(typeof c.triggerTag==='string') c.triggerTag = cleanTag(c.triggerTag);
-    if(c.cardOp && typeof c.cardOp.filterTag==='string') c.cardOp.filterTag = cleanTag(c.cardOp.filterTag);
+    if(typeof c.triggerTag==='string') c.triggerTag = cleanTagList(c.triggerTag);
+    if(c.cardOp && typeof c.cardOp.filterTag==='string') c.cardOp.filterTag = cleanTagList(c.cardOp.filterTag);
   }
   if(c && c.cardOp && c.cardOp.timing!==undefined){
     if(c.timing===undefined) c.timing = c.cardOp.timing;
@@ -817,7 +879,7 @@ function saveSettings(s){
   try{ localStorage.setItem('settings', JSON.stringify(s)); }catch(e){ console.error(e); }
 }
 function migrateRelic(rel){
-  if(rel){ if(typeof rel.triggerTag==='string') rel.triggerTag = cleanTag(rel.triggerTag); if(typeof rel.favorTag==='string') rel.favorTag = cleanTag(rel.favorTag); }
+  if(rel){ if(typeof rel.triggerTag==='string') rel.triggerTag = cleanTagList(rel.triggerTag); if(typeof rel.favorTag==='string') rel.favorTag = cleanTagList(rel.favorTag); }
   if(rel && !rel.timing) rel.timing = 'onPickup';
   if(rel) rel.startingCount = clampInt(rel.startingCount,0,9,0);
   return rel;
@@ -1175,11 +1237,12 @@ function cardById(id){
   if((permBuffs && Object.keys(permBuffs).length) || (tempBuffs && Object.keys(tempBuffs).length)){
     const merged = {...card};
     // 補正の記録: 数値は加算、文字列（付与先 csT_<状態ID>）は上書き、'='+欄名 は「その値に上書き（set）」、__el は属性の付与／除去の記録
-    const elOps = [];
+    const elOps = [], tagOps = [];
     [permBuffs, tempBuffs].forEach(b=>{
       if(!b) return;
       Object.keys(b).forEach(k=>{
         if(k==='__el'){ (b[k]||[]).forEach(x=>elOps.push(x)); return; }
+        if(k==='__tags'){ (b[k]||[]).forEach(x=>tagOps.push(x)); return; }
         if(k.charAt(0)==='=') return;
         merged[k] = (typeof b[k]==='string') ? b[k] : ((merged[k]||0) + b[k]);
       });
@@ -1193,6 +1256,11 @@ function cardById(id){
         else els = els.filter(e=>!elementMatchesSelector(e, id));
       });
       merged.elements = els;
+    }
+    if(tagOps.length){
+      const tg = Array.isArray(merged.tags) ? merged.tags.slice() : [];
+      tagOps.forEach(t=>{ if(t && !tg.includes(t)) tg.push(t); });
+      merged.tags = tg;
     }
     if(merged.cost<0) merged.cost = 0;   // 「コストを増減する」で0未満にはならない
     return merged;
@@ -1214,6 +1282,8 @@ function buffTargetText(op){
   if(!String(op.buffField||'').startsWith('cs_')) return '';
   return op.buffTarget==='self' ? '（付与先: 自分）' : op.buffTarget==='opponent' ? '（付与先: 相手）' : '';
 }
+function onlyAddTags(op){ return tagListOf(op.addTags).length>0 && !(op.buffField && (op.buffAmount||0)); }
+function addTagsText(op){ const w = tagListOf(op.addTags); return w.length ? `（タグ[${w.join('・')}]を追加）` : ''; }
 // 続けの操作1つぶんの説明
 function thenOpText(t){
   const sg = n=> n>=0 ? `+${n}` : `${n}`;
@@ -1229,7 +1299,7 @@ function thenOpText(t){
     case 'upgrade': return '強化'+perm;
     case 'duplicate': return '複製'+perm;
     case 'play': return 'コストなしで使用';
-    case 'grantBuff': { if(t.buffSource==='captured') return `取得した効果を${t.buffMode==='set'?'上書き':'加算'}で付与${perm}`; const fd = allEffectFieldDefs().find(d=>d.key===t.buffField); return `「${fd ? fd.label : t.buffField}」${x}${sg(t.buffAmount||0)}を付与${perm}`; }
+    case 'grantBuff': { if(t.buffSource==='captured') return `取得した効果を${t.buffMode==='set'?'上書き':'加算'}で付与${perm}`; const fd = allEffectFieldDefs().find(d=>d.key===t.buffField); return (t.buffField && (t.buffAmount||0) ? `「${fd ? fd.label : t.buffField}」${x}${sg(t.buffAmount||0)}を付与` : (tagListOf(t.addTags).length ? '' : `「${fd ? fd.label : t.buffField}」${x}${sg(t.buffAmount||0)}を付与`)) + addTagsText(t) + perm; }
     case 'costChange': return `コストを${x}${sg(t.costDelta|0)}${perm}`;
   }
   return t.type;
@@ -1254,7 +1324,7 @@ function cardOpDescPartsBase(op){
   if(isSelf){
     if(op.type==='grantBuff' && op.buffSource!=='captured'){
       const fd = allEffectFieldDefs().find(d=>d.key===op.buffField);
-      parts.push(`このカードの「${fd ? fd.label : op.buffField}」を${op.buffMode==='set' ? sg(op.buffAmount||0).replace('+','')+'に上書き' : sg(op.buffAmount||0)+'する'}${buffTargetText(op)}`);
+      if(onlyAddTags(op)) parts.push(`このカードにタグ[${tagListOf(op.addTags).join('・')}]を追加する`); else parts.push(`このカードの「${fd ? fd.label : op.buffField}」を${op.buffMode==='set' ? sg(op.buffAmount||0).replace('+','')+'に上書き' : sg(op.buffAmount||0)+'する'}${buffTargetText(op)}${addTagsText(op)}`);
     } else if(op.type==='costChange'){
       parts.push(`このカードのコストを${sg(op.costDelta|0)}する`);
     } else parts.push(`このカード自身を${typeLabel}`);
@@ -1271,11 +1341,11 @@ function cardOpDescPartsBase(op){
       : op.countMode==='choose' ? `${op.countFixed}枚`
       : op.countMode==='random' ? `${op.countMin}〜${op.countMax}枚`
       : `${op.countFixed}枚`) + seqText;
-    const tagText = op.filterTag ? `[${op.filterTag}]の` : '';
+    const tagText = tagCondText(op.filterTag, op.filterTagMode);
     if(op.type==='grantBuff' && op.buffSource!=='captured'){
       const fieldDef = allEffectFieldDefs().find(d=>d.key===op.buffField);
       const fieldLabel = fieldDef ? fieldDef.label : op.buffField;
-      parts.push(`${rangeLabel}の${tagText}カードを${countText}選び、「${fieldLabel}」を${op.buffMode==='set' ? String(op.buffAmount||0)+'に上書き' : sg(op.buffAmount||0)+'する'}${buffTargetText(op)}`);
+      if(onlyAddTags(op)) parts.push(`${rangeLabel}の${tagText}カードを${countText}選び、タグ[${tagListOf(op.addTags).join('・')}]を追加する`); else parts.push(`${rangeLabel}の${tagText}カードを${countText}選び、「${fieldLabel}」を${op.buffMode==='set' ? String(op.buffAmount||0)+'に上書き' : sg(op.buffAmount||0)+'する'}${buffTargetText(op)}${addTagsText(op)}`);
     } else if(op.type==='costChange'){
       parts.push(`${rangeLabel}の${tagText}カードを${countText}選び、コストを${sg(op.costDelta|0)}する`);
     } else if(isGenerate){
@@ -1297,7 +1367,7 @@ function opScaleNote(op){
     const x = op.scales[f];
     if(!x || !x.source || x.source==='none' || !x.perPoint) return;
     const src = allScaleSources().find(v=>v.key===x.source);
-    out.push(`${OP_SCALE_LABELS[f]}: ${src ? src.label : x.source}${x.tag ? `[${x.tag}]` : ''}×${x.perPoint}`);
+    out.push(`${OP_SCALE_LABELS[f]}: ${src ? src.label : x.source}${scaleSourceTagText(x.source, x.tag, x.tagMode)}×${x.perPoint}`);
   });
   return out.length ? `（${out.join('、')}）` : '';
 }
@@ -1313,7 +1383,7 @@ function cardDescription(c){
     if(scale && scale.source && scale.source!=='none' && scale.perPoint){
       const src = allScaleSources().find(s=>s.key===scale.source);
       const label = src ? src.label : scale.source;
-      const tagPart = (scale.source==='tagCountHand'||scale.source==='tagCountPlayedThisTurn'||scale.source==='combatTagPlayed'||scale.source==='tagCountDrawDiscard'||scale.source==='selfTagStacks'||scale.source==='enemyTagStacks') && scale.tag ? `[${scale.tag}]` : '';
+      const tagPart = (scale.source==='tagCountHand'||scale.source==='tagCountPlayedThisTurn'||scale.source==='combatTagPlayed'||scale.source==='tagCountDrawDiscard'||scale.source==='selfTagStacks'||scale.source==='enemyTagStacks'||TAG_KINDS_SOURCES.includes(scale.source)) ? scaleSourceTagText(scale.source, scale.tag, scale.tagMode) : '';
       parts.push(`${def.label}: ${label}${tagPart}×${scale.perPoint}`);
     }
   });
@@ -1329,9 +1399,10 @@ function cardDescription(c){
   if(c.exhaust) parts.push(`(使用後: 消滅)`);
   let desc = parts.length ? parts.join('。')+'。' : '効果なし';
   if(hasTrigger(c)){
-    const tagPart = c.triggerTag ? `[${c.triggerTag}]` : '任意の';
+    const _tl = tagListOf(c.triggerTag);
+    const tagPart = _tl.length>1 ? tagCondText(c.triggerTag, c.triggerTagMode) : (_tl.length ? `[${_tl[0]}]` : '任意の');
     const durPart = triggerDurText(c);
-    const tgp = c.triggerTag ? `[${c.triggerTag}]の` : '';
+    const tgp = tagCondText(c.triggerTag, c.triggerTagMode);
     const onKind = cleanTriggerOn(c.triggerOn);
     const th = triggerHitsOf(c);
     const both = hasImmediate(c);
@@ -1480,11 +1551,14 @@ function normalizeCard(c){
   c.triggerOn = cleanTriggerOn(c.triggerOn);
   c.triggerEvery = triggerEveryOf(c);
   c.triggerBlocked = !!c.triggerBlocked;
+  if(typeof c.triggerTag==='string') c.triggerTag = cleanTagList(c.triggerTag);
+  c.triggerTagMode = cleanTagMode(c.triggerTagMode);
   if(!Array.isArray(c.tags)) c.tags = [];
   c.tags = c.tags.map(cleanTag).filter((t,i,a)=>t && a.indexOf(t)===i);
   c.suppressTypeTag = !!c.suppressTypeTag; c.suppressCostTag = !!c.suppressCostTag;
   c.elements = Array.isArray(c.elements) ? c.elements.filter((id,i,a)=>typeof id==='string' && a.indexOf(id)===i) : [];
   if(!c.scales || typeof c.scales!=='object') c.scales = {};
+  Object.keys(c.scales).forEach(k=>{ const x = c.scales[k]; if(x && typeof x==='object'){ x.tag = cleanTagList(x.tag); x.tagMode = cleanTagMode(x.tagMode); } });
   if(!Number.isFinite(c.startingCount)) c.startingCount = 0;
   if(typeof c.icon!=='string') c.icon = '';
   c.statusOp = normalizeCardStatusOp(c.statusOp);
@@ -1501,8 +1575,10 @@ function normalizeRelic(r){
   if(!r.effect || typeof r.effect!=='object') r.effect = {};
   if(!RELIC_TIMINGS.some(t=>t.key===r.timing)) r.timing = 'onPickup';
   if(typeof r.triggerTag!=='string') r.triggerTag = '';
-  r.favorTag = cleanTag(r.favorTag);
-  r.triggerTag = cleanTag(r.triggerTag);
+  r.favorTag = cleanTagList(r.favorTag);
+  r.triggerTag = cleanTagList(r.triggerTag);
+  r.favorTagMode = cleanTagMode(r.favorTagMode);
+  r.triggerTagMode = cleanTagMode(r.triggerTagMode);
   r.favorPct = clampInt(r.favorPct,0,1000,0);
   r.turnCond = ['eq','gte','every'].includes(r.turnCond) ? r.turnCond : 'always';   // ターン開始時の発動条件（always=毎ターン／eq=N回目だけ／gte=N回目以降／every=Nターンごと）
   r.turnN = clampInt(r.turnN,1,99,1);
@@ -1520,13 +1596,13 @@ function cleanOpScales(sc){
   Object.keys(OP_SCALE_FIELDS).forEach(f=>{
     const x = sc[f];
     if(!x || typeof x.source!=='string' || !x.source || x.source==='none') return;
-    out[f] = {source:x.source, tag: cleanTag(x.tag), perPoint: clampFloat(x.perPoint,-10,10,0)};
+    out[f] = {source:x.source, tag: cleanTagList(x.tag), tagMode: cleanTagMode(x.tagMode), perPoint: clampFloat(x.perPoint,-10,10,0)};
   });
   return out;
 }
 function defaultStatusOp(){
   return {enabled:true, type:'moveToDiscard', fromPile:'hand', genPool:'normal', countMode:'fixed',
-    countFixed:1, countMin:1, countMax:1, filterTag:'', buffField:'', buffAmount:0, costDelta:1, deckWeight:1, drawNext:false, sequential:false, permanent:false};
+    countFixed:1, countMin:1, countMax:1, filterTag:'', filterTagMode:'any', buffField:'', buffAmount:0, costDelta:1, deckWeight:1, drawNext:false, sequential:false, permanent:false};
 }
 // 空のIDに、カード内で一意なID（op1, op2…）を振る。すでにあるIDは変えない。
 function ensureOpIds(list){
@@ -1552,9 +1628,11 @@ function normalizeStatusOp(o){
     xMult: clampFloat(o.xMult,0,20,1),
     countMin: clampInt(o.countMin,0,20,1),
     countMax: clampInt(o.countMax,0,20,1),
-    filterTag: cleanTag(o.filterTag),
+    filterTag: cleanTagList(o.filterTag),
+    filterTagMode: cleanTagMode(o.filterTagMode),
     buffField: typeof o.buffField==='string' ? o.buffField : '',
     buffAmount: clampInt(o.buffAmount,-99,99,0),
+    addTags: cleanTagList(o.addTags),   // 効果付与で、対象のカードに追加するタグ（カンマ区切り）
     buffTarget: ['self','opponent'].includes(o.buffTarget) ? o.buffTarget : 'default',   // カスタム状態の付与先（default＝カード側の設定／状態の標準のまま）
     costDelta: clampInt(o.costDelta,-9,9,1),
     deckWeight: clampInt(o.deckWeight,1,99,1),
@@ -1593,7 +1671,8 @@ function normalizeStatusEffect(x){
   }
   if(x.kind==='cardMod'){
     e.modField = (typeof x.modField==='string' && x.modField) ? x.modField.slice(0,80) : 'damage';
-    e.modTag = cleanTag(x.modTag);
+    e.modTag = cleanTagList(x.modTag);
+    e.modTagMode = cleanTagMode(x.modTagMode);
     e.decayOnUse = !!x.decayOnUse;
     e.decayN = clampInt(x.decayN,1,99,1);
   }
@@ -1801,24 +1880,43 @@ function parseSaveText(text){
     v = parseInt(data.version,10);
   }
   const result = {sections:{}, dups:{}, skipped:0, exportedAt: typeof data.exportedAt==='string' ? data.exportedAt : ''};
+  // 正規化では、他のデータへの参照（敵のデッキのカード、属性、状態など）が「いま存在するか」を確かめて、無いものを取り除く。
+  // 同じファイルで一緒に読み込むカード・状態・属性・レリックは、まだ保存前なので、正規化のあいだだけ、いまのデータに加えて見せる
+  // （そうしないと、新しいカードを参照する敵の行動などが、1回目の読み込みで消えてしまう）。
+  const incomingRaw = {};
   DATA_SECTIONS.forEach(sec=>{
-    if(!(sec.key in data)) return;
-    const raw = data[sec.key];
-    if(sec.kind==='list'){
-      if(!Array.isArray(raw)) return;
-      const seen = new Set(), items = [];
-      raw.forEach(x=>{
-        x = deepClean(x);
-        if(sec.check(x) && !seen.has(x.id)){ seen.add(x.id); items.push(sec.normalize(x)); }
-        else result.skipped++;
-      });
-      const cur = new Set(sec.get().map(x=>x.id));
-      result.dups[sec.key] = items.filter(x=>cur.has(x.id)).length;
-      result.sections[sec.key] = items;
-    } else if(raw && typeof raw==='object' && !Array.isArray(raw)){
-      result.sections[sec.key] = sec.key==='world' ? cleanWorld(deepClean(raw)) : cleanSettings(deepClean(raw));
-    }
+    if(sec.kind!=='list' || !(sec.key in data) || !Array.isArray(data[sec.key])) return;
+    incomingRaw[sec.key] = data[sec.key].map(deepClean).filter(x=>sec.check(x));
   });
+  const stateKeyOf = {cards:'cards', relics:'relics', customStatuses:'customStatuses', elements:'elements', enemies:'enemies', events:'events'};
+  const saved = {};
+  Object.keys(incomingRaw).forEach(k=>{
+    const sk = stateKeyOf[k]; saved[sk] = S[sk];
+    const ids = new Set(incomingRaw[k].map(x=>x.id));
+    S[sk] = incomingRaw[k].concat((S[sk]||[]).filter(x=>!ids.has(x.id)));
+  });
+  try{
+    DATA_SECTIONS.forEach(sec=>{
+      if(!(sec.key in data)) return;
+      const raw = data[sec.key];
+      if(sec.kind==='list'){
+        if(!Array.isArray(raw)) return;
+        const seen = new Set(), items = [];
+        raw.forEach(x=>{
+          x = deepClean(x);
+          if(sec.check(x) && !seen.has(x.id)){ seen.add(x.id); items.push(sec.normalize(x)); }
+          else result.skipped++;
+        });
+        const cur = new Set((saved[stateKeyOf[sec.key]] || sec.get()).map(x=>x.id));
+        result.dups[sec.key] = items.filter(x=>cur.has(x.id)).length;
+        result.sections[sec.key] = items;
+      } else if(raw && typeof raw==='object' && !Array.isArray(raw)){
+        result.sections[sec.key] = sec.key==='world' ? cleanWorld(deepClean(raw)) : cleanSettings(deepClean(raw));
+      }
+    });
+  } finally {
+    Object.keys(saved).forEach(sk=>{ S[sk] = saved[sk]; });
+  }
   if(Object.keys(result.sections).length===0) throw new Error('読み込めるデータが含まれていません。');
   return result;
 }
@@ -2231,6 +2329,9 @@ const SCALE_SOURCES = [
   {key:'tagCountHand', label:'手札内の指定タグ枚数'},
   {key:'tagCountPlayedThisTurn', label:'このターン使った指定タグ枚数'},
   {key:'tagCountDrawDiscard', label:'山札+捨て札内の指定タグ枚数（合計）'},
+  {key:'tagKindsHand', label:'手札内のカードのタグの種類数（指定したタグは数えない）'},
+  {key:'tagKindsPlayedThisTurn', label:'このターン使ったカードのタグの種類数（指定したタグは数えない）'},
+  {key:'tagKindsDrawDiscard', label:'山札+捨て札内のカードのタグの種類数（指定したタグは数えない）'},
   {key:'selfTagStacks', label:'自分の「指定タグ」の状態スタック数（合計）'},
   {key:'enemyTagStacks', label:'敵の「指定タグ」の状態スタック数（合計）'},
 ];
@@ -2246,7 +2347,7 @@ function allScaleSources(){
 }
 // actor='enemy' のとき、「自分」は行動する敵、「敵」はプレイヤーとして数える。
 // 敵には手札・山札・ゴールドがないため、それらを参照する項目は0になる。
-function scaleSourceValue(key, tag, actor){
+function scaleSourceValue(key, tag, actor, mode){
   const r = S.run; if(!r) return 0;
   const isE = actor==='enemy';
   const me = isE ? r.enemy : r.player;
@@ -2255,6 +2356,7 @@ function scaleSourceValue(key, tag, actor){
   if(typeof key==='string' && key.startsWith('csSelf:')) return customStatusStacks(me, key.slice(7));
   if(typeof key==='string' && key.startsWith('csEnemy:')) return foe ? customStatusStacks(foe, key.slice(8)) : 0;
   const ownPile = !isE;
+  const tl = tagListOf(tag);           // 指定タグ（複数可）
   // 失っているHPの割合（％）。小数のまま返し、最終的な増減量の切り捨てだけで丸める
   const missPct = o=>{ const mx = n(o,'maxHp'); return mx>0 ? Math.max(0, Math.min(100, (mx - n(o,'hp'))/mx*100)) : 0; };
   switch(key){
@@ -2276,7 +2378,7 @@ function scaleSourceValue(key, tag, actor){
     case 'enemyStrength': return n(foe,'strength');
     case 'cardsPlayedThisTurn': return ownPile ? (r.cardsPlayedThisTurn || 0) : 0;
     case 'combatPlayed': return ownPile ? ((r.combatStats||{}).played || 0) : 0;
-    case 'combatTagPlayed': return ownPile && tag ? (((r.combatStats||{}).tagsPlayed)||[]).filter(t=>t===tag).length : 0;
+    case 'combatTagPlayed': return ownPile && tl.length ? (((r.combatStats||{}).tagSetsPlayed)||[]).filter(set=>tagsMatch(set, tl, mode)).length : 0;
     case 'combatDrawn': return ownPile ? ((r.combatStats||{}).drawn || 0) : 0;
     case 'combatDiscarded': return ownPile ? ((r.combatStats||{}).discarded || 0) : 0;
     case 'combatExhausted': return ownPile ? (r.exhausted||[]).length : 0;
@@ -2285,18 +2387,21 @@ function scaleSourceValue(key, tag, actor){
     case 'xValue': return ownPile ? (r.xValue || 0) : 0;
     case 'lastOpTargets': return ownPile ? ((r._opX||{}).last || 0) : 0;
     case 'totalOpTargets': return ownPile ? ((r._opX||{}).total || 0) : 0;
-    case 'tagCountHand': return ownPile && tag ? r.hand.filter(cid=>{ const c=cardById(cid); return c && cardHasTag(c,tag); }).length : 0;
-    case 'tagCountPlayedThisTurn': return ownPile && tag ? (r.tagsPlayedThisTurn||[]).filter(t=>t===tag).length : 0;
-    case 'selfTagStacks': return tag ? tagStacks(me, tag) : 0;
-    case 'enemyTagStacks': return tag ? tagStacks(foe, tag) : 0;
-    case 'tagCountDrawDiscard': return ownPile && tag ? [...r.draw, ...r.discard].filter(cid=>{ const c=cardById(cid); return c && cardHasTag(c,tag); }).length : 0;
+    case 'tagCountHand': return ownPile && tl.length ? r.hand.filter(cid=>{ const c=cardById(cid); return c && cardMatchesTags(c, tl, mode); }).length : 0;
+    case 'tagCountPlayedThisTurn': return ownPile && tl.length ? (r.tagSetsPlayedThisTurn||[]).filter(set=>tagsMatch(set, tl, mode)).length : 0;
+    case 'tagKindsHand': return ownPile ? distinctTagKinds(r.hand.map(cid=>effectiveCardTags(cardById(cid))), tl) : 0;
+    case 'tagKindsPlayedThisTurn': return ownPile ? distinctTagKinds([r.tagsPlayedThisTurn||[]], tl) : 0;
+    case 'tagKindsDrawDiscard': return ownPile ? distinctTagKinds([...r.draw, ...r.discard].map(cid=>effectiveCardTags(cardById(cid))), tl) : 0;
+    case 'selfTagStacks': return tl.length ? tagStacks(me, tl, mode) : 0;
+    case 'enemyTagStacks': return tl.length ? tagStacks(foe, tl, mode) : 0;
+    case 'tagCountDrawDiscard': return ownPile && tl.length ? [...r.draw, ...r.discard].filter(cid=>{ const c=cardById(cid); return c && cardMatchesTags(c, tl, mode); }).length : 0;
     default: return 0;
   }
 }
 function scaleBonus(c, field, actor){
   const s = c.scales && c.scales[field];
   if(!s || !s.source || s.source==='none') return 0;
-  return Math.floor((s.perPoint||0) * scaleSourceValue(s.source, s.tag, actor));
+  return Math.floor((s.perPoint||0) * scaleSourceValue(s.source, s.tag, actor, s.tagMode));
 }
 // 敵が使うカードの効果値（参照増減を含む）
 function enemyVal(c, key){ return Math.max(0, (c[key]||0) + scaleBonus(c, key, 'enemy')); }
@@ -2373,26 +2478,41 @@ const BUILTIN_STATUS_TAGS = {
   '自動ブロック': e=>(e.metallicize||0)+(e.permMetallicize||0),
   '棘': e=>(e.thorns||0)+(e.permThorns||0),
 };
-function tagStacks(entity, tag){
-  if(!entity || !tag) return 0;
-  let sum = BUILTIN_STATUS_TAGS[tag] ? BUILTIN_STATUS_TAGS[tag](entity) : 0;
-  (S.customStatuses||[]).forEach(st=>{ if((st.tags||[]).includes(tag)) sum += customStatusStacks(entity, st.id); });
+// 状態は「タグを持つひとまとまり」として扱う。組み込みの状態は同名のタグ1個だけを持ち、カスタム状態は自分のタグ一覧を持つ。
+// tag（複数可）に mode（any／all）で一致する状態だけを対象にする。1つの状態は1回だけ数える。
+function tagStacks(entity, tag, mode){
+  const w = tagListOf(tag);
+  if(!entity || !w.length) return 0;
+  let sum = 0;
+  Object.keys(BUILTIN_STATUS_TAGS).forEach(t=>{ if(tagsMatch([t], w, mode)) sum += BUILTIN_STATUS_TAGS[t](entity); });
+  (S.customStatuses||[]).forEach(st=>{ if(tagsMatch(st.tags||[], w, mode)) sum += customStatusStacks(entity, st.id); });
   return sum;
 }
 // ===== カードの使用条件（状態） =====
 // card.requirements: [{subject:'self'|'enemy', stat:'強化'等の組み込みタグ / 'cs:状態ID' / 任意のタグ, op:'ge'|'le'|'eq', value:数}]
 // すべて満たしたときだけ、手札から使える（コストなしの自動使用・仕込みの発動・敵の行動には適用しない）。
 const REQ_OPS = [{key:'ge', label:'以上'}, {key:'le', label:'以下'}, {key:'eq', label:'ちょうど'}];
-function requirementStatLabel(stat){
+// 状態の指定: 組み込みのタグ名／'cs:状態ID'／任意の1タグ／'tags:A,B'（タグを複数指定。一致モードは別フィールド tagMode）
+function cleanStatKey(v){ const s = cleanTag(v); return s.startsWith('tags:') ? 'tags:'+cleanTagList(s.slice(5)) : s; }
+function statIsMulti(stat){ return typeof stat==='string' && stat.startsWith('tags:'); }
+function statSelectKey(stat){ return statIsMulti(stat) ? 'tags:' : stat; }   // 選択欄の選択肢としてのキー
+function requirementStatLabel(stat, mode){
+  if(statIsMulti(stat)){
+    const w = tagListOf(stat.slice(5));
+    if(!w.length) return '';
+    if(w.length===1) return `[${w[0]}]の状態の合計`;
+    return `[${w.join('・')}]` + (cleanTagMode(mode)==='all' ? 'すべてを持つ状態の合計' : 'のいずれかを持つ状態の合計');
+  }
   if(typeof stat==='string' && stat.startsWith('cs:')){
     const st = (S.customStatuses||[]).find(x=>x.id===stat.slice(3));
     return st ? `${st.emoji||''}${st.name}` : '';
   }
   return stat || '';
 }
-function requirementValueOf(entity, stat){
+function requirementValueOf(entity, stat, mode){
+  if(statIsMulti(stat)) return tagStacks(entity, stat.slice(5), mode);
   if(typeof stat==='string' && stat.startsWith('cs:')) return customStatusStacks(entity, stat.slice(3));
-  return tagStacks(entity, stat);
+  return tagStacks(entity, stat, mode);
 }
 // 状態の選択肢（カードの使用条件・敵の確定行動で共通）: 組み込みの状態／カスタム状態ごと／カスタム状態のタグ（合計）
 function statSelectOptions(){
@@ -2400,11 +2520,12 @@ function statSelectOptions(){
     ...Object.keys(BUILTIN_STATUS_TAGS).map(t=>({key:t, label:t})),
     ...(S.customStatuses||[]).map(st=>({key:'cs:'+st.id, label:`${st.emoji||''}${st.name}`})),
     ...[...new Set((S.customStatuses||[]).flatMap(st=>st.tags||[]))].filter(t=>!BUILTIN_STATUS_TAGS[t]).map(t=>({key:t, label:`タグ「${t}」の合計`})),
+    {key:'tags:', label:'タグを複数指定する（下の欄に入力）'},
   ];
 }
 function requirementText(q){
   const who = q.subject==='enemy' ? '敵' : '自分';
-  const label = requirementStatLabel(q.stat);
+  const label = requirementStatLabel(q.stat, q.tagMode);
   const op = (REQ_OPS.find(o=>o.key===q.op)||REQ_OPS[0]).label;
   return label ? `${who}の${label}が${q.value}${op}` : '';
 }
@@ -2412,12 +2533,12 @@ function requirementText(q){
 function requirementFailure(r, c){
   const list = (c && Array.isArray(c.requirements)) ? c.requirements : [];
   for(const q of list){
-    if(!requirementStatLabel(q.stat)) continue;
+    if(!requirementStatLabel(q.stat, q.tagMode)) continue;
     const ent = q.subject==='enemy' ? r.enemy : r.player;
-    const cur = requirementValueOf(ent, q.stat);
+    const cur = requirementValueOf(ent, q.stat, q.tagMode);
     const need = q.value|0;
     const ok = q.op==='le' ? cur<=need : q.op==='eq' ? cur===need : cur>=need;
-    if(!ok) return `${q.subject==='enemy'?'敵':'自分'}の${requirementStatLabel(q.stat)}が${cur}（必要: ${need}${(REQ_OPS.find(o=>o.key===q.op)||REQ_OPS[0]).label}）`;
+    if(!ok) return `${q.subject==='enemy'?'敵':'自分'}の${requirementStatLabel(q.stat, q.tagMode)}が${cur}（必要: ${need}${(REQ_OPS.find(o=>o.key===q.op)||REQ_OPS[0]).label}）`;
   }
   return '';
 }
@@ -2427,16 +2548,20 @@ const BUILTIN_TAG_FIELDS = {
   '再生':['regen'], '麻痺':['stun'], '自動ブロック':['metallicize'], '棘':['thorns'],
 };
 // amount===null なら全部取り除く。そうでなければ、該当する状態それぞれからamountずつ減らす。減らせた合計を返す。
-function reduceTagStatuses(entity, tag, amount){
-  if(!entity || !tag) return 0;
+function reduceTagStatuses(entity, tag, amount, mode){
+  const w = tagListOf(tag);
+  if(!entity || !w.length) return 0;
   let total = 0;
   const cut = cur=> amount===null ? cur : Math.min(cur, Math.max(0, amount));
-  (BUILTIN_TAG_FIELDS[tag]||[]).forEach(f=>{
-    const cur = entity[f]||0;
-    if(cur>0){ const d = cut(cur); entity[f] = cur - d; total += d; }
+  Object.keys(BUILTIN_TAG_FIELDS).forEach(t=>{
+    if(!tagsMatch([t], w, mode)) return;
+    BUILTIN_TAG_FIELDS[t].forEach(f=>{
+      const cur = entity[f]||0;
+      if(cur>0){ const d = cut(cur); entity[f] = cur - d; total += d; }
+    });
   });
   (S.customStatuses||[]).forEach(st=>{
-    if(!(st.tags||[]).includes(tag)) return;
+    if(!tagsMatch(st.tags||[], w, mode)) return;
     const cur = customStatusStacks(entity, st.id);
     if(cur>0){ const d = cut(cur); addCustomStatusStacks(entity, st.id, -d); total += d; }
   });
@@ -2444,25 +2569,30 @@ function reduceTagStatuses(entity, tag, amount){
 }
 // タグの状態を amount だけ増やす。対象は「すでに持っている（1以上）、そのタグを持つ全状態」
 // （組み込みの状態＋カスタム状態。何も持っていなければ何も起きない）。カスタム状態は排他ルールを通す。増えた合計を返す。
-function increaseTagStatus(entity, tag, amount){
-  if(!entity || !tag || !(amount>0)) return 0;
+function increaseTagStatus(entity, tag, amount, mode){
+  const w = tagListOf(tag);
+  if(!entity || !w.length || !(amount>0)) return 0;
   let total = 0;
-  (BUILTIN_TAG_FIELDS[tag]||[]).forEach(f=>{ if((entity[f]||0)>0){ entity[f] += amount; total += amount; } });
+  Object.keys(BUILTIN_TAG_FIELDS).forEach(t=>{
+    if(!tagsMatch([t], w, mode)) return;
+    BUILTIN_TAG_FIELDS[t].forEach(f=>{ if((entity[f]||0)>0){ entity[f] += amount; total += amount; } });
+  });
   (S.customStatuses||[]).forEach(st=>{
-    if(!(st.tags||[]).includes(tag) || customStatusStacks(entity, st.id)<=0) return;
+    if(!tagsMatch(st.tags||[], w, mode) || customStatusStacks(entity, st.id)<=0) return;
     total += grantCustomStatus(entity, st.id, amount);
   });
   return total;
 }
 function normalizeCardStatusOp(o){
   if(!o || typeof o!=='object' || !o.enabled) return {enabled:false};
-  return {enabled:true, side:['self','opponent','both'].includes(o.side)?o.side:'self', tag:cleanTag(o.tag),
+  return {enabled:true, side:['self','opponent','both'].includes(o.side)?o.side:'self', tag:cleanTagList(o.tag), tagMode:cleanTagMode(o.tagMode),
     mode:(o.mode==='reduce'||o.mode==='increase')?o.mode:'removeAll', amount:clampInt(o.amount,0,99,1), first:!!o.first};
 }
 function statusOpText(op){
   if(!op || !op.enabled || !op.tag) return '';
   const who = op.side==='opponent' ? '相手' : (op.side==='both' ? '自分と相手' : '自分');
-  const base = op.mode==='increase' ? `${who}の[${op.tag}]の状態を${op.amount}増やす` : op.mode==='reduce' ? `${who}の[${op.tag}]の状態を${op.amount}減らす` : `${who}の[${op.tag}]の状態をすべて取り除く`;
+  const tg = tagCondText(op.tag, op.tagMode);
+  const base = op.mode==='increase' ? `${who}の${tg}状態を${op.amount}増やす` : op.mode==='reduce' ? `${who}の${tg}状態を${op.amount}減らす` : `${who}の${tg}状態をすべて取り除く`;
   return op.first ? base+'（付与より先）' : base;
 }
 // selfE＝このカードを使った側、foeE＝その相手
@@ -2471,7 +2601,7 @@ function applyStatusOp(op, selfE, foeE, name){
   const amt = op.mode==='removeAll' ? null : Math.max(0, op.amount|0);
   const targets = op.side==='both' ? [selfE, foeE] : (op.side==='opponent' ? [foeE] : [selfE]);
   let total = 0;
-  targets.forEach(t=>{ total += op.mode==='increase' ? increaseTagStatus(t, op.tag, amt) : reduceTagStatuses(t, op.tag, amt); });
+  targets.forEach(t=>{ total += op.mode==='increase' ? increaseTagStatus(t, op.tag, amt, op.tagMode) : reduceTagStatuses(t, op.tag, amt, op.tagMode); });
   if(total>0) pushLog(`${name}: ${statusOpText(op)}（計${total}）。`);
 }
 function customStatusStacks(entity, statusId){
@@ -2583,7 +2713,7 @@ function customEffectsOn(entity, kind){
 // （元のカードやラン中のカード補正は書き換えない。使うたびに減る分は decayCardMods で、使用が終わってから減らす）
 function applyCardModsTo(c, entity){
   if(!c || !entity) return {card:c, used:[]};
-  const list = customEffectsOn(entity, 'cardMod').filter(x=> x.eff.modField && (!x.eff.modTag || cardHasTag(c, x.eff.modTag)));
+  const list = customEffectsOn(entity, 'cardMod').filter(x=> x.eff.modField && cardMatchesTags(c, x.eff.modTag, x.eff.modTagMode));
   if(!list.length) return {card:c, used:[]};
   const out = {...c}, used = [];
   list.forEach(x=>{
@@ -2747,7 +2877,7 @@ function enemyOpText(op){
   const n = op.countMode==='all' ? 'すべて'
     : op.countMode==='random' ? `${lo}〜${hi}枚`
     : `${op.countFixed!==undefined?op.countFixed:1}枚`;
-  const tag = op.filterTag ? `[${op.filterTag}]の` : '';
+  const tag = tagCondText(op.filterTag, op.filterTagMode);
   switch(op.type){
     case 'generateToEnemyDeck': return `カード${n}をあなたの山札に加える${op.drawNext ? '（次のターンに必ず引く）' : '（山札に混ざる。次のターンに引くことがある）'}`;
     case 'moveToExhausted': return `自分のデッキから${tag}カード${n}を取り除く`;
@@ -2771,7 +2901,8 @@ function enemyOpText(op){
       const def = allEffectFieldDefs().find(d=>d.key===op.buffField);
       const name = def ? def.label.replace(/（.*$/,'') : (op.buffField||'');
       const amt = op.buffAmount||0;
-      return `自分のデッキの${tag}カード${n}の${name}${amt>=0?'+':''}${amt}${buffTargetText(op)}`;
+      if(onlyAddTags(op)) return `自分のデッキの${tag}カード${n}にタグ[${tagListOf(op.addTags).join('・')}]を追加する`;
+      return `自分のデッキの${tag}カード${n}の${name}${amt>=0?'+':''}${amt}${buffTargetText(op)}${addTagsText(op)}`;
     }
     default: return '';
   }
@@ -2856,7 +2987,7 @@ function resolveEnemyMoveBody(r, e, c){
       card: triggerCardData(c),
       triggerOn: cleanTriggerOn(c.triggerOn),
       every: triggerCountEveryOf(c), count: 0,
-      triggerTag: c.triggerTag || '',
+      triggerTag: c.triggerTag || '', triggerTagMode: cleanTagMode(c.triggerTagMode),
       triggerBlocked: !!c.triggerBlocked,
       duration: triggerTurns(c)>0 ? 'turn' : 'combat',
       turnsLeft: triggerTurns(c)>0 ? triggerTurns(c) : undefined,
@@ -2972,7 +3103,7 @@ function fireEnemyTriggers(r, kind, info, list){
     if(t.triggerOn!==kind) return;
     if(e.hp<=0 || r.player.hp<=0) return;
     if(kind==='cardUsed'){
-      if(t.triggerTag && !cardHasTag(info.card, t.triggerTag)) return;
+      if(!cardMatchesTags(info.card, t.triggerTag, t.triggerTagMode)) return;
     } else {
       if(!(info.hpLoss>0 || (t.triggerBlocked && info.total>0))) return;
     }
@@ -3094,7 +3225,7 @@ function collectPileEntries(r, fromPileKey){
 }
 function collectGeneratePool(op){
     return S.cards.filter(c=>{
-    if(op.filterTag && !cardHasTag(c, op.filterTag)) return false;
+    if(!cardMatchesTags(c, op.filterTag, op.filterTagMode)) return false;
     if(op.genPool==='exclusiveOnly') return isNonRewardCard(c);
     if(op.genPool==='normal') return !isNonRewardCard(c);
     return true; // 'any'
@@ -3178,7 +3309,7 @@ function resolveEnemyCardOp(r, op, done){
   }
 
   let entries = e.deck.map((d,i)=>({idx:i, d}));
-  if(op.filterTag) entries = entries.filter(x=>{ const c = cardById(x.d.cardId); return c && cardHasTag(c, op.filterTag); });
+  if(tagListOf(op.filterTag).length) entries = entries.filter(x=>{ const c = cardById(x.d.cardId); return c && cardMatchesTags(c, op.filterTag, op.filterTagMode); });
   if(op.type==='upgrade') entries = entries.filter(x=>!isUpgradedInstanceId(x.d.cardId));
   let count = Math.min(entries.length, Math.max(0, rollCount(entries.length)));
   if(op.type==='moveToDiscard' || op.type==='moveToExhausted') count = Math.min(count, e.deck.length-1);
@@ -3197,6 +3328,15 @@ function resolveEnemyCardOp(r, op, done){
     pushLog(`${e.name}のデッキに「${names}」の複製が加わった。`);
   } else if(op.type==='grantBuff'){
     const field = op.buffField, amount = op.buffAmount||0;
+    if(tagListOf(op.addTags).length){
+      sel.forEach(x=>{
+        const {cid, iid} = splitInstanceId(x.d.cardId);
+        const useIid = iid || newId();
+        if(!r.tempInstanceBuffs[useIid]) r.tempInstanceBuffs[useIid] = {};
+        grantTagsToStore(r.tempInstanceBuffs[useIid], op.addTags);
+        x.d.cardId = withInstanceSuffix(cid, useIid);
+      });
+    }
     if(field && amount){
       sel.forEach(x=>{
         const {cid, iid} = splitInstanceId(x.d.cardId);
@@ -3223,7 +3363,7 @@ function withOpScales(op, actor){
     const x = op.scales[f];
     if(!x || !x.source || x.source==='none') return;
     const [lo, hi] = OP_SCALE_FIELDS[f];
-    const bonus = Math.floor((x.perPoint||0) * scaleSourceValue(x.source, x.tag, actor));
+    const bonus = Math.floor((x.perPoint||0) * scaleSourceValue(x.source, x.tag, actor, x.tagMode));
     out[f] = Math.max(lo, Math.min(hi, (out[f]|0) + bonus));
   });
   return out;
@@ -3263,6 +3403,12 @@ function withOpX(r, op){
   return {...op, countFixed:n, countSource:'value'};
 }
 // カード実体の補正の記録に、効果値を加算する（add）か、その値に上書きする（set）。数値以外（付与先 csT_ の文字列）は上書き。
+// カード実体の補正の記録に、タグを追加する（既存の配列は共有しないよう、新しい配列にする）
+function grantTagsToStore(rec, tags){
+  const list = tagListOf(tags);
+  if(!list.length) return;
+  rec.__tags = (rec.__tags||[]).concat(list.filter(t=>!(rec.__tags||[]).includes(t)));
+}
 function grantToStore(rec, field, value, isSet){
   if(typeof value==='string'){ rec[field] = value; return; }
   if(isSet){ rec['='+field] = value; delete rec[field]; return; }
@@ -3339,10 +3485,10 @@ function resolveCardOp(r, op, done){
   // 続けの操作: 追跡中のカードがすでに決まっているので、選び直さずにそのまま処理する
   if(op._pre){ finish(op._pre.slice()); return; }
   let entries = isGenerate ? collectGeneratePool(op) : collectPileEntries(r, op.fromPile || 'hand');
-  if(!isGenerate && op.filterTag){
+  if(!isGenerate && tagListOf(op.filterTag).length){
     entries = entries.filter(e=>{
       const cc = cardById(e.rawId);
-      return cc && cardHasTag(cc, op.filterTag);
+      return cc && cardMatchesTags(cc, op.filterTag, op.filterTagMode);
     });
   }
   if(op.type==='upgrade'){
@@ -3502,6 +3648,7 @@ function resolveCardOp(r, op, done){
         const useIid = iid || newId();
         if(!store[useIid]) store[useIid] = {};
         keys.forEach(k=> grantToStore(store[useIid], k, cap.fields[k], op.buffMode==='set'));
+        grantTagsToStore(store[useIid], op.addTags);
         r[e.pile][e.idx] = withInstanceSuffix(cid, useIid);
       });
       pushLog(`${selected.length}枚のカードに、取得した効果（${cap.name}）を${op.buffMode==='set'?'上書き':'加算'}で付与した${op.permanent?'（永続）':'（この戦闘中のみ）'}。`);
@@ -3509,18 +3656,25 @@ function resolveCardOp(r, op, done){
     }
     if(op.type==='grantBuff'){
       const field = op.buffField; const amount = op.buffAmount||0;
-      if(field && amount){
+      const addTags = tagListOf(op.addTags);
+      if((field && amount) || addTags.length){
         const store = op.permanent ? r.instanceBuffs : r.tempInstanceBuffs;
         selected.forEach(e=>{
           const {cid, iid} = splitInstanceId(e.rawId);
           const useIid = iid || newId();
           if(!store[useIid]) store[useIid] = {};
-          grantToStore(store[useIid], field, amount, op.buffMode==='set');
-          if(field.startsWith('cs_') && ['self','opponent'].includes(op.buffTarget)) store[useIid]['csT_'+field.slice(3)] = op.buffTarget;
+          if(field && amount){
+            grantToStore(store[useIid], field, amount, op.buffMode==='set');
+            if(field.startsWith('cs_') && ['self','opponent'].includes(op.buffTarget)) store[useIid]['csT_'+field.slice(3)] = op.buffTarget;
+          }
+          grantTagsToStore(store[useIid], addTags);
           r[e.pile][e.idx] = withInstanceSuffix(cid, useIid);
         });
-        const fieldDef = allEffectFieldDefs().find(d=>d.key===field);
-        pushLog(`${selected.length}枚のカードに「${fieldDef?fieldDef.label:field}」${amount>=0?'+':''}${amount}を付与した。`);
+        if(field && amount){
+          const fieldDef = allEffectFieldDefs().find(d=>d.key===field);
+          pushLog(`${selected.length}枚のカードに「${fieldDef?fieldDef.label:field}」${amount>=0?'+':''}${amount}を付与した。`);
+        }
+        if(addTags.length) pushLog(`${selected.length}枚のカードに、タグ「${addTags.join('・')}」を追加した${op.permanent?'（永続）':'（この戦闘中のみ）'}。`);
       }
       done(); return;
     }
@@ -3871,7 +4025,7 @@ function firePileTriggers(r, done){
       if(ti>=snapshot.length){ nextEvent(); return; }
       const t = snapshot[ti++];
       if(!r.activeTriggers.includes(t)){ nextTrig(); return; }
-      const tagOk = !t.triggerTag || ev.ids.some(id=>{ const cc = cardById(id); return cc && cardHasTag(cc, t.triggerTag); });
+      const tagOk = !tagListOf(t.triggerTag).length || ev.ids.some(id=>{ const cc = cardById(id); return cc && cardMatchesTags(cc, t.triggerTag, t.triggerTagMode); });   // ドロー・捨て札は1枚ごとに判定
       if(tagOk && triggerCountReady(t)){
         pushLog(`${t.cardData.name}: カードを${ev.kind==='drawn' ? '引いた' : '捨て札に移した'}ため発動。`);
         withXValue(r, t.xValue, cb=>applyCardEffects(r, t.cardData, cb), nextTrig);
@@ -3926,8 +4080,8 @@ function applyCardEffects(r, c, done){
 // reactions (relics, then previously registered card triggers) fire for it.
 function registerCardUse(r, c, done){
   r.cardsPlayedThisTurn = (r.cardsPlayedThisTurn||0) + 1;
-  { const cs = r.combatStats = r.combatStats || {played:0, tagsPlayed:[], drawn:0, discarded:0, hitsTaken:0}; cs.played++; const et = effectiveCardTags(c); if(et.length) cs.tagsPlayed = cs.tagsPlayed.concat(et); }
-  { const et = effectiveCardTags(c); if(et.length) r.tagsPlayedThisTurn = (r.tagsPlayedThisTurn||[]).concat(et); }
+  { const cs = r.combatStats = r.combatStats || {played:0, tagsPlayed:[], tagSetsPlayed:[], drawn:0, discarded:0, hitsTaken:0}; cs.played++; const et = effectiveCardTags(c); if(et.length){ cs.tagsPlayed = cs.tagsPlayed.concat(et); cs.tagSetsPlayed = (cs.tagSetsPlayed||[]).concat([et.slice()]); } }
+  { const et = effectiveCardTags(c); if(et.length){ r.tagsPlayedThisTurn = (r.tagsPlayedThisTurn||[]).concat(et); r.tagSetsPlayedThisTurn = (r.tagSetsPlayedThisTurn||[]).concat([et.slice()]); } }
   fireRelicTiming(r, 'onTagCardUsed', c);
   fireMatchingTriggers(r, c, done);
 }
@@ -3946,7 +4100,7 @@ function resolveCardPlayCore(r, c, done){
   const registerTrigger = cb=>{
     const onKind = cleanTriggerOn(c.triggerOn);
     r.activeTriggers.push({
-      triggerTag: c.triggerTag || '',
+      triggerTag: c.triggerTag || '', triggerTagMode: cleanTagMode(c.triggerTagMode),
       triggerOn: onKind,
       every: triggerCountEveryOf(c), count: 0,
       armedTurn: r.turnNo || 0,
@@ -4028,7 +4182,7 @@ function fireMatchingTriggers(r, playedCard, done){
     if(idx>=snapshot.length){ done(); return; }
     const trig = snapshot[idx++];
     if(trig.triggerOn!=='cardUsed'){ next(); return; }
-    const tagOk = !trig.triggerTag || cardHasTag(playedCard, trig.triggerTag);
+    const tagOk = cardMatchesTags(playedCard, trig.triggerTag, trig.triggerTagMode);
     if(tagOk && triggerCountReady(trig)) withXValue(r, trig.xValue, cb=>applyCardEffects(r, trig.cardData, cb), next);
     else next();
   })();
@@ -4446,17 +4600,18 @@ function openEnemyModal(enemy, isNew){
   function forcedRowHTML(rule, i){
     const subj = FORCED_SUBJECTS.find(s=>s.key===rule.subject) || FORCED_SUBJECTS[0];
     const cmpLabels = FORCED_CMP_LABELS[subj.key==='turn' ? 'turn' : 'val'];
-    let statOpts = [];
+    let statOpts = [], selKey = '';
     if(subj.tag){
       statOpts = statSelectOptions();
       if(!rule.tag && statOpts.length) rule.tag = statOpts[0].key;   // 画面に出る初期選択と中身を合わせる
-      if(rule.tag && !statOpts.some(o=>o.key===rule.tag)) statOpts.push({key:rule.tag, label: requirementStatLabel(rule.tag) || '（削除された状態）'});
+      selKey = statSelectKey(rule.tag);
+      if(rule.tag && !statOpts.some(o=>o.key===selKey)) statOpts.push({key:selKey, label: requirementStatLabel(rule.tag, rule.tagMode) || '（削除された状態）'});
     }
     return `<div class="ev-eff" data-idx="${i}">
       <div class="ev-eff-head"><span>確定行動 ${i+1}</span><button type="button" class="ghost em-forced-del">削除</button></div>
       <div class="field"><label>条件</label><select data-f="subject">
         ${FORCED_SUBJECTS.map(s=>`<option value="${s.key}" ${s.key===subj.key?'selected':''}>${s.label}</option>`).join('')}</select></div>
-      ${subj.tag ? `<div class="field"><label>状態（組み込みの強化・弱体・毒など／カスタム状態／タグの合計）</label><select data-f="tag">${statOpts.map(o=>`<option value="${escapeHtml(o.key)}" ${o.key===rule.tag?'selected':''}>${escapeHtml(o.label)}</option>`).join('')}</select></div>` : ''}
+      ${subj.tag ? `<div class="field"><label>状態（組み込みの強化・弱体・毒など／カスタム状態／タグの合計）</label><select data-f="tag">${statOpts.map(o=>`<option value="${escapeHtml(o.key)}" ${o.key===selKey?'selected':''}>${escapeHtml(o.label)}</option>`).join('')}</select></div>${statIsMulti(rule.tag) ? tagPairHTML('field', '<label>状態のタグ（複数指定可・, 、 区切り）</label>', 'data-f="tagsText"', String(rule.tag).slice(5), 'data-f="tagMode"', rule.tagMode) : ''}` : ''}
       <div class="ev-eff-grid">
         <div><label>比較</label><select data-f="cmp">${subj.cmps.map(k=>`<option value="${k}" ${rule.cmp===k?'selected':''}>${cmpLabels[k]}</option>`).join('')}</select></div>
         <div><label>${subj.unit}</label><input type="number" data-f="value" data-num="1" value="${rule.value|0}" min="0" max="9999"></div>
@@ -4481,6 +4636,7 @@ function openEnemyModal(enemy, isNew){
       if(!row || !f) return false;
       const rule = en.forcedMoves[parseInt(row.dataset.idx,10)];
       if(!rule) return false;
+      if(f==='tagsText'){ rule.tag = 'tags:' + t.value; return true; }
       if(t.type==='checkbox') rule[f] = t.checked;
       else if(t.dataset.num){ const v = parseInt(t.value,10); rule[f] = isNaN(v) ? 0 : v; }
       else rule[f] = t.value;
@@ -4489,6 +4645,7 @@ function openEnemyModal(enemy, isNew){
     box.addEventListener('input', e=>{ sync(e.target); });
     box.addEventListener('change', e=>{
       if(!sync(e.target)) return;
+      if(e.target.dataset.f==='tag'){ renderForcedList(); return; }
       if(e.target.dataset.f==='subject'){
         const rule = en.forcedMoves[parseInt(e.target.closest('[data-idx]').dataset.idx,10)];
         const subj = FORCED_SUBJECTS.find(s=>s.key===rule.subject) || FORCED_SUBJECTS[0];
@@ -4505,7 +4662,7 @@ function openEnemyModal(enemy, isNew){
     });
   })();
   qs('#em-forced-add',overlay).onclick = ()=>{
-    en.forcedMoves.push({subject:'selfHpPct', cmp:'lte', value:50, tag:'', cardId:(movePool[0]||{}).id||'strike', once:true, conflict:'priority'});
+    en.forcedMoves.push({subject:'selfHpPct', cmp:'lte', value:50, tag:'', tagMode:'any', cardId:(movePool[0]||{}).id||'strike', once:true, conflict:'priority'});
     renderForcedList();
   };
 
@@ -4614,6 +4771,7 @@ function openEnemyModal(enemy, isNew){
   };
 
   qs('#em-cancel',overlay).onclick = ()=> overlay.remove();
+  bindTagPairs(overlay);
   qs('#em-save',overlay).onclick = ()=>{
     const updated = {
       startCards: en.startCards.slice(),
@@ -4897,7 +5055,7 @@ function newStatusEffect(kind){
   if(ELEMENT_KINDS.includes(kind)) e.element = 'all';
   if(ELEMENT_ATTACH_KINDS.includes(kind)) e.element = ((S.elements||[])[0]||{}).id || '';
   if(kind==='revive'){ e.reviveUnit = 'percent'; e.magnitudeValue = 30; }
-  if(kind==='cardMod'){ e.modField = 'damage'; e.modTag = ''; e.decayOnUse = false; e.decayN = 1; }
+  if(kind==='cardMod'){ e.modField = 'damage'; e.modTag = ''; e.modTagMode = 'any'; e.decayOnUse = false; e.decayN = 1; }
   return e;
 }
 function statusEffectLabel(kind){
@@ -4957,7 +5115,7 @@ function statusEffectFormHTML(eff, i){
   } else if(eff.kind==='cardMod'){
     body = `${magHTML('増減させる量（マイナスで減少。固定値、または1スタックあたりの係数）')}
       <div class="field"><label>増減させる効果</label><select ${at} data-f="modField">${allEffectFieldDefs().map(def=>`<option value="${escapeHtml(def.key)}" ${eff.modField===def.key?'selected':''}>${escapeHtml(def.label)}</option>`).join('')}</select></div>
-      <div class="field"><label>この効果を出すカードのタグ（指定したタグのカードを使うときだけ働く。空欄なら、すべてのカード）</label><input type="text" ${at} data-f="modTag" value="${escapeHtml(eff.modTag||'')}"></div>
+      ${tagPairHTML('field', '<label>この効果を出すカードのタグ（指定したタグのカードを使うときだけ働く。複数指定可・, 、 区切り。空欄なら、すべてのカード）</label>', at+' data-f="modTag"', eff.modTag, at+' data-f="modTagMode"', eff.modTagMode)}
       <label style="display:block; margin:6px 0;"><input type="checkbox" ${at} data-f="decayOnUse" ${eff.decayOnUse?'checked':''}> カードを使うたびにスタックを減らす（効果が出た使用だけ。タグを指定した場合は、そのタグのカードを使ったときだけ）</label>
       <div class="ev-eff-grid"><div><label>1回の使用で減らすスタック数</label><input type="number" ${at} data-f="decayN" data-num="1" value="${eff.decayN||1}" min="1" max="99"></div></div>
       <p class="ev-hint">状態を持っている本人（プレイヤーでも敵でも）が使うカードの、選んだ効果の値に上乗せします（元のカードは変わりません）。手札で表示されるカードの数字には反映されず、使ったときに働きます。使ったカードが予約（仕込み）なら、仕込んだ時点の値が発動のたびに使われます。複数の状態から同時に上乗せされる場合は、それぞれ別々に判定して減らします。「使うたびに減らす」は、タグが合わず効果が出なかった使用では減りません。</p>`;
@@ -4984,7 +5142,7 @@ function statusEffectFormHTML(eff, i){
         <option value="all" ${op.countMode==='all'?'selected':''}>対象すべて</option>
         <option value="choose" ${op.countMode==='choose'?'selected':''}>プレイヤーが任意に選ぶ（固定数ぶん、操作のたびに選択画面が出ます）</option></select></div>
       <div class="ev-eff-grid">${num('countFixed','固定数',op.countFixed)}${num('countMin','ランダム最小',op.countMin)}${num('countMax','ランダム最大',op.countMax)}</div>
-      <div class="field"><label>対象タグ絞り込み（空欄で絞り込みなし）</label><input type="text" ${opAt} data-f="filterTag" value="${escapeHtml(op.filterTag||'')}"></div>
+      ${tagPairHTML('field', '<label>対象タグ絞り込み（複数指定可・, 、 区切り。空欄で絞り込みなし）</label>', opAt+' data-f="filterTag"', op.filterTag, opAt+' data-f="filterTagMode"', op.filterTagMode)}
       <label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="sequential" ${op.sequential?'checked':''}> 1枚ずつ選び直す（1枚処理するごとに、そのあとの山の状態から次を選ぶ）</label>
       ${CARDOP_REVERTIBLE_TYPES.includes(op.type) && op.type!=='moveToExhausted' ? `<label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="permanent" ${op.permanent?'checked':''}> 永続（戦闘が終わっても元に戻さない。チェックなしはこの戦闘中のみ）</label>` : ''}
       ${op.type==='moveToExhausted' ? `<div class="field"><label>消滅の期間</label><select ${opAt} data-f="exhaustMode">${EXHAUST_MODES.map(m=>`<option value="${m.key}" ${(op.exhaustMode||'combat')===m.key?'selected':''}>${escapeHtml(m.label)}</option>`).join('')}</select></div>` : ''}
@@ -5002,7 +5160,8 @@ function statusEffectFormHTML(eff, i){
         <div class="field"><label>付与する効果</label><select ${opAt} data-f="buffField" data-rerender="1">
           ${allEffectFieldDefs().map(def=>`<option value="${escapeHtml(def.key)}" ${op.buffField===def.key?'selected':''}>${escapeHtml(def.label)}</option>`).join('')}</select></div>
         <div class="field"><label>付与量（マイナスで減少も可）</label><input type="number" ${opAt} data-f="buffAmount" data-num="1" value="${op.buffAmount||0}" min="-99" max="99"></div>
-        ${String(op.buffField||'').startsWith('cs_') ? `<div class="field"><label>付与先（付与したカードを使ったとき、この状態をどちらに付与するか）</label><select ${opAt} data-f="buffTarget">${[['default','カード側の設定／状態の標準のまま'],['self','自分に付与'],['opponent','相手に付与']].map(([v,t])=>`<option value="${v}" ${(op.buffTarget||'default')===v?'selected':''}>${t}</option>`).join('')}</select></div>` : ''}` : ''}`;
+        ${String(op.buffField||'').startsWith('cs_') ? `<div class="field"><label>付与先（付与したカードを使ったとき、この状態をどちらに付与するか）</label><select ${opAt} data-f="buffTarget">${[['default','カード側の設定／状態の標準のまま'],['self','自分に付与'],['opponent','相手に付与']].map(([v,t])=>`<option value="${v}" ${(op.buffTarget||'default')===v?'selected':''}>${t}</option>`).join('')}</select></div>` : ''}
+        <div class="field"><label>追加するタグ（複数指定可・, 、 区切り。空欄なら追加しない。付与量が0でもタグだけ追加できます）</label><input type="text" ${opAt} data-f="addTags" value="${escapeHtml(op.addTags||'')}" placeholder="例: 血,炎"></div>` : ''}`;
   }
   return `<div class="ev-eff">
     <div class="ev-eff-head"><span>${escapeHtml(statusEffectLabel(eff.kind))}</span><button type="button" class="ghost" data-del="${i}">削除</button></div>
@@ -5106,6 +5265,7 @@ function openStatusModal(status, isNew){
   };
   renderEffects();
   qs('#sm-cancel',overlay).onclick = ()=> overlay.remove();
+  bindTagPairs(overlay);
   qs('#sm-save',overlay).onclick = ()=>{
     const updated = normalizeCustomStatus({
       id: st.id,
@@ -5167,11 +5327,11 @@ function openRelicModal(relic, isNew){
         <p class="hint">ターン数は、その戦闘の中で数えます（戦闘の最初のターンが1ターン目。戦闘ごとに数え直します）。「毎ターン」のときは、Nは使いません。条件に合わないターンは、効果もカードの使用も行わず、回数も消費しません。</p>
       </div>
       <div id="rm-tag-field" style="${timing==='onTagCardUsed'?'':'display:none;'}">
-        <div class="field"><label>発動条件（このタグのカードを使うたび。空欄でどのカードでも）</label><input type="text" id="rm-triggertag" value="${rel.triggerTag||''}"></div>
+        ${tagPairHTML('field', '<label>発動条件（このタグのカードを使うたび。複数指定可・, 、 区切り。空欄でどのカードでも）</label>', 'id="rm-triggertag"', rel.triggerTag, 'id="rm-triggertagmode"', rel.triggerTagMode)}
       </div>
       <div class="section-label">カードの出現率（所持している間ずっと有効）</div>
       <div class="row">
-        <div class="field"><label>出やすくするタグ（空欄で無効）</label><input type="text" id="rm-favortag" value="${escapeHtml(rel.favorTag||'')}"></div>
+        ${tagPairHTML('field', '<label>出やすくするタグ（複数指定可・, 、 区切り。空欄で無効）</label>', 'id="rm-favortag"', rel.favorTag, 'id="rm-favortagmode"', rel.favorTagMode)}
         <div class="field"><label>出現率の上昇（%）</label><input type="number" id="rm-favorpct" value="${rel.favorPct||0}" min="0" max="1000"></div>
       </div>
       <p class="hint">カード報酬・ショップで、このタグのカードが出やすくなります。下の「効果」とは別に、持っている間ずっと働きます（例: 50%で、重みが1.5倍）。</p>
@@ -5229,6 +5389,7 @@ function openRelicModal(relic, isNew){
     hint.textContent = relicTimingHint(t);
     hint.style.display = relicTimingHint(t) ? '' : 'none';
   };
+  bindTagPairs(overlay);
   qs('#rm-save',overlay).onclick = ()=>{
     const t = qs('#rm-timing',overlay).value;
     const updated = {
@@ -5236,8 +5397,10 @@ function openRelicModal(relic, isNew){
       name: qs('#rm-name',overlay).value.trim() || '無名のレリック',
       rarity: qs('#rm-rarity',overlay).value,
       timing: t,
-      triggerTag: cleanTag(qs('#rm-triggertag',overlay).value),
-      favorTag: cleanTag(qs('#rm-favortag',overlay).value),
+      triggerTag: cleanTagList(qs('#rm-triggertag',overlay).value),
+      triggerTagMode: cleanTagMode(qs('#rm-triggertagmode',overlay).value),
+      favorTag: cleanTagList(qs('#rm-favortag',overlay).value),
+      favorTagMode: cleanTagMode(qs('#rm-favortagmode',overlay).value),
       favorPct: clampInt(qs('#rm-favorpct',overlay).value,0,1000,0),
       startingCount: clampInt(qs('#rm-startcount',overlay).value,0,9,0),
       useLimit: qs('#rm-limited',overlay).checked ? clampInt(qs('#rm-uselimit',overlay).value,1,99,1) : 0,
@@ -5309,7 +5472,7 @@ function openCardModal(card, isNew){
             <option value="turnStart" ${c.triggerOn==='turnStart'?'selected':''}>自分のターンの開始時（毎ターン／Nターンごと）</option>
           </select></div>
         <div id="trigger-cardused-fields" style="${(c.triggerOn==='damaged'||c.triggerOn==='turnStart')?'display:none;':''}">
-          <div class="field"><label id="m-triggertag-label">${triggerTagLabelText(c.triggerOn)}</label><input type="text" id="m-triggertag" value="${c.triggerTag||''}"></div>
+          ${tagPairHTML('field', `<label id="m-triggertag-label">${triggerTagLabelText(c.triggerOn)}</label>`, 'id="m-triggertag"', c.triggerTag, 'id="m-triggertagmode"', c.triggerTagMode)}
           <p class="hint" id="m-trigger-hint">${triggerKindHint(c.triggerOn)}</p>
         </div>
         <div id="trigger-damaged-fields" style="${c.triggerOn==='damaged'?'':'display:none;'}">
@@ -5394,8 +5557,7 @@ function openCardModal(card, isNew){
           <select id="m-scalesrc-${def.key}" style="margin-bottom:6px;">
             ${allScaleSources().map(s=>`<option value="${escapeHtml(s.key)}" ${(sc&&sc.source||'none')===s.key?'selected':''}>${escapeHtml(s.label)}</option>`).join('')}
           </select>
-          <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">参照タグ（タグ数・タグ状態参照時のみ）</div>
-          <input type="text" id="m-scaletag-${def.key}" value="${sc?sc.tag||'':''}" style="margin-bottom:6px;">
+          ${tagPairHTML('', '<div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">参照タグ（タグ数・タグ状態参照時のみ。複数指定可・, 、 区切り。「タグの種類数」では、数えないタグ）</div>', `id="m-scaletag-${def.key}"`, sc ? sc.tag : '', `id="m-scaletagmode-${def.key}"`, sc ? sc.tagMode : 'any', 'margin-bottom:6px;')}
           <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">増減量（参照値1につき）</div>
           <input type="number" id="m-scalepp-${def.key}" value="${sc?sc.perPoint||0:0}" step="0.1" min="-10" max="10" style="margin-bottom:6px;">
           <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">↑強化時の増減量の変化</div>
@@ -5448,8 +5610,7 @@ function openCardModal(card, isNew){
           <option value="opponent" ${c.statusOp&&c.statusOp.side==='opponent'?'selected':''}>相手</option>
           <option value="both" ${c.statusOp&&c.statusOp.side==='both'?'selected':''}>自分と相手の両方</option>
         </select>
-        <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">タグ</div>
-        <input type="text" id="m-so-tag" value="${escapeHtml((c.statusOp&&c.statusOp.tag)||'')}" placeholder="例: 強化" style="margin-bottom:8px; width:100%;">
+        ${tagPairHTML('', '<div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">タグ（複数指定可・, 、 区切り）</div>', 'id="m-so-tag" placeholder="例: 強化"', c.statusOp ? c.statusOp.tag : '', 'id="m-so-tagmode"', c.statusOp ? c.statusOp.tagMode : 'any', 'margin-bottom:8px; width:100%;')}
         <div style="font-size:10px; color:var(--parchment-dim); margin-bottom:2px;">操作</div>
         <select id="m-so-mode" style="margin-bottom:8px; width:100%;">
           <option value="removeAll" ${(!c.statusOp||c.statusOp.mode!=='reduce')?'selected':''}>すべて取り除く</option>
@@ -5635,14 +5796,16 @@ function openCardModal(card, isNew){
     const opts = reqStatOptions();
     reqBox.innerHTML = reqState.length ? reqState.map((q,i)=>`<div class="ev-add" data-ri="${i}" style="margin-bottom:4px; flex-wrap:wrap;">
       <select data-rf="subject"><option value="self" ${q.subject!=='enemy'?'selected':''}>自分の</option><option value="enemy" ${q.subject==='enemy'?'selected':''}>敵の</option></select>
-      <select data-rf="stat">${opts.map(o=>`<option value="${escapeHtml(o.key)}" ${o.key===q.stat?'selected':''}>${escapeHtml(o.label)}</option>`).join('')}</select>
+      <select data-rf="stat">${opts.map(o=>`<option value="${escapeHtml(o.key)}" ${o.key===statSelectKey(q.stat)?'selected':''}>${escapeHtml(o.label)}</option>`).join('')}</select>
+      ${statIsMulti(q.stat) ? `<div style="flex-basis:100%;">${tagPairHTML('field', '<label>状態のタグ（複数指定可・, 、 区切り）</label>', 'data-rf="statTags"', String(q.stat).slice(5), 'data-rf="tagMode"', q.tagMode)}</div>` : ''}
       <input type="number" data-rf="value" value="${q.value|0}" min="0" max="999" style="width:70px;">
       <select data-rf="op">${REQ_OPS.map(o=>`<option value="${o.key}" ${o.key===q.op?'selected':''}>${o.label}</option>`).join('')}</select>
       <button type="button" class="ghost" data-rdel="${i}">削除</button></div>`).join('') : '<p class="hint">条件はありません。</p>';
   };
-  reqBox.addEventListener('input', e=>{ const f = e.target.dataset && e.target.dataset.rf; const row = e.target.closest('[data-ri]'); if(!f || !row) return; const q = reqState[+row.dataset.ri]; if(!q) return; q[f] = f==='value' ? clampInt(e.target.value,0,999,0) : e.target.value; });
-  reqBox.addEventListener('change', e=>{ const f = e.target.dataset && e.target.dataset.rf; const row = e.target.closest('[data-ri]'); if(!f || !row) return; const q = reqState[+row.dataset.ri]; if(!q) return; q[f] = f==='value' ? clampInt(e.target.value,0,999,0) : e.target.value; });
+  reqBox.addEventListener('input', e=>{ const f = e.target.dataset && e.target.dataset.rf; const row = e.target.closest('[data-ri]'); if(!f || !row) return; const q = reqState[+row.dataset.ri]; if(!q) return; if(f==='statTags') q.stat = 'tags:' + e.target.value; else q[f] = f==='value' ? clampInt(e.target.value,0,999,0) : e.target.value; });
+  reqBox.addEventListener('change', e=>{ const f = e.target.dataset && e.target.dataset.rf; const row = e.target.closest('[data-ri]'); if(!f || !row) return; const q = reqState[+row.dataset.ri]; if(!q) return; if(f==='statTags') q.stat = 'tags:' + e.target.value; else q[f] = f==='value' ? clampInt(e.target.value,0,999,0) : e.target.value; });
   reqBox.addEventListener('click', e=>{ const b = e.target.closest('[data-rdel]'); if(b){ reqState.splice(+b.dataset.rdel,1); renderReq(); } });
+  reqBox.addEventListener('change', e=>{ if(e.target.dataset && e.target.dataset.rf==='stat') renderReq(); });   // 「タグを複数指定する」を選んだときに入力欄を出す
   qs('#req-add', overlay).onclick = ()=>{ const o = reqStatOptions(); reqState.push({subject:'self', stat:(o[0]||{}).key||'強化', op:'ge', value:1}); renderReq(); };
   renderReq();
   // ----- カード操作（複数。追加ボタン式） -----
@@ -5659,7 +5822,7 @@ function openCardModal(card, isNew){
     return `<div style="margin:4px 0 8px;"><button type="button" class="ghost" data-optoggle="${f}" style="height:28px;">${x ? '増減設定を編集' : '+参照増減'}（${OP_SCALE_LABELS[f]}）</button>
       <div data-opscalebox="${f}" style="${x ? '' : 'display:none;'} margin-top:4px; padding:8px; background:var(--bg-void); border:1px solid var(--line); border-radius:4px;">
         ${lab('参照元')}<select data-opscale="${f}" data-opsk="source" style="width:100%;">${allScaleSources().map(v=>`<option value="${escapeHtml(v.key)}" ${((x&&x.source)||'none')===v.key?'selected':''}>${escapeHtml(v.label)}</option>`).join('')}</select>
-        ${lab('参照タグ（タグ数・タグ状態参照時のみ）')}<input type="text" data-opscale="${f}" data-opsk="tag" value="${escapeHtml((x&&x.tag)||'')}" style="width:100%;">
+        ${tagPairHTML('', lab('参照タグ（タグ数・タグ状態参照時のみ。複数指定可・, 、 区切り。「タグの種類数」では、数えないタグ）'), `data-opscale="${f}" data-opsk="tag"`, x ? x.tag : '', `data-opscale="${f}" data-opsk="tagMode"`, x ? x.tagMode : 'any', 'width:100%;')}
         ${lab('増減量（参照値1につき。小数は切り捨て）')}<input type="number" data-opscale="${f}" data-opsk="perPoint" value="${x ? (x.perPoint||0) : 0}" step="0.1" min="-10" max="10" style="width:100%;">
       </div></div>`;
   };
@@ -5703,6 +5866,7 @@ function openCardModal(card, isNew){
       ${t.type==='grantBuff' ? `${opLab('付与する効果')}<select data-opf="buffField" style="margin-bottom:8px; width:100%;">${defs.map(d=>`<option value="${escapeHtml(d.key)}" ${t.buffField===d.key?'selected':''}>${escapeHtml(d.label)}</option>`).join('')}</select>
         ${opLab('付与量（マイナスで減少も可）')}<input type="number" data-opf="buffAmount" data-opnum="1" value="${t.buffAmount|0}" min="-99" max="99" style="width:100%;">${opScale(t,'buffAmount')}
         ${String(t.buffField||'').startsWith('cs_') ? `${opLab('付与先（付与したカードを使ったとき、この状態をどちらに付与するか）')}<select data-opf="buffTarget" style="width:100%;">${[['default','カード側の設定／状態の標準のまま'],['self','自分に付与'],['opponent','相手に付与']].map(([v,tx])=>`<option value="${v}" ${(t.buffTarget||'default')===v?'selected':''}>${tx}</option>`).join('')}</select>` : ''}` : ''}
+      ${t.type==='grantBuff' ? `<div style="margin-top:8px;">${opLab('追加するタグ（複数指定可・, 、 区切り。空欄なら追加しない）')}<input type="text" data-opf="addTags" value="${escapeHtml(t.addTags||'')}" placeholder="例: 血,炎" style="width:100%;"></div>` : ''}
       ${valueModeHTML(t)}
     </div>`;
   }
@@ -5747,7 +5911,7 @@ function openCardModal(card, isNew){
         ${opLab('倍率（X × 倍率。小数は切り捨て）')}<input type="number" step="0.5" min="0" max="20" data-opf="xMult" value="${op.xMult===undefined?1:op.xMult}" style="width:100%; margin-bottom:6px;">` : ''}` : ''}
         <div style="display:flex; gap:6px; margin-bottom:8px;">${opNum('countFixed',op,(op.countSource==='xLast' || op.countSource==='xTotal') && (op.countMode==='fixed' || op.countMode==='choose') ? '固定数（Xに足す枚数）' : '固定数 / 選ぶ枚数')}${opNum('countMin',op,'ランダム最小')}${opNum('countMax',op,'ランダム最大')}</div>
         ${op.countMode==='random' ? opScale(op,'countMin')+opScale(op,'countMax') : (op.countMode==='all' ? '' : opScale(op,'countFixed'))}
-        ${isGen ? '' : `${opLab('対象タグ絞り込み（空欄で絞り込みなし）')}<input type="text" data-opf="filterTag" value="${escapeHtml(op.filterTag||'')}" style="width:100%;">`}
+        ${isGen ? '' : tagPairHTML('', opLab('対象タグ絞り込み（複数指定可・, 、 区切り。空欄で絞り込みなし）'), 'data-opf="filterTag"', op.filterTag, 'data-opf="filterTagMode"', op.filterTagMode, 'width:100%;')}
         <div class="checkbox-field" style="margin-top:8px; margin-bottom:4px;"><input type="checkbox" data-opf="sequential" ${op.sequential?'checked':''}><label>1枚ずつ選び直す（1枚処理するたびに次の1枚を選ぶ）</label></div>
         <div class="hint">オフ＝最初に全部まとめて選ぶ。オン＝1枚処理してから次を選ぶので、直前の効果で増減した手札なども対象になります（任意選択なら1枚ずつ選択画面が出ます。「対象すべて」では無効）。</div>`}
       ${extraOpHTML(op)}
@@ -5761,6 +5925,7 @@ function openCardModal(card, isNew){
         ${opLab('付与量（マイナスで減少も可）')}
         <input type="number" data-opf="buffAmount" data-opnum="1" value="${op.buffAmount|0}" min="-99" max="99" style="width:100%;">${opScale(op,'buffAmount')}
         ${String(op.buffField||'').startsWith('cs_') ? `<div style="margin-top:8px;">${opLab('付与先（付与したカードを使ったとき、この状態をどちらに付与するか）')}<select data-opf="buffTarget" style="width:100%;">${[['default','カード側の設定／状態の標準のまま'],['self','自分に付与'],['opponent','相手に付与']].map(([v,t])=>`<option value="${v}" ${(op.buffTarget||'default')===v?'selected':''}>${t}</option>`).join('')}</select></div>` : ''}</div>` : ''}
+      ${op.type==='grantBuff' ? `<div style="margin-top:8px;">${opLab('追加するタグ（複数指定可・, 、 区切り。空欄なら追加しない。「永続」の設定に従う。付与量が0でもタグだけ追加できます）')}<input type="text" data-opf="addTags" value="${escapeHtml(op.addTags||'')}" placeholder="例: 血,炎" style="width:100%;"></div>` : ''}
       ${valueModeHTML(op)}${thenSectionHTML(op, i)}
     </div>`;
   }
@@ -5779,9 +5944,9 @@ function openCardModal(card, isNew){
     if(sf && blk0){   // 参照増減の入力
       const op0 = opOf(t); if(!op0) return false;
       op0.scales = op0.scales || {};
-      const x = op0.scales[sf] = op0.scales[sf] || {source:'none', tag:'', perPoint:0};
+      const x = op0.scales[sf] = op0.scales[sf] || {source:'none', tag:'', tagMode:'any', perPoint:0};
       const k = t.dataset.opsk;
-      if(k==='perPoint') x.perPoint = clampFloat(t.value,-10,10,0); else if(k==='tag') x.tag = cleanTag(t.value); else x.source = t.value;
+      if(k==='perPoint') x.perPoint = clampFloat(t.value,-10,10,0); else if(k==='tag') x.tag = cleanTag(t.value); else if(k==='tagMode') x.tagMode = cleanTagMode(t.value); else x.source = t.value;
       return true;
     }
     if(t.dataset && t.dataset.opcap!==undefined && t.closest && t.closest('.op-block')){
@@ -5819,13 +5984,14 @@ function openCardModal(card, isNew){
   qs('#op-add', overlay).onclick = ()=>{ opsState.push(defaultStatusOp()); ensureOpIds(opsState); renderOps(); renderOrder(); };
   renderOps();
   renderOrder();
+  bindTagPairs(overlay);
   qs('#m-save',overlay).onclick = async ()=>{
     const updated = {
       id: c.id,
       name: qs('#m-name',overlay).value.trim() || '無名のカード',
       descPrefix: qs('#m-descprefix',overlay).value.trim().slice(0,120),
       elements: elState.slice(),
-      requirements: reqState.filter(q=>q && q.stat).map(q=>({subject:q.subject==='enemy'?'enemy':'self', stat:q.stat, op:['ge','le','eq'].includes(q.op)?q.op:'ge', value:clampInt(q.value,0,999,0)})),
+      requirements: reqState.filter(q=>q && q.stat && cleanStatKey(q.stat)!=='tags:').map(q=>({subject:q.subject==='enemy'?'enemy':'self', stat:cleanStatKey(q.stat), tagMode: cleanTagMode(q.tagMode), op:['ge','le','eq'].includes(q.op)?q.op:'ge', value:clampInt(q.value,0,999,0)})),
       icon: (qs('#m-icon',overlay).value||'').trim(),
       type: qs('#m-type',overlay).value,
       cost: clampInt(qs('#m-cost',overlay).value,0,6,1),
@@ -5846,7 +6012,8 @@ function openCardModal(card, isNew){
       timing: (qs('#m-trigger-on',overlay).checked && !qs('#m-immediate',overlay).checked) ? 'trigger' : 'immediate',
       triggerHits: clampInt(qs('#m-triggerhits',overlay).value,1,99,1),
       turnInterval: clampInt(qs('#m-turninterval',overlay).value,1,99,1),
-      triggerTag: cleanTag(qs('#m-triggertag',overlay).value),
+      triggerTag: cleanTagList(qs('#m-triggertag',overlay).value),
+      triggerTagMode: cleanTagMode(qs('#m-triggertagmode',overlay).value),
       triggerOn: cleanTriggerOn(qs('#m-triggeron',overlay).value),
       triggerBlocked: qs('#m-triggerblocked',overlay).checked,
       triggerEvery: clampInt(qs('#m-triggerevery',overlay).value,1,99,1),
@@ -5876,7 +6043,8 @@ function openCardModal(card, isNew){
       if(src && src!=='none'){
         updated.scales[def.key] = {
           source: src,
-          tag: (qs(`#m-scaletag-${def.key}`,overlay).value||'').trim(),
+          tag: cleanTagList(qs(`#m-scaletag-${def.key}`,overlay).value),
+          tagMode: cleanTagMode(qs(`#m-scaletagmode-${def.key}`,overlay).value),
           perPoint: clampFloat(qs(`#m-scalepp-${def.key}`,overlay).value,-10,10,0),
         };
       }
@@ -5897,6 +6065,7 @@ function openCardModal(card, isNew){
       enabled: qs('#m-so-enabled',overlay).checked,
       side: qs('#m-so-side',overlay).value,
       tag: qs('#m-so-tag',overlay).value,
+      tagMode: qs('#m-so-tagmode',overlay).value,
       mode: qs('#m-so-mode',overlay).value,
       amount: qs('#m-so-amount',overlay).value,
       first: false,   // 旧設定。順番は「効果の順番」で管理する
@@ -5942,9 +6111,21 @@ function tagBonusPctMap(){
   }
   ((r.player && r.player.relics) || []).forEach(rid=>{
     const rel = S.relics.find(x=>x.id===rid);
-    if(rel && rel.favorTag && rel.favorPct>0) map[rel.favorTag] = (map[rel.favorTag]||0) + rel.favorPct;
+    const ft = rel ? tagListOf(rel.favorTag) : [];
+    if(ft.length===1 && rel.favorPct>0) map[ft[0]] = (map[ft[0]]||0) + rel.favorPct;   // 複数タグの指定は tagBonusRules で扱う
   });
   return map;
+}
+// 複数タグを指定したレリックの出現率ボーナス。1枚のカードにつき、条件に合えば1回だけ加算する（any＝どれか1つ／all＝すべて持つ）。
+function tagBonusRules(){
+  const out = [], r = S.run;
+  if(!r) return out;
+  ((r.player && r.player.relics) || []).forEach(rid=>{
+    const rel = S.relics.find(x=>x.id===rid);
+    const ft = rel ? tagListOf(rel.favorTag) : [];
+    if(ft.length>1 && rel.favorPct>0) out.push({tags:ft, mode:cleanTagMode(rel.favorTagMode), pct:rel.favorPct});
+  });
+  return out;
 }
 function noteCardAcquired(r, cardId){
   if(!r.acquiredCardIds) r.acquiredCardIds = [];
@@ -5957,9 +6138,9 @@ function weightedPickCard(excludeIds, focusTag, onlyFocus, rarePct){
     if(tagged.length) pool = tagged;
   }
   if(pool.length===0) return null;
-  const bonus = tagBonusPctMap();
+  const bonus = tagBonusPctMap(), rules = tagBonusRules();
   const weightOf = (c)=>{
-    const pct = effectiveCardTags(c).reduce((sum,t)=> sum + (bonus[t]||0), 0);
+    const pct = effectiveCardTags(c).reduce((sum,t)=> sum + (bonus[t]||0), 0) + rules.reduce((sum,x)=> sum + (cardMatchesTags(c, x.tags, x.mode) ? x.pct : 0), 0);
     return (RARITY_WEIGHT[c.rarity]||10) * (c.rarity==='common' || rarePct===undefined ? 1 : rarePct/100) * ((focusTag && cardHasTag(c, focusTag)) ? 8 : 1) * (1 + pct/100);
   };
   const total = pool.reduce((sum,c)=> sum + weightOf(c), 0);
@@ -6057,7 +6238,7 @@ function cleanForcedMoves(list){
   return (Array.isArray(list) ? list : []).filter(x=> x && typeof x==='object' && typeof x.cardId==='string' && S.cards.some(c=>c.id===x.cardId)).map(x=>{
     const subj = FORCED_SUBJECTS.find(s=>s.key===x.subject) || FORCED_SUBJECTS[0];
     return {subject:subj.key, cmp: subj.cmps.includes(x.cmp) ? x.cmp : subj.cmps[0], value: clampInt(x.value,0,9999,0),
-      tag: cleanTag(x.tag), cardId:x.cardId, once: !!x.once,
+      tag: cleanStatKey(x.tag), tagMode: cleanTagMode(x.tagMode), cardId:x.cardId, once: !!x.once,
       conflict: CONFLICT_LABELS[x.conflict] ? x.conflict : 'priority'};
   });
 }
@@ -6077,7 +6258,7 @@ function forcedConditionMet(r, e, rule){
   const p = r.player, v = rule.value|0;
   const cmp = cur=> rule.cmp==='lte' ? cur<=v : rule.cmp==='eq' ? cur===v : cur>=v;
   // 状態の指定は、組み込みの名前／'cs:状態ID'／任意のタグ（使用条件と同じ）。削除された状態を指していれば成立しない。
-  const stat = (ent, key)=> !!key && !!requirementStatLabel(key) && cmp(requirementValueOf(ent, key));
+  const stat = (ent, key)=> !!key && !!requirementStatLabel(key, rule.tagMode) && cmp(requirementValueOf(ent, key, rule.tagMode));
   switch(rule.subject){
     case 'turn': { const n = e.rollCount||0; return rule.cmp==='every' ? (v>0 && n%v===0) : (rule.cmp==='gte' ? n>=v : n===v); }
     case 'selfHpPct': return e.maxHp>0 && cmp(e.hp*100/e.maxHp);
@@ -6167,7 +6348,7 @@ function triggerCountReady(t){
 function triggerEveryText(n){ return n>1 ? `（条件を満たすたびに数え、${n}回目ごとに発動）` : ''; }
 // 仕込みの発動条件の短い説明（ログ・敵の予告などに使う）
 function triggerWhenShort(c){
-  const tg = c.triggerTag ? `[${c.triggerTag}]の` : '';
+  const tg = tagCondText(c.triggerTag, c.triggerTagMode);
   switch(cleanTriggerOn(c.triggerOn)){
     case 'damaged':   return 'ダメージを受けたとき';
     case 'turnStart': return `自分のターンの開始時${turnIntervalOf(c)>1 ? `（${turnIntervalOf(c)}ターンごと）` : ''}`;
@@ -6180,9 +6361,9 @@ function triggerWhenShort(c){
 // カード編集画面: 発動のきっかけごとの、タグ欄の見出しと説明
 function triggerTagLabelText(kind){
   if(kind==='turnStart') return '（ターン開始時には使いません）';
-  if(kind==='drawn') return '発動条件（引いたカードに、このタグのカードが含まれるとき。空欄でどのカードでも）';
-  if(kind==='discarded') return '発動条件（捨て札に移ったカードに、このタグのカードが含まれるとき。空欄でどのカードでも）';
-  return '発動条件（このタグのカードを使うたび。空欄でどのカードでも）';
+  if(kind==='drawn') return '発動条件（引いたカード1枚ごとに、このタグを持つか判定。複数指定可・, 、 区切り。空欄でどのカードでも）';
+  if(kind==='discarded') return '発動条件（捨て札に移ったカード1枚ごとに、このタグを持つか判定。複数指定可・, 、 区切り。空欄でどのカードでも）';
+  return '発動条件（このタグのカードを使うたび。複数指定可・, 、 区切り。空欄でどのカードでも）';
 }
 function triggerKindHint(kind){
   if(kind==='turnStart') return '自分のターンの開始時（手札を引き、状態のカード操作を終えたあと、レリックより前）に発動します。仕込んだターンは数えず、次のターンの開始から数えます。「何ターンごと」を2にすれば1ターンおき、3なら2ターンおきに発動します。有効ターン数は、仕込んだターンを1ターン目として数えます（3なら、仕込んだターンと次の2ターン）。敵が使った場合は、敵の行動の直前に発動します（戦闘開始時に構えた場合は、最初の行動から数えます）。';
@@ -6335,6 +6516,7 @@ function startRun(){
     pendingRelic:null,
     cardsPlayedThisTurn:0,
     tagsPlayedThisTurn:[],
+    tagSetsPlayedThisTurn:[],
     battlesSinceSpecial:0,
     activeTriggers:[],
     instanceBuffs:{},
@@ -7106,7 +7288,7 @@ function beginFloorLegacy(forcedCategory){
   r.activeTriggers = [];
   r.pileEvents = []; r._effectDepth = 0; r._pileTrigDepth = 0;
   relicResetUses(r, 'battle');
-  r.combatStats = {played:0, tagsPlayed:[], drawn:0, discarded:0, hitsTaken:0};
+  r.combatStats = {played:0, tagsPlayed:[], tagSetsPlayed:[], drawn:0, discarded:0, hitsTaken:0};
   r.pendingTurnStartOps = [];
 
   r.enemy = makeEnemy(r.floor, forcedCategory, mapGlobalFloor(r));
@@ -7223,6 +7405,7 @@ function startPlayerTurn(first){
   r.player.energy = S.settings.energyPerTurn + (r.player.extraEnergy||0);
   r.cardsPlayedThisTurn = 0;
   r.tagsPlayedThisTurn = [];
+  r.tagSetsPlayedThisTurn = [];
   if(r.activeTriggers) r.activeTriggers = expireTriggers(r.activeTriggers);
   drawCards(S.settings.handSize + (r.player.extraDraw||0));
   if(enemyFallen()){ onEnemyDefeated(); return; }
@@ -7641,7 +7824,7 @@ function customEffectText(eff, stacks){
     case 'cardMod': {
       const fd = allEffectFieldDefs().find(d=>d.key===eff.modField);
       const nm = fd ? fd.label.replace(/（.*$/,'') : eff.modField;
-      return `${eff.modTag ? `[${escapeHtml(eff.modTag)}]の` : ''}カードを使うとき、「${escapeHtml(nm)}」が${signed(mag)}${eff.decayOnUse ? `（使うたびにスタック-${eff.decayN||1}）` : ''}${per}`;
+      return `${escapeHtml(tagCondText(eff.modTag, eff.modTagMode))}カードを使うとき、「${escapeHtml(nm)}」が${signed(mag)}${eff.decayOnUse ? `（使うたびにスタック-${eff.decayN||1}）` : ''}${per}`;
     }
     case 'revive':          return `HPが0になったとき、HP${fmtNum(mag)}で復活（発動のたびにスタックが1減ります）${per}`;
     case 'elDealtFlat':     return `${el}の攻撃の与ダメージが${signed(mag)}${per}`;
@@ -7696,7 +7879,7 @@ function statusChips(entity){
 function triggerTipHTML(t, isEnemy, e){
   const c = isEnemy ? t.card : t.cardData;
   if(!c) return '';
-  const tag = t.triggerTag ? `[${escapeHtml(t.triggerTag)}]の` : '';
+  const tag = escapeHtml(tagCondText(t.triggerTag, t.triggerTagMode));
   const when = t.triggerOn==='damaged'
     ? `${isEnemy ? '敵が' : ''}ダメージを受けるたびに発動${t.triggerBlocked ? '（ブロックで全部防いだ場合も）' : ''}`
     : PILE_TRIGGER_KINDS.includes(t.triggerOn)
@@ -7784,7 +7967,7 @@ function intentLabel(e){
   let trigText = '';
   if(hasTrigger(c)){
     const onKind = cleanTriggerOn(c.triggerOn);
-    const when = PILE_TRIGGER_KINDS.includes(onKind) ? '発動しない（敵は引く・捨てることがない）' : onKind==='turnStart' ? '自分のターン開始時' : (onKind==='damaged' ? 'ダメージを受けたとき' : `${c.triggerTag?`[${c.triggerTag}]の`:''}カードを使ったとき`);
+    const when = PILE_TRIGGER_KINDS.includes(onKind) ? '発動しない（敵は引く・捨てることがない）' : onKind==='turnStart' ? '自分のターン開始時' : (onKind==='damaged' ? 'ダメージを受けたとき' : `${tagCondText(c.triggerTag, c.triggerTagMode)}カードを使ったとき`);
     const ev = triggerCountEveryOf(c);
     trigText = `【${isTrig ? '' : '＋'}構え：${when}${ev>1 ? (onKind==='turnStart' ? `・${ev}ターンに1回` : `・${ev}回に1回`) : ''}】`;
   }
@@ -8203,13 +8386,13 @@ function relicDescription(relic){
   const timingLabel = (RELIC_TIMINGS.find(t=>t.key===timing)||{}).label || timing;
   const main = parts.length ? parts.join('。')+'。' : '';
   // Favoured-tag bonus works for as long as the relic is owned, whatever its timing.
-  const favor = (relic.favorTag && relic.favorPct>0) ? `[${relic.favorTag}]のカードの出現率+${relic.favorPct}%（所持中ずっと）。` : '';
+  const favor = (relic.favorTag && relic.favorPct>0) ? `${tagCondText(relic.favorTag, relic.favorTagMode)}カードの出現率+${relic.favorPct}%（所持中ずっと）。` : '';
   const useNames = ((timing==='combatStart'||timing==='turnStart') ? (relic.useCardIds||[]) : []).map(id=>{ const cc = cardById(id); return cc ? `「${cc.name}」` : ''; }).filter(Boolean);
   const useText = useNames.length ? `カード${useNames.join('')}をコストなしで使用。` : '';
   const pText = relicPassiveText(relic), lim = relicLimitText(relic);
   if(!main && !favor && !useText && !pText) return '効果なし';
   if(timing==='onPickup' || (!main && !useText)) return main + pText + favor + lim;
-  const tagPart = timing==='onTagCardUsed' ? (relic.triggerTag ? `[${relic.triggerTag}]の` : 'どの') : (timing==='turnStart' ? relicTurnText(relic) : '');
+  const tagPart = timing==='onTagCardUsed' ? (()=>{ const w = tagListOf(relic.triggerTag); return w.length>1 ? tagCondText(relic.triggerTag, relic.triggerTagMode)+'カードを使うたび、' : (w.length ? `[${w[0]}]の` : 'どの'); })() : (timing==='turnStart' ? relicTurnText(relic) : '');
   return `【${timingLabel}】${tagPart}${main}${useText}${pText}${favor}${lim}`;
 }
 
@@ -8239,7 +8422,7 @@ function fireRelicTiming(r, timing, playedCard){
     if(!relicUsable(r, relic)) return;   // 使える回数の上限に達している
     if(timing==='turnStart' && !relicTurnOk(relic, r.turnNo||0)) return;
     if(timing==='onTagCardUsed'){
-      const tagOk = !relic.triggerTag || cardHasTag(playedCard, relic.triggerTag);
+      const tagOk = cardMatchesTags(playedCard, relic.triggerTag, relic.triggerTagMode);
       if(!tagOk) return;
     }
     relicConsume(r, relic);
@@ -8458,9 +8641,9 @@ function evKindHeader(k){
 function newEventEffect(kind){
   if(EV_NUM[kind]) return {kind, amount: (kind==='hp'||kind==='gold') ? 10 : 1};
   if(kind==='nextCustom') return {kind, statusId:((S.customStatuses||[])[0]||{}).id||'', amount:1};
-  if(kind==='gainCard') return {kind, source:'random', cardId:'', rarity:'any', tag:'', count:1};
+  if(kind==='gainCard') return {kind, source:'random', cardId:'', rarity:'any', tag:'', tagMode:'any', count:1};
   if(kind==='gainRelic') return {kind, source:'random', relicId:'', rarity:'any'};
-  return {kind, mode:'random', rarity:'any', tag:'', count:1};
+  return {kind, mode:'random', rarity:'any', tag:'', tagMode:'any', count:1};
 }
 function newEventChoice(label){
   return {label: label||'新しい選択肢', result:'', hideEffects:false, always:false, effects:[], outcomes:[]};
@@ -8474,9 +8657,9 @@ function normalizeEventEffect(x){
   const rar = v=> EV_RARITY_OPTIONS.some(o=>o.key===v) ? v : 'any';
   if(EV_NUM[k]){ const s = !!EV_NUM[k].signed; return {kind:k, amount: clampInt(x.amount, s?-999:0, 999, s?0:1)}; }
   if(k==='nextCustom') return {kind:k, statusId:str(x.statusId), amount:clampInt(x.amount,0,999,1)};
-  if(k==='gainCard') return {kind:k, source:x.source==='specific'?'specific':'random', cardId:str(x.cardId), rarity:rar(x.rarity), tag:cleanTag(x.tag), count:clampInt(x.count,1,20,1)};
+  if(k==='gainCard') return {kind:k, source:x.source==='specific'?'specific':'random', cardId:str(x.cardId), rarity:rar(x.rarity), tag:cleanTagList(x.tag), tagMode:cleanTagMode(x.tagMode), count:clampInt(x.count,1,20,1)};
   if(k==='gainRelic') return {kind:k, source:x.source==='specific'?'specific':'random', relicId:str(x.relicId), rarity:rar(x.rarity)};
-  return {kind:k, mode:x.mode==='choose'?'choose':'random', rarity:rar(x.rarity), tag:cleanTag(x.tag), count:clampInt(x.count,1,20,1)};
+  return {kind:k, mode:x.mode==='choose'?'choose':'random', rarity:rar(x.rarity), tag:cleanTagList(x.tag), tagMode:cleanTagMode(x.tagMode), count:clampInt(x.count,1,20,1)};
 }
 function normalizeEvent(ev){
   const e = {...ev};
@@ -8532,10 +8715,10 @@ const DEFAULT_EVENTS = [
 
 /* ---------- text describing an effect ---------- */
 function evFilterText(eff, forGain){
-  const parts = [];
-  if(eff.rarity && eff.rarity!=='any') parts.push(evRarityLabel(eff.rarity));
-  if(eff.tag) parts.push(`[${eff.tag}]`);
-  return parts.join('');
+  // 「レア[A]の」「[A・B]のいずれかの」「[A・B]すべてを持つ」のように、そのあとに「カード」が続く形で返す（指定がなければ ''）
+  const r = (eff.rarity && eff.rarity!=='any') ? evRarityLabel(eff.rarity) : '';
+  const tg = tagCondText(eff.tag, eff.tagMode);
+  return tg ? r + tg : (r ? r + 'の' : '');
 }
 function eventEffectText(eff){
   const k = eff.kind;
@@ -8553,11 +8736,11 @@ function eventEffectText(eff){
       const c = S.cards.find(x=>x.id===eff.cardId);
       return `カード「${c?c.name:'？'}」を${cnt}枚入手`;
     }
-    return `${f?f+'の':''}ランダムなカードを${cnt}枚入手`;
+    return `${f}ランダムなカードを${cnt}枚入手`;
   }
-  if(k==='removeCard') return `${f?f+'の':''}カードを${cnt}枚失う（${how}）`;
-  if(k==='upgradeCard') return `${f?f+'の':''}カードを${cnt}枚強化（${how}）`;
-  if(k==='duplicateCard') return `${f?f+'の':''}カードを${cnt}枚複製（${how}）`;
+  if(k==='removeCard') return `${f}カードを${cnt}枚失う（${how}）`;
+  if(k==='upgradeCard') return `${f}カードを${cnt}枚強化（${how}）`;
+  if(k==='duplicateCard') return `${f}カードを${cnt}枚複製（${how}）`;
   if(k==='gainRelic'){
     if(eff.source==='specific'){
       const rel = S.relics.find(x=>x.id===eff.relicId);
@@ -8606,7 +8789,7 @@ function eventDeckCandidates(r, eff){
     const c = cardById(x.cid);
     if(!c) return false;
     if(!evRarityOk(c.rarity, eff.rarity, false)) return false;
-    if(eff.tag && !cardHasTag(c, eff.tag)) return false;
+    if(!cardMatchesTags(c, eff.tag, eff.tagMode)) return false;
     if(eff.kind==='upgradeCard' && isUpgradedInstanceId(x.cid)) return false;
     return true;
   });
@@ -8670,7 +8853,7 @@ function applyEventEffect(r, eff){
     const cnt = (eff.count|0) || 1;
     let pool;
     if(eff.source==='specific'){ const c = S.cards.find(x=>x.id===eff.cardId); pool = c ? [c] : []; }
-    else pool = S.cards.filter(c=> evRarityOk(c.rarity, eff.rarity, true) && (!eff.tag || cardHasTag(c, eff.tag)));
+    else pool = S.cards.filter(c=> evRarityOk(c.rarity, eff.rarity, true) && cardMatchesTags(c, eff.tag, eff.tagMode));
     if(!pool.length){ L('入手できるカードが見当たらなかった。'); return; }
     const got = [];
     for(let i=0;i<cnt;i++){ const c = pool[Math.floor(Math.random()*pool.length)]; r.discard.push(c.id); noteCardAcquired(r, c.id); got.push(c.name); }
@@ -8890,7 +9073,7 @@ function evEffectFieldsHTML(eff, ci, ei, oi){
   const at = `data-ci="${ci}" ${oi!==undefined?`data-oi="${oi}" `:''}data-ei="${ei}"`;
   const k = eff.kind;
   const numIn = (f,label,min,max,val)=>`<div><label>${label}</label><input type="number" ${at} data-f="${f}" data-num="1" value="${val}" min="${min}" max="${max}"></div>`;
-  const tagIn = `<div><label>タグ（空欄で絞り込みなし）</label><input type="text" ${at} data-f="tag" value="${escapeHtml(eff.tag||'')}"></div>`;
+  const tagIn = tagPairHTML('', '<label>タグ（複数指定可・, 、 区切り。空欄で絞り込みなし）</label>', `${at} data-f="tag"`, eff.tag, `${at} data-f="tagMode"`, eff.tagMode);
   const rarSel = (opts)=>`<div><label>レアリティ</label><select ${at} data-f="rarity">${evOpts(opts, eff.rarity||'any')}</select></div>`;
   if(EV_NUM[k]){
     const s = !!EV_NUM[k].signed;
@@ -9012,6 +9195,7 @@ function renderEventForm(){
   </div>`;
   const root = qs('.ev-form');
   bindImageField(root, 'ev', 640, ()=>d.image||'', v=>{ d.image = v; });
+  bindTagPairs(root);
   root.addEventListener('input', e=> evFormSync(e.target));
   root.addEventListener('change', e=>{
     evFormSync(e.target);
@@ -9257,7 +9441,8 @@ function renderReward(){
     ${(S.run.lastDropCards&&S.run.lastDropCards.length)?`<p style="font-size:13px; color:var(--gold); margin-top:4px;">ドロップ: ${S.run.lastDropCards.map(escapeHtml).join('、')}を受け取った</p>`:''}
     <p style="font-size:13px; color:var(--gold); margin-top:4px;">ゴールド +${r.lastGoldGained}（所持: ${r.player.gold}）${cfg.rewardRerollEnabled?` ・ リロールトークン: ${tokens}`:''}</p>
     ${(()=>{ const m = tagBonusPctMap(); const ks = Object.keys(m).filter(k=>m[k]>0);
-      return ks.length ? `<p style="font-size:11px; color:var(--parchment-dim); margin-top:4px;">出やすいタグ: ${ks.map(k=>`[${escapeHtml(k)}] +${m[k]}%`).join('　')}</p>` : ''; })()}
+      const items = ks.map(k=>`[${escapeHtml(k)}] +${m[k]}%`).concat(tagBonusRules().map(x=>`${escapeHtml(tagCondText(x.tags, x.mode))}カード +${x.pct}%`));
+      return items.length ? `<p style="font-size:11px; color:var(--parchment-dim); margin-top:4px;">出やすいタグ: ${items.join('　')}</p>` : ''; })()}
     <div class="reward-row" id="reward-row">
       ${choices.map((c,i)=>`<div data-idx="${i}">${renderCardHTML(c)}</div>`).join('')}
     </div>
