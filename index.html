@@ -552,6 +552,8 @@ const SETTING_TOGGLES = [
   {key:'shopRerollEnabled', label:'ショップの商品入れ替えを有効にする', def:true},
   {key:'startPickEnabled', label:'ゲーム開始時に、カードを1枚選んでデッキに加える', def:false},
   {key:'tagAffinityEnabled', label:'手に入れたカード（開始デッキを除く）と同じタグのカードが、報酬・ショップで出やすくなる', def:false},
+  {key:'tagAffinityExcludeType', label:'　└ 出現率の上昇の対象から、分類タグ（アタック・スキル・パワー）を外す', def:true},
+  {key:'tagAffinityExcludeCost', label:'　└ 出現率の上昇の対象から、コストのタグ（コスト0・コスト1・…・コストX）を外す', def:true},
 ];
 // Numeric settings that go with the switches above.
 const SETTING_ACQ_NUMS = [
@@ -610,6 +612,7 @@ const DEFAULT_SETTINGS = {
   restHealPct: 30,
   startRelicPickEnabled: false, // 開始時にレリックを選んで獲得する
   startRelicPickChoices: 3,
+  tagAffinityExclude: '',   // 出現率の上昇の対象にしないタグ（カンマ区切り。分類・コストのタグは、別のスイッチで外す）
   ...Object.fromEntries(SETTING_TOGGLES.map(t=>[t.key,t.def])),
   ...Object.fromEntries(SETTING_ACQ_NUMS.map(c=>[c.key,c.def])),
   ...Object.fromEntries(SETTING_COSTS.map(c=>[c.key,c.def])),
@@ -2280,7 +2283,8 @@ function renderSettings(){
       <div class="section-label">カード獲得の補助（オン/オフ）</div>
       ${SETTING_TOGGLES.map(t=>`<div class="checkbox-field"><input type="checkbox" id="s-${t.key}" ${s[t.key]?'checked':''}><label for="s-${t.key}">${t.label}</label></div>`).join('')}
       ${SETTING_ACQ_NUMS.map(c=>`<div class="field"><label>${c.label}</label><input type="number" id="s-${c.key}" value="${s[c.key]}" min="${c.min}" max="${c.max}"></div>`).join('')}
-      <p class="hint">開始時の取得は、報酬と同じ抽選（ベーシック以外）から選びます。タグの偏りは、報酬とショップの抽選に効きます（レリックで設定した偏りは、この設定がオフでも働きます）。</p>
+      <div class="field"><label>出現率の上昇の対象にしないタグ（上の分類・コスト以外。複数指定可・, 、 区切り）</label><input type="text" id="s-tagAffinityExclude" value="${escapeHtml(s.tagAffinityExclude||'')}" placeholder="例: 血,炎"></div>
+      <p class="hint">開始時の取得は、報酬と同じ抽選（ベーシック以外）から選びます。タグの偏りは、報酬とショップの抽選に効きます（レリックで設定した偏りは、この設定がオフでも働きます）。外したタグ（分類・コスト・下の入力欄）は、手に入れても出現率が上がりません（レリックで指定したタグには影響しません）。</p>
       <div class="section-label">開始時のレリック</div>
       <p class="hint">最初から所持するレリックは、レリック編集画面の各レリックの「開始時の所持数」で設定します。</p>
       <div class="checkbox-field"><input type="checkbox" id="s-startRelicPickEnabled" ${s.startRelicPickEnabled?'checked':''}><label for="s-startRelicPickEnabled">ゲーム開始時に、レリックを複数の中から1つ選んで獲得する</label></div>
@@ -2347,6 +2351,7 @@ function renderSettings(){
       restHealPct: clampInt(qs('#s-rest').value,0,100,30),
       startRelicPickEnabled: qs('#s-startRelicPickEnabled').checked,
       startRelicPickChoices: clampInt(qs('#s-startRelicPickChoices').value,1,10,3),
+      tagAffinityExclude: cleanTagList(qs('#s-tagAffinityExclude').value),
       ...Object.fromEntries(SETTING_TOGGLES.map(t=>[t.key, qs('#s-'+t.key).checked])),
       ...Object.fromEntries(SETTING_ACQ_NUMS.map(c=>[c.key, clampInt(qs('#s-'+c.key).value,c.min,c.max,c.def)])),
       ...Object.fromEntries(SETTING_COSTS.map(c=>[c.key, clampInt(qs('#s-'+c.key).value,0,c.max,c.def)])),
@@ -5250,7 +5255,7 @@ function statusEffectFormHTML(eff, i){
         <option value="all" ${op.countMode==='all'?'selected':''}>対象すべて</option>
         <option value="choose" ${op.countMode==='choose'?'selected':''}>プレイヤーが任意に選ぶ（固定数ぶん、操作のたびに選択画面が出ます）</option></select></div>
       <div class="ev-eff-grid">${num('countFixed','固定数',op.countFixed)}${num('countMin','ランダム最小',op.countMin)}${num('countMax','ランダム最大',op.countMax)}</div>
-      ${tagPairHTML('field', '<label>対象タグ絞り込み（複数指定可・, 、 区切り。空欄で絞り込みなし）</label>', opAt+' data-f="filterTag"', op.filterTag, opAt+' data-f="filterTagMode"', op.filterTagMode)}
+      ${tagPairHTML('field', '<label>'+(isGen ? '生成の候補を、タグで絞り込む' : '対象タグ絞り込み')+'（複数指定可・, 、 区切り。空欄で絞り込みなし）</label>', opAt+' data-f="filterTag"', op.filterTag, opAt+' data-f="filterTagMode"', op.filterTagMode)}
       <label style="display:block; margin:6px 0;"><input type="checkbox" ${opAt} data-f="sequential" data-rerender="1" ${op.sequential?'checked':''}> 1枚ずつ選び直す（1枚処理するごとに、そのあとの山の状態から次を選ぶ）</label>
       ${(op.countMode==='choose' || op.sequential) ? '' : `<div class="field"><label>さらに選ぶ（対象になったカードから、さらに絞る。選ばれなかったカードには、この操作は何も起きません）</label><select ${opAt} data-f="pickMode" data-rerender="1">
         <option value="none" ${(op.pickMode!=='random' && op.pickMode!=='choose')?'selected':''}>さらに選ばない</option>
@@ -6048,7 +6053,7 @@ function openCardModal(card, isNew){
         ${opLab('倍率（X × 倍率。小数は切り捨て）')}<input type="number" step="0.5" min="0" max="20" data-opf="xMult" value="${op.xMult===undefined?1:op.xMult}" style="width:100%; margin-bottom:6px;">` : ''}` : ''}
         <div style="display:flex; gap:6px; margin-bottom:8px;">${opNum('countFixed',op,(op.countSource==='xLast' || op.countSource==='xTotal') && (op.countMode==='fixed' || op.countMode==='choose') ? '固定数（Xに足す枚数）' : '固定数 / 選ぶ枚数')}${opNum('countMin',op,'ランダム最小')}${opNum('countMax',op,'ランダム最大')}</div>
         ${op.countMode==='random' ? opScale(op,'countMin')+opScale(op,'countMax') : (op.countMode==='all' ? '' : opScale(op,'countFixed'))}
-        ${isGen ? '' : tagPairHTML('', opLab('対象タグ絞り込み（複数指定可・, 、 区切り。空欄で絞り込みなし）'), 'data-opf="filterTag"', op.filterTag, 'data-opf="filterTagMode"', op.filterTagMode, 'width:100%;')}
+        ${tagPairHTML('', opLab(isGen ? '生成の候補を、タグで絞り込む（複数指定可・, 、 区切り。空欄で絞り込みなし）' : '対象タグ絞り込み（複数指定可・, 、 区切り。空欄で絞り込みなし）'), 'data-opf="filterTag"', op.filterTag, 'data-opf="filterTagMode"', op.filterTagMode, 'width:100%;')}
         <div class="checkbox-field" style="margin-top:8px; margin-bottom:4px;"><input type="checkbox" data-opf="sequential" ${op.sequential?'checked':''}><label>1枚ずつ選び直す（1枚処理するたびに次の1枚を選ぶ）</label></div>
         <div class="hint">オフ＝最初に全部まとめて選ぶ。オン＝1枚処理してから次を選ぶので、直前の効果で増減した手札なども対象になります（任意選択なら1枚ずつ選択画面が出ます。「対象すべて」では無効）。</div>
         ${pickFieldsHTML(op)}`}
@@ -6242,9 +6247,13 @@ function tagBonusPctMap(){
   if(!r) return map;
   if(S.settings.tagAffinityEnabled){
     const per = S.settings.tagAffinityPct||0;
+    const exType = S.settings.tagAffinityExcludeType!==false, exCost = S.settings.tagAffinityExcludeCost!==false;   // 項目のない古い設定は、外す側
+    const exList = tagListOf(S.settings.tagAffinityExclude);
+    const typeNames = Object.values(TYPE_TAG_NAME);
+    const skip = t=> exList.includes(t) || (exType && typeNames.includes(t)) || (exCost && /^コスト(\d+|X)$/.test(t));
     (r.acquiredCardIds||[]).forEach(id=>{
       const c = S.cards.find(x=>x.id===id);
-      effectiveCardTags(c).forEach(t=>{ map[t] = (map[t]||0) + per; });
+      effectiveCardTags(c).forEach(t=>{ if(!skip(t)) map[t] = (map[t]||0) + per; });
     });
   }
   ((r.player && r.player.relics) || []).forEach(rid=>{
