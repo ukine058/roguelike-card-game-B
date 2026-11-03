@@ -386,16 +386,6 @@
 <script>
 (function(){
 
-// index_copy専用の保存領域。
-// localStorage自体はオリジン単位なので、ページのパス全体をキー接頭辞にして
-// 同じフォルダにある index.html などの保存データと混ざらないようにする。
-const __ashboundStoragePrefix = 'ashbound-copy:' + (location.pathname || '/') + ':';
-const localStorage = {
-  getItem(key) { return window.localStorage.getItem(__ashboundStoragePrefix + String(key)); },
-  setItem(key, value) { return window.localStorage.setItem(__ashboundStoragePrefix + String(key), value); },
-  removeItem(key) { return window.localStorage.removeItem(__ashboundStoragePrefix + String(key)); },
-};
-
 /* ============================= DATA MODEL ============================= */
 
 function newId(){ return 'c' + Math.random().toString(36).slice(2,10); }
